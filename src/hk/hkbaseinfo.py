@@ -3,8 +3,8 @@ from collections import namedtuple
 import akshare as ak
 import pandas
 
-import hkstock
-from SqliteTool import SqliteTool
+from src.stocks import hkstock
+from src.stocks.SqliteTool import SqliteTool
 
 # 创建对象
 sqliteTool = SqliteTool()
