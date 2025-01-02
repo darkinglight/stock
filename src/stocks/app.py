@@ -3,14 +3,15 @@ stock filter application
 """
 
 import toga
-from stocks.hkstock import fetch_all_from_db,init_table,init_hk_stock
+import stocks.hkstock as hkstock
 from toga.style import Pack
 from toga.style.pack import COLUMN, ROW
 
 
 class stock(toga.App):
     def startup(self):
-        rows = fetch_all_from_db()
+        hkstock.init_table()
+        rows = hkstock.fetch_all_from_db()
         # print(rows)
         # data = [("root%s" % i, "value %s" % i) for i in range(1, 100)]
         data = [(row.code, row.name) for row in rows]
