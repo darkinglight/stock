@@ -3,14 +3,20 @@ stock filter application
 """
 
 import toga
+from toga.style.pack import COLUMN, ROW, Pack
 from stocks.stocklist import stock_list
 
 
 class stock(toga.App):
     def startup(self):
+        table = stock_list()
+        label = toga.TextInput("abcdefg", style=Pack(flex=1))
+        container = toga.OptionContainer(content=[
+            ("港股", toga.Box(children=[table])),
+            ("A股", toga.Box(children=[label]))
+        ])
         self.main_window = toga.MainWindow(title=self.formal_name)
-        self.main_window.content = toga.TextInput(value="welcome")
-        self.menu()
+        self.main_window.content = container
         self.main_window.show()
 
     def menu(self):

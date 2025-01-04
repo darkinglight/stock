@@ -1,5 +1,6 @@
 import toga
 
+from toga.style.pack import Pack
 from stocks import hkstock
 
 
@@ -9,4 +10,4 @@ def stock_list():
     # print(rows)
     # data = [("root%s" % i, "value %s" % i) for i in range(1, 100)]
     data = [(row.code, row.name) for row in rows]
-    return toga.Table(headings=["code", "name"], data=data)
+    return toga.Table(headings=["code", "name"], data=data, style=Pack(flex=1))
