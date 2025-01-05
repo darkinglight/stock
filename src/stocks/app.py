@@ -8,7 +8,8 @@ import stocks.stocklist as stocklist
 
 class stock(toga.App):
     def startup(self):
-        stocklist.init(self.paths.cache)
+        stocklist.init_stock(self.paths.cache)
+        stocklist.init_finance(self.paths.cache)
         table = stocklist.stock_list()
         label = toga.TextInput("abcdefg", style=Pack(flex=1))
         container = toga.OptionContainer(content=[

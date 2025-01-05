@@ -3,11 +3,10 @@ from collections import namedtuple
 import akshare as ak
 import pandas
 
-from src.stocks import hkstock
-from src.stocks.SqliteTool import SqliteTool
+from stocks import hkstock
+from stocks.SqliteTool import SqliteTool
 
 # 创建对象
-sqliteTool = SqliteTool()
 
 HKFinancial = namedtuple("HKFinancial",
                      ['SECUCODE', 'SECURITY_CODE', 'SECURITY_NAME_ABBR', 'ORG_CODE', 'REPORT_DATE', 'DATE_TYPE_CODE',
@@ -60,25 +59,30 @@ def create_table():
     IS_CNY_CODE int -- 是否人民币
     ); 
     """
+    sqliteTool = SqliteTool()
     # 创建数据表
     sqliteTool.drop_table("drop table hk_financial;")
     sqliteTool.create_table(sql)
+    sqliteTool.close_con()
 
 
 def fetch_from_api(code: str, indicator: str = "报告期"):
     df = ak.stock_financial_hk_analysis_indicator_em(symbol=code, indicator=indicator)
-    print(df.loc[0])
     return df
 
 
 def fetch_from_db(SECURITY_CODE: str, REPORT_DATE: str) -> HKFinancial:
+    sqliteTool = SqliteTool()
     row = sqliteTool.query_one("select * from hk_financial where SECURITY_CODE = ? and REPORT_DATE = ?",
                                (SECURITY_CODE, REPORT_DATE))
+    sqliteTool.close_con()
     return HKFinancial(*row)
 
 
 def delete(SECURITY_CODE: str):
+    sqliteTool = SqliteTool()
     sqliteTool.delete_record(f"delete from hk_financial where SECURITY_CODE = '{SECURITY_CODE}'")
+    sqliteTool.close_con()
 
 
 def refresh(SECURITY_CODE: str):
@@ -92,7 +96,9 @@ def refresh(SECURITY_CODE: str):
     # 删除历史记录
     delete(SECURITY_CODE)
     # 执行批量插入操作
+    sqliteTool = SqliteTool()
     sqliteTool.operate_many(sql, [tuple(row) for index, row in rows.iterrows()])
+    sqliteTool.close_con()
 
 
 def refresh_all():
