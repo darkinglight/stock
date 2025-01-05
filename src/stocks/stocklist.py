@@ -48,8 +48,3 @@ def init_finance(path: Path):
     with open(cache_path, 'w') as f:
         json.dump(data, f)
 
-def stock_list():
-    rows = hkstock.fetch_all_from_db()
-    # data = [("root%s" % i, "value %s" % i) for i in range(1, 100)]
-    data = [(row.code, row.name) for row in rows]
-    return toga.Table(headings=["code", "name"], data=data, style=Pack(flex=1))
