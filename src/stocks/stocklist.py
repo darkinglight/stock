@@ -31,6 +31,7 @@ def init_stock(path: Path):
     with open(cache_path, 'w') as f:
         json.dump(data, f)
 
+
 def init_finance(path: Path):
     data = dict()
     cache_path = os.path.join(path, "config_stock_list.json")
@@ -48,3 +49,23 @@ def init_finance(path: Path):
     with open(cache_path, 'w') as f:
         json.dump(data, f)
 
+
+class Stocklist(toga.Box):
+    def __init__(self, cache_path: Path):
+        super().__init__()
+        init_stock(cache_path)
+        init_finance(cache_path)
+        self.children.append(self.stock_list())
+
+    def stock_list(self):
+        def stock_detail(widget):
+            self.children.clear()
+            self.children.append(toga.Label(text="hahaha"))
+
+        rows = hkstock.fetch_all_from_db()
+        # data = [("root%s" % i, "value %s" % i) for i in range(1, 100)]
+        data = [(row.code, row.name) for row in rows]
+        return toga.Table(headings=["code", "name"],
+                          data=data,
+                          on_select=stock_detail,
+                          style=Pack(flex=1))
