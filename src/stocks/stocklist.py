@@ -32,7 +32,7 @@ def init_stock(path: Path):
         json.dump(data, f)
 
 
-def init_finance(path: Path):
+async def init_finance(path: Path):
     data = dict()
     cache_path = os.path.join(path, "config_stock_list.json")
     with open(cache_path, 'r') as f:
@@ -60,6 +60,7 @@ class Stocklist(toga.Box):
         rows = hkstock.fetch_all_from_db()
         # data = [("root%s" % i, "value %s" % i) for i in range(1, 100)]
         data = [(row.code, row.name) for row in rows]
+        data.sort(key=lambda a: a[0])
         return toga.Table(headings=["code", "name"],
                           data=data,
                           on_select=on_active,

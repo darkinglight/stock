@@ -9,13 +9,16 @@ from stocks.SqliteTool import SqliteTool
 # 创建对象
 
 HKFinancial = namedtuple("HKFinancial",
-                     ['SECUCODE', 'SECURITY_CODE', 'SECURITY_NAME_ABBR', 'ORG_CODE', 'REPORT_DATE', 'DATE_TYPE_CODE',
-                      'PER_NETCASH_OPERATE', 'PER_OI', 'BPS', 'BASIC_EPS', 'DILUTED_EPS', 'OPERATE_INCOME',
-                      'OPERATE_INCOME_YOY', 'GROSS_PROFIT', 'GROSS_PROFIT_YOY', 'HOLDER_PROFIT', 'HOLDER_PROFIT_YOY',
-                      'GROSS_PROFIT_RATIO', 'EPS_TTM', 'OPERATE_INCOME_QOQ', 'NET_PROFIT_RATIO', 'ROE_AVG',
-                      'GROSS_PROFIT_QOQ', 'ROA', 'HOLDER_PROFIT_QOQ', 'ROE_YEARLY', 'ROIC_YEARLY', 'TAX_EBT',
-                      'OCF_SALES', 'DEBT_ASSET_RATIO', 'CURRENT_RATIO', 'CURRENTDEBT_DEBT', 'START_DATE', 'FISCAL_YEAR',
-                      'CURRENCY', 'IS_CNY_CODE'])
+                         ['SECUCODE', 'SECURITY_CODE', 'SECURITY_NAME_ABBR', 'ORG_CODE', 'REPORT_DATE',
+                          'DATE_TYPE_CODE',
+                          'PER_NETCASH_OPERATE', 'PER_OI', 'BPS', 'BASIC_EPS', 'DILUTED_EPS', 'OPERATE_INCOME',
+                          'OPERATE_INCOME_YOY', 'GROSS_PROFIT', 'GROSS_PROFIT_YOY', 'HOLDER_PROFIT',
+                          'HOLDER_PROFIT_YOY',
+                          'GROSS_PROFIT_RATIO', 'EPS_TTM', 'OPERATE_INCOME_QOQ', 'NET_PROFIT_RATIO', 'ROE_AVG',
+                          'GROSS_PROFIT_QOQ', 'ROA', 'HOLDER_PROFIT_QOQ', 'ROE_YEARLY', 'ROIC_YEARLY', 'TAX_EBT',
+                          'OCF_SALES', 'DEBT_ASSET_RATIO', 'CURRENT_RATIO', 'CURRENTDEBT_DEBT', 'START_DATE',
+                          'FISCAL_YEAR',
+                          'CURRENCY', 'IS_CNY_CODE'])
 
 
 def create_table():
@@ -79,6 +82,28 @@ def fetch_from_db(SECURITY_CODE: str, REPORT_DATE: str) -> HKFinancial:
     return HKFinancial(*row)
 
 
+def fetch_last_3year_report(SECURITY_CODE: str):
+    sqliteTool = SqliteTool()
+    rows = sqliteTool.query_many("select * from hk_financial "
+                                 f"where SECURITY_CODE = '{SECURITY_CODE}' and DATE_TYPE_CODE = '001' "
+                                 "order by REPORT_DATE DESC "
+                                 "limit 3")
+    sqliteTool.close_con()
+    if not rows:
+        return []
+    return [HKFinancial(*row) for row in rows]
+
+
+def fetch_last_year_report(SECURITY_CODE: str) -> HKFinancial:
+    sqliteTool = SqliteTool()
+    row = sqliteTool.query_one("select * from hk_financial "
+                               f"where SECURITY_CODE = '{SECURITY_CODE}' and DATE_TYPE_CODE = '001' "
+                               "order by REPORT_DATE DESC "
+                               "limit 1")
+    sqliteTool.close_con()
+    return HKFinancial(*row)
+
+
 def delete(SECURITY_CODE: str):
     sqliteTool = SqliteTool()
     sqliteTool.delete_record(f"delete from hk_financial where SECURITY_CODE = '{SECURITY_CODE}'")
@@ -111,5 +136,5 @@ def refresh_all():
 if __name__ == "__main__":
     # create_table()
     # refresh("00700")
-    refresh_all()
-    print(fetch_from_db("00700", "2023-12-31 00:00:00"))
+    # refresh_all()
+    print(fetch_last_year_report("00700"))
