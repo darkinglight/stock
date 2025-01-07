@@ -15,11 +15,20 @@ class stock(toga.App):
         ])
         self.main_window = toga.MainWindow(title=self.formal_name)
         self.main_window.content = container
+        self.menu()
         self.main_window.show()
 
     def stock_detail(self, widget):
         self.main_window.content = toga.Label(text="hahaha")
 
+    def menu(self):
+        cmd = toga.Command(
+            action=None,
+            text="港股",
+            tooltip="港股排名",
+            icon="resources/icons/brutus",
+        )
+        self.main_window.toolbar.add(cmd)
 
 def main():
     return stock()

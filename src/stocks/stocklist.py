@@ -50,21 +50,26 @@ async def init_finance(path: Path):
         json.dump(data, f)
 
 
+def stock_list(on_active):
+    finances = hkfinancial.list_last_year_report()
+    rows = hkstock.fetch_all_from_db()
+    # data = [("root%s" % i, "value %s" % i) for i in range(1, 100)]
+    data = []
+    for row in rows:
+        finance_item = None
+        for finance_row in finances:
+            if finance_row.SECURITY_CODE == row.code:
+                finance_item = finance_row
+        data.append((row.code, row.name, finance_item.EPS_TTM))
+    data.sort(key=lambda a: a[2])
+    return toga.Table(headings=["code", "name", "eps"],
+                      data=data,
+                      on_select=on_active,
+                      style=Pack(flex=1))
+
+
 class Stocklist(toga.Box):
     def __init__(self, cache_path: Path, on_active):
-        init_stock(cache_path)
-        init_finance(cache_path)
-        super().__init__(children=[self.stock_list(on_active)])
-
-    def stock_list(self, on_active):
-        rows = hkstock.fetch_all_from_db()
-        # data = [("root%s" % i, "value %s" % i) for i in range(1, 100)]
-        data = []
-        for row in rows:
-            finance_item = hkfinancial.fetch_last_year_report(row.code)
-            data.append((row.code, row.name, finance_item.EPS_TTM))
-        data.sort(key=lambda a: a[2])
-        return toga.Table(headings=["code", "name", "eps"],
-                          data=data,
-                          on_select=on_active,
-                          style=Pack(flex=1))
+        # init_stock(cache_path)
+        # init_finance(cache_path)
+        super().__init__(children=[stock_list(on_active)])
