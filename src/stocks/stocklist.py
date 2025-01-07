@@ -59,9 +59,12 @@ class Stocklist(toga.Box):
     def stock_list(self, on_active):
         rows = hkstock.fetch_all_from_db()
         # data = [("root%s" % i, "value %s" % i) for i in range(1, 100)]
-        data = [(row.code, row.name) for row in rows]
-        data.sort(key=lambda a: a[0])
-        return toga.Table(headings=["code", "name"],
+        data = []
+        for row in rows:
+            finance_item = hkfinancial.fetch_last_year_report(row.code)
+            data.append((row.code, row.name, finance_item.EPS_TTM))
+        data.sort(key=lambda a: a[2])
+        return toga.Table(headings=["code", "name", "eps"],
                           data=data,
                           on_select=on_active,
                           style=Pack(flex=1))

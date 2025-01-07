@@ -1,4 +1,5 @@
 from collections import namedtuple
+from typing import List, Any
 
 import akshare as ak
 import pandas
@@ -104,6 +105,17 @@ def fetch_last_year_report(SECURITY_CODE: str) -> HKFinancial:
     return HKFinancial(*row)
 
 
+def list_last_year_report() -> list[Any] | list[HKFinancial]:
+    sqliteTool = SqliteTool()
+    rows = sqliteTool.query_many("select * from "
+                                 "(SELECT * FROM hk_financial WHERE DATE_TYPE_CODE = '001' ORDER BY REPORT_DATE DESC) "
+                                 "GROUP BY SECURITY_CODE")
+    sqliteTool.close_con()
+    if not rows:
+        return []
+    return [HKFinancial(*row) for row in rows]
+
+
 def delete(SECURITY_CODE: str):
     sqliteTool = SqliteTool()
     sqliteTool.delete_record(f"delete from hk_financial where SECURITY_CODE = '{SECURITY_CODE}'")
@@ -137,4 +149,4 @@ if __name__ == "__main__":
     # create_table()
     # refresh("00700")
     # refresh_all()
-    print(fetch_last_year_report("00700"))
+    print(list_last_year_report())
