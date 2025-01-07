@@ -51,21 +51,16 @@ def init_finance(path: Path):
 
 
 class Stocklist(toga.Box):
-    def __init__(self, cache_path: Path):
-        super().__init__()
+    def __init__(self, cache_path: Path, on_active):
         init_stock(cache_path)
         init_finance(cache_path)
-        self.children.append(self.stock_list())
+        super().__init__(children=[self.stock_list(on_active)])
 
-    def stock_list(self):
-        def stock_detail(widget):
-            self.children.clear()
-            self.children.append(toga.Label(text="hahaha"))
-
+    def stock_list(self, on_active):
         rows = hkstock.fetch_all_from_db()
         # data = [("root%s" % i, "value %s" % i) for i in range(1, 100)]
         data = [(row.code, row.name) for row in rows]
         return toga.Table(headings=["code", "name"],
                           data=data,
-                          on_select=stock_detail,
+                          on_select=on_active,
                           style=Pack(flex=1))
