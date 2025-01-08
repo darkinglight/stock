@@ -18,7 +18,8 @@ class stock(toga.App):
                 ("Arthur Dent", 42),
                 ("Ford Prefect", 37),
                 ("Tricia McMillan", 38),
-            ]
+            ],
+            style=Pack(flex=1)
         )
 
         container = toga.OptionContainer(content=[
