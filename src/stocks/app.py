@@ -12,10 +12,18 @@ from stocks import hkstock, hkfinancial, stocklist
 
 class stock(toga.App):
     def startup(self):
-        label = toga.TextInput("abcdefg", style=Pack(flex=1))
+        table = toga.Table(
+            headings=["Name", "Age"],
+            data=[
+                ("Arthur Dent", 42),
+                ("Ford Prefect", 37),
+                ("Tricia McMillan", 38),
+            ]
+        )
+
         container = toga.OptionContainer(content=[
             ("港股", stocklist.Stocklist(self.paths.cache, self.stock_detail)),
-            ("A股", toga.Box(children=[label]))
+            ("A股", toga.Box(children=[table]))
         ])
         self.main_window = toga.MainWindow(title=self.formal_name)
         self.main_window.content = container
