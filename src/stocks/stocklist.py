@@ -3,51 +3,10 @@ import os
 from pathlib import Path
 
 import toga
-import datetime
 
 from toga.style.pack import Pack
 
 from stocks import hkstock, hkfinancial
-
-
-def init_stock(path: Path):
-    data = dict()
-    cache_path = os.path.join(path, "config_stock_list.json")
-    if not os.path.exists(cache_path):
-        os.makedirs(path, exist_ok=True)
-        with open(cache_path, 'w') as f:
-            json.dump(data, f)
-    with open(cache_path, 'r') as f:
-        data = json.load(f)
-    if not data.get('init', False):
-        hkstock.init_table()
-        data['init'] = True
-    # 根据时间更新数据
-    today = datetime.date.today().strftime('%Y-%m-%d')
-    pre_date = data.get('date', '')
-    if today != pre_date:
-        hkstock.init_hk_stock()
-        data['date'] = today
-    with open(cache_path, 'w') as f:
-        json.dump(data, f)
-
-
-async def init_finance(path: Path):
-    data = dict()
-    cache_path = os.path.join(path, "config_stock_list.json")
-    with open(cache_path, 'r') as f:
-        data = json.load(f)
-    if not data.get('init_finance', False):
-        hkfinancial.create_table()
-        data['init_finance'] = True
-    # 根据时间更新数据
-    today = datetime.date.today().strftime('%Y-%m-%d')
-    pre_date = data.get('date_finance', '')
-    if today != pre_date:
-        hkfinancial.refresh_all()
-        data['date_finance'] = today
-    with open(cache_path, 'w') as f:
-        json.dump(data, f)
 
 
 def stock_list(on_active):
@@ -69,7 +28,27 @@ def stock_list(on_active):
 
 
 class Stocklist(toga.Box):
+    cache = dict()
+
     def __init__(self, cache_path: Path, on_active):
-        # init_stock(cache_path)
-        # init_finance(cache_path)
+        self.cache_path = os.path.join(cache_path, "config_stock_list.json")
+        self.init_cache(path=cache_path)
         super().__init__(children=[stock_list(on_active)])
+
+    def init_cache(self, path: Path):
+        if not os.path.exists(self.cache_path):
+            os.makedirs(path, exist_ok=True)
+            with open(self.cache_path, 'w') as f:
+                json.dump(self.cache, f)
+        with open(self.cache_path, 'r') as f:
+            self.cache = json.load(f)
+
+    def init_stock(self):
+        if not self.cache.get('init', False):
+            hkstock.init_table()
+            hkfinancial.create_table()
+            self.cache['init'] = True
+            with open(self.cache_path, 'w') as f:
+                json.dump(self.cache, f)
+
+

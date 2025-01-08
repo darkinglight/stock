@@ -1,9 +1,11 @@
 """
 stock filter application
 """
+import time
+
 import toga
 from toga.style.pack import COLUMN, ROW, Pack
-import stocks.stocklist as stocklist
+from stocks import hkstock, hkfinancial, stocklist
 
 
 class stock(toga.App):
@@ -23,12 +25,20 @@ class stock(toga.App):
 
     def menu(self):
         cmd = toga.Command(
-            action=None,
-            text="港股",
-            tooltip="港股排名",
+            action=refresh_hk_data,
+            text="refresh",
+            tooltip="港股数据刷新",
             icon="resources/icons/brutus",
         )
         self.main_window.toolbar.add(cmd)
+
+
+async def refresh_hk_data(command, **kwargs):
+    # hkstock.init_hk_stock()
+    # hkfinancial.refresh_all()
+
+    print("refresh")
+
 
 def main():
     return stock()
