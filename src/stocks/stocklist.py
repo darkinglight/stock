@@ -19,9 +19,12 @@ def stock_list(on_active):
         for finance_row in finances:
             if finance_row.SECURITY_CODE == row.code:
                 finance_item = finance_row
-        data.append((row.code, row.name, -1000 if finance_item is None else finance_item.EPS_TTM))
-    data.sort(key=lambda a: a[2])
-    return toga.Table(headings=["code", "name", "eps"],
+        if finance_item is not None:
+            data.append((row.code, row.name, row.price, finance_item.BPS, finance_item.EPS_TTM))
+        else:
+            print(f"{row.code} miss financial data")
+    data.sort(key=lambda a: a[0])
+    return toga.Table(headings=["code", "name", "股价", "每股净资产(元)", "TTM每股收益(元)"],
                       data=data,
                       on_select=on_active,
                       style=Pack(flex=1))
