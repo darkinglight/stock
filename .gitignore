@@ -62,4 +62,4 @@ var/
 logs/
 
 # light
-src/stocks/finance.db
+finance.db
