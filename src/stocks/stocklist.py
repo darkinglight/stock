@@ -20,11 +20,14 @@ def stock_list(on_active):
             if finance_row.SECURITY_CODE == row.code:
                 finance_item = finance_row
         if finance_item is not None:
-            data.append((row.code, row.name, row.price, finance_item.BPS, finance_item.EPS_TTM))
+            data.append((row.code, row.name, round(row.price / finance_item.BPS, 2),
+                         round(row.price / finance_item.EPS_TTM, 2),
+                         finance_item.ROE_YEARLY,
+                         finance_item.DEBT_ASSET_RATIO))
         else:
             print(f"{row.code} miss financial data")
     data.sort(key=lambda a: a[0])
-    return toga.Table(headings=["code", "name", "股价", "每股净资产(元)", "TTM每股收益(元)"],
+    return toga.Table(headings=["code", "name", "pb", "pe", "年化净资产收益率(%)", "资产负债率(%)"],
                       data=data,
                       on_select=on_active,
                       style=Pack(flex=1))
