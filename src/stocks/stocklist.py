@@ -19,7 +19,7 @@ def stock_list(on_active):
         for finance_row in finances:
             if finance_row.SECURITY_CODE == row.code:
                 finance_item = finance_row
-        data.append((row.code, row.name, finance_item.EPS_TTM))
+        data.append((row.code, row.name, -1000 if finance_item is None else finance_item.EPS_TTM))
     data.sort(key=lambda a: a[2])
     return toga.Table(headings=["code", "name", "eps"],
                       data=data,

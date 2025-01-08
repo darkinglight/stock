@@ -1,7 +1,9 @@
 """
 stock filter application
 """
+import asyncio
 import time
+from threading import Thread
 
 import toga
 from toga.style.pack import COLUMN, ROW, Pack
@@ -33,11 +35,19 @@ class stock(toga.App):
         self.main_window.toolbar.add(cmd)
 
 
-async def refresh_hk_data(command, **kwargs):
+def refresh_hk_data(command, **kwargs):
+    t = Thread(target=echo)
+    t.start()
     # hkstock.init_hk_stock()
     # hkfinancial.refresh_all()
-
     print("refresh")
+
+
+def echo():
+    print("echo start:" + time.asctime())
+    time.sleep(3)
+    hkfinancial.refresh_all()
+    print("echo end" + time.asctime())
 
 
 def main():
