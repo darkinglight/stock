@@ -47,6 +47,8 @@ def fetch_all_from_db():
     sqliteTool = SqliteTool()
     rows = sqliteTool.query_many("select * from hk_stock")
     sqliteTool.close_con()
+    if rows is None:
+        return []
     return [HKStock(code=row[0], name=row[1], price=row[2]) for row in rows]
 
 
