@@ -1,15 +1,25 @@
 # INSTALL
+
+## ENV PREPARE
 1. python -m pip install briefcase
 2. briefcase new .
-3. briefcase dev
-4. briefcase create
-5. briefcase build
-6. briefcase run
-7. briefcase package --adhoc-sign
-8. briefcase update
-9. briefcase create android
-10. briefcase build android
-11. briefcase run android
+
+## DEVELOP
+1. briefcase dev
+
+## BUILD EXE
+1. briefcase create 
+2. briefcase build 
+3. briefcase run 
+
+## BUILD INSTALLER
+1. briefcase package --adhoc-sign
+
+## BUILD ANDROID
+1. briefcase update
+2. briefcase create android 
+3. 3briefcase build android
+4. briefcase run android
 
 # REFERENCE
 [beeware教程](https://docs.beeware.org/en/latest/tutorial/tutorial-0.html)  
