@@ -12,4 +12,5 @@
 11. briefcase run android
 
 # REFERENCE
-https://docs.beeware.org/en/latest/tutorial/tutorial-0.html
+[beeware教程](https://docs.beeware.org/en/latest/tutorial/tutorial-0.html)  
+[akshare数据源](https://akshare.akfamily.xyz/data/stock/stock.html#id122)
