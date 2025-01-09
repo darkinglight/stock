@@ -1,13 +1,12 @@
 """
 stock filter application
 """
-import asyncio
-import time
 from threading import Thread
 
 import toga
 from toga.style.pack import COLUMN, ROW, Pack
 from stocks import hkstock, hkfinancial, stocklist
+from stocks.detail import Detail
 
 
 class stock(toga.App):
@@ -32,11 +31,11 @@ class stock(toga.App):
         self.main_window.show()
 
     def stock_detail(self, widget):
-        self.main_window.content = toga.Label(text="hahaha")
+        self.main_window.content = Detail("00700")
 
     def menu(self):
         cmd = toga.Command(
-            action=refresh_hk_data,
+            action=refresh_hk_data_async,
             text="refresh",
             tooltip="港股数据刷新",
             icon="resources/icons/brutus",
@@ -44,19 +43,15 @@ class stock(toga.App):
         self.main_window.toolbar.add(cmd)
 
 
-def refresh_hk_data(command, **kwargs):
-    t = Thread(target=echo)
+def refresh_hk_data_async(command, **kwargs):
+    t = Thread(target=refresh_hk_data)
     t.start()
-    # hkstock.init_hk_stock()
-    # hkfinancial.refresh_all()
-    print("refresh")
+    print("refresh finish")
 
 
-def echo():
-    print("echo start:" + time.asctime())
-    time.sleep(3)
+def refresh_hk_data():
+    hkstock.init_hk_stock()
     hkfinancial.refresh_all()
-    print("echo end" + time.asctime())
 
 
 def main():
