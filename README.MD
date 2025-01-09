@@ -13,4 +13,5 @@
 
 # REFERENCE
 [beeware教程](https://docs.beeware.org/en/latest/tutorial/tutorial-0.html)  
-[akshare数据源](https://akshare.akfamily.xyz/data/stock/stock.html#id122)
+[beeware论坛](https://github.com/beeware/toga/discussions)  
+[akshare数据源](https://akshare.akfamily.xyz/data/stock/stock.html#id122)  
