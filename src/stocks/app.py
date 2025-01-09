@@ -4,6 +4,7 @@ stock filter application
 from threading import Thread
 
 import toga
+from toga import Table
 from toga.style.pack import COLUMN, ROW, Pack
 from stocks import hkstock, hkfinancial, stocklist
 from stocks.detail import Detail
@@ -30,8 +31,8 @@ class stock(toga.App):
         self.menu()
         self.main_window.show()
 
-    def stock_detail(self, widget):
-        self.main_window.content = Detail("00700")
+    def stock_detail(self, widget: Table):
+        self.main_window.content = Detail(widget.selection.code)
 
     def menu(self):
         cmd = toga.Command(
