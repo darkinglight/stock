@@ -16,10 +16,9 @@
 1. briefcase package --adhoc-sign
 
 ## BUILD ANDROID
-1. briefcase update
-2. briefcase create android 
-3. 3briefcase build android
-4. briefcase run android
+1. briefcase create/update android 
+2. briefcase build android 
+3. briefcase run android
 
 # REFERENCE
 [beeware教程](https://docs.beeware.org/en/latest/tutorial/tutorial-0.html)  
