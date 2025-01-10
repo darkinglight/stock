@@ -38,8 +38,8 @@ class Stocklist(toga.Box):
 
     def __init__(self, cache_path: Path, on_active):
         self.cache_path = os.path.join(cache_path, "config_stock_list.json")
-        self.init_cache(path=cache_path)
-        self.init_stock()
+        # self.init_cache(path=cache_path)
+        # self.init_stock()
         super().__init__(children=[stock_list(on_active)])
 
     def init_cache(self, path: Path):
