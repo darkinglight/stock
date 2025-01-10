@@ -13,18 +13,17 @@ from stocks.detail import Detail
 class stock(toga.App):
     def startup(self):
         table = toga.Table(
-            headings=["Name", "Age"],
+            headings=["配置项", "值"],
             data=[
-                ("Arthur Dent", 42),
-                ("Ford Prefect", 37),
-                ("Tricia McMillan", 38),
+                ("缓存路径", self.paths.cache),
+                ("数据路径", self.paths.data),
             ],
             style=Pack(flex=1)
         )
 
         container = toga.OptionContainer(content=[
-            ("港股", stocklist.Stocklist(self.paths.cache, self.stock_detail)),
-            ("A股", toga.Box(children=[table]))
+            ("港股通", stocklist.Stocklist(self.paths.cache, self.stock_detail)),
+            ("系统配置", toga.Box(children=[table]))
         ])
         self.main_window = toga.MainWindow(title=self.formal_name)
         self.main_window.content = container
