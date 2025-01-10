@@ -50,13 +50,10 @@ class Stocklist(toga.Box):
         with open(self.cache_path, 'r') as f:
             self.cache = json.load(f)
 
-    # todo move to refresh
     def init_stock(self):
-        # if not self.cache.get('init', False):
-        hkstock.init_table()
-        hkfinancial.create_table()
-        self.cache['init'] = True
-        with open(self.cache_path, 'w') as f:
-            json.dump(self.cache, f)
+        if not self.cache.get('init', False):
+            self.cache['init'] = True
+            with open(self.cache_path, 'w') as f:
+                json.dump(self.cache, f)
 
 

@@ -51,7 +51,9 @@ def refresh_hk_data_async(command, **kwargs):
 
 
 def refresh_hk_data():
+    hkstock.init_table()
     hkstock.init_hk_stock()
+    hkfinancial.create_table()
     hkfinancial.refresh_all()
 
 
