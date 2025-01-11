@@ -13,8 +13,10 @@ from stocks.detail import Detail
 
 class stock(toga.App):
     def startup(self):
-        if not os.path.exists(self.paths.data):
-            os.makedirs(self.paths.data, exist_ok=True)
+        # self.db_path = self.paths.data
+        self.db_path = "/Users/janet/Site/stock"
+        if not os.path.exists(self.db_path):
+            os.makedirs(self.db_path, exist_ok=True)
 
         table = toga.Table(
             headings=["配置项", "值"],
@@ -26,7 +28,7 @@ class stock(toga.App):
         )
 
         container = toga.OptionContainer(content=[
-            ("港股通", stocklist.Stocklist(self.paths.data, self.stock_detail)),
+            ("港股通", stocklist.Stocklist(self.db_path, self.stock_detail)),
             ("系统配置", toga.Box(children=[table]))
         ])
         self.main_window = toga.MainWindow(title=self.formal_name)
@@ -40,7 +42,7 @@ class stock(toga.App):
     def menu(self):
         def refresh_hk_data_async(command, **kwargs):
             def refresh_hk_data():
-                db_file = os.path.join(self.paths.data, "finance.db")
+                db_file = os.path.join(self.db_path, "finance.db")
                 stock_repository = hkstock.HkStockRepository(db_file)
                 stock_repository.init_table()
                 stock_repository.init_hk_stock()

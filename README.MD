@@ -4,6 +4,9 @@
 1. python -m pip install briefcase
 2. briefcase new .
 
+## update akshare
+1. pip install akshare --upgrade
+
 ## DEVELOP
 1. briefcase dev
 
