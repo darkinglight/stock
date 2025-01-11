@@ -8,9 +8,11 @@
 1. briefcase dev
 
 ## BUILD EXE
-1. briefcase create 
+1. briefcase create || briefcase update -r 
 2. briefcase build 
 3. briefcase run 
+
+if you want to update, build, and run in one step, you could use `briefcase run -u -r`
 
 ## BUILD INSTALLER
 1. briefcase package --adhoc-sign
