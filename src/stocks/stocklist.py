@@ -30,14 +30,19 @@ class Stocklist(toga.Box):
             for finance_row in finances:
                 if finance_row.SECURITY_CODE == row.code:
                     finance_item = finance_row
-            if finance_item is not None:
-                data.append((row.code, row.name, round(row.price / finance_item.BPS, 2),
-                             round(row.price / finance_item.EPS_TTM, 2),
-                             finance_item.ROE_YEARLY,
-                             finance_item.DEBT_ASSET_RATIO))
-            else:
+            if finance_item is None:
                 print(f"{row.code} miss financial data")
-        data.sort(key=lambda a: a[0])
+                continue
+            if (0 < finance_item.EPS_TTM < 30
+                    and 0 < finance_item.ROE_YEARLY < 50
+                    and finance_item.DEBT_ASSET_RATIO < 60):
+                data.append((row.code,
+                             row.name,
+                             round(row.price / finance_item.BPS, 2),
+                             round(row.price / finance_item.EPS_TTM, 2),
+                             round(finance_item.ROE_YEARLY, 2),
+                             round(finance_item.DEBT_ASSET_RATIO, 2)))
+        data.sort(key=lambda a: a[3] / a[4])
         return toga.Table(headings=["code", "name", "pb", "pe", "年化净资产收益率(%)", "资产负债率(%)"],
                           data=data,
                           on_select=on_active,

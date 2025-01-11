@@ -13,8 +13,8 @@ from stocks.detail import Detail
 
 class stock(toga.App):
     def startup(self):
-        # self.db_path = self.paths.data
-        self.db_path = "/Users/janet/Site/stock"
+        self.db_path = self.paths.data
+        # self.db_path = "/Users/janet"
         if not os.path.exists(self.db_path):
             os.makedirs(self.db_path, exist_ok=True)
 
