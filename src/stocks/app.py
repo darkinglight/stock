@@ -1,6 +1,7 @@
 """
 stock filter application
 """
+import os
 from threading import Thread
 
 import toga
@@ -12,6 +13,9 @@ from stocks.detail import Detail
 
 class stock(toga.App):
     def startup(self):
+        if not os.path.exists(self.paths.data):
+            os.makedirs(self.paths.data, exist_ok=True)
+
         table = toga.Table(
             headings=["配置项", "值"],
             data=[
@@ -34,6 +38,20 @@ class stock(toga.App):
         self.main_window.content = Detail(widget.selection.code)
 
     def menu(self):
+        def refresh_hk_data_async(command, **kwargs):
+            def refresh_hk_data():
+                db_file = os.path.join(self.paths.data, "finance.db")
+                stock_repository = hkstock.HkStockRepository(db_file)
+                stock_repository.init_table()
+                stock_repository.init_hk_stock()
+                finance_repository = hkfinancial.HkFinanceRepository(db_file)
+                finance_repository.create_table()
+                finance_repository.refresh_all()
+
+            t = Thread(target=refresh_hk_data)
+            t.start()
+            print("refresh finish")
+
         cmd = toga.Command(
             action=refresh_hk_data_async,
             text="refresh",
@@ -41,19 +59,6 @@ class stock(toga.App):
             icon="resources/icons/brutus",
         )
         self.main_window.toolbar.add(cmd)
-
-
-def refresh_hk_data_async(command, **kwargs):
-    t = Thread(target=refresh_hk_data)
-    t.start()
-    print("refresh finish")
-
-
-def refresh_hk_data():
-    hkstock.init_table()
-    hkstock.init_hk_stock()
-    hkfinancial.create_table()
-    hkfinancial.refresh_all()
 
 
 def main():
