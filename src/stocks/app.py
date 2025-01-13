@@ -12,11 +12,14 @@ from stocks.detail import Detail
 
 
 class stock(toga.App):
+
+    pre_page = None
+
     def startup(self):
-        self.db_path = self.paths.data
+        self.db_path = os.path.join(self.paths.data, "finance.db")
         # self.db_path = "/Users/janet"
-        if not os.path.exists(self.db_path):
-            os.makedirs(self.db_path, exist_ok=True)
+        if not os.path.exists(self.paths.data):
+            os.makedirs(self.paths.data, exist_ok=True)
 
         table = toga.Table(
             headings=["配置项", "值"],
@@ -37,16 +40,16 @@ class stock(toga.App):
         self.main_window.show()
 
     def stock_detail(self, widget: Table):
-        self.main_window.content = Detail(widget.selection.code)
+        self.pre_page = self.main_window.content
+        self.main_window.content = Detail(self.db_path, widget.selection.code)
 
     def menu(self):
         def refresh_hk_data_async(command, **kwargs):
             def refresh_hk_data():
-                db_file = os.path.join(self.db_path, "finance.db")
-                stock_repository = hkstock.HkStockRepository(db_file)
+                stock_repository = hkstock.HkStockRepository(self.db_path)
                 stock_repository.init_table()
                 stock_repository.init_hk_stock()
-                finance_repository = hkfinancial.HkFinanceRepository(db_file)
+                finance_repository = hkfinancial.HkFinanceRepository(self.db_path)
                 finance_repository.create_table()
                 finance_repository.refresh_all()
 
@@ -54,13 +57,25 @@ class stock(toga.App):
             t.start()
             print("refresh finish")
 
-        cmd = toga.Command(
+        def goto_pre_page(command):
+            if self.pre_page is not None:
+                self.main_window.content = self.pre_page
+                self.pre_page = None
+
+        cmd_pre_page = toga.Command(
+            action=goto_pre_page,
+            text="pre",
+            tooltip="上一页",
+            icon="resources/icons/brutus"
+        )
+        self.main_window.toolbar.add(cmd_pre_page)
+        cmd_refresh = toga.Command(
             action=refresh_hk_data_async,
             text="refresh",
             tooltip="港股数据刷新",
             icon="resources/icons/brutus",
         )
-        self.main_window.toolbar.add(cmd)
+        self.main_window.toolbar.add(cmd_refresh)
 
 
 def main():

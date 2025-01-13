@@ -17,7 +17,7 @@ class HKBonusRepository:
                          "code text,"
                          "report_date text,"
                          "detail text,"
-                         "type text,"
+                         "type text"
                          ");")
         sqlite_tool = SqliteTool(dbname=self.db_path)
         # 创建数据表
@@ -29,11 +29,12 @@ class HKBonusRepository:
         sqlite_tool.drop_table("drop table hk_bonus;")
         sqlite_tool.close_con()
 
-    def init_hk_stock(self):
+    def init_hk_stock(self, code: str):
         # 获取数据
-        df = ak.stock_hk_fhpx_detail_ths(symbol="0700")
+        df = ak.stock_hk_fhpx_detail_ths(symbol=code)
         df = df[["公告日期", "方案", "类型"]]
-        sql = 'insert into hk_bonus values(?,?,?)'
+        df.insert(0, 'code', code)
+        sql = f'insert into hk_bonus values(?, ?, ?, ?)'
         sqlite_tool = SqliteTool(dbname=self.db_path)
         sqlite_tool.operate_many(sql, [tuple(row) for index, row in df.iterrows()])
         sqlite_tool.close_con()
@@ -42,7 +43,7 @@ class HKBonusRepository:
         sqlite_tool = SqliteTool(dbname=self.db_path)
         row = sqlite_tool.query_one(f"select * from hk_bonus where code = '{code}'")
         sqlite_tool.close_con()
-        return HKBonus(code=row[0], name=row[1], price=row[2])
+        return HKBonus(code=row[0], report_date=row[1], detail=row[2], type=row[3])
 
     def fetch_all_from_db(self):
         sqlite_tool = SqliteTool(dbname=self.db_path)
@@ -50,8 +51,11 @@ class HKBonusRepository:
         sqlite_tool.close_con()
         if rows is None:
             return []
-        return [HKBonus(code=row[0], name=row[1], price=row[2]) for row in rows]
+        return [HKBonus(code=row[0], report_date=row[1], detail=row[2], type=row[3]) for row in rows]
 
 
 if __name__ == "__main__":
-    print()
+    repository = HKBonusRepository()
+    repository.init_table()
+    repository.init_hk_stock("0700")
+    print(repository.fetch_one_from_db("0700"))

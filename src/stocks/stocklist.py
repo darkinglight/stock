@@ -1,5 +1,3 @@
-import json
-import os
 from pathlib import Path
 
 import toga
@@ -15,7 +13,7 @@ class Stocklist(toga.Box):
 
     def __init__(self, data_path: Path, on_active):
         # self.cache_path = os.path.join(cache_path, "config_stock_list.json")
-        self.db_file = os.path.join(data_path, "finance.db")
+        self.db_file = data_path
         # self.init_cache(path=cache_path)
         # self.init_stock()
         super().__init__(children=[self.stock_list(on_active)])
