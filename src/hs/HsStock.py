@@ -47,7 +47,7 @@ class HsStockRepository:
         sqlite_tool.close_con()
         if rows is None:
             return []
-        return [HSStock(code=row[0], name=row[1]) for row in rows]
+        return [HSStock(code=item[0], name=item[1]) for item in rows]
 
 
 if __name__ == "__main__":
