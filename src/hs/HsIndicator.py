@@ -14,7 +14,7 @@ class HsIndicatorRepository:
         create table if not exists hs_indicator(
         code text,
         "日期" datetime,
-        "摊薄每股收益(元)  " float64,
+        "摊薄每股收益(元)" float64,
         "加权每股收益(元)" float64,
         "每股收益_调整后(元)" float64,
         "扣除非经常性损益后的每股收益(元)" float64,
@@ -88,16 +88,16 @@ class HsIndicatorRepository:
         "长期债券投资(元)" float64,
         "长期其它经营性投资(元)" float64,
         "1年以内应收帐款(元)" float64,
-        "1,2年以内应收帐款(元)" float64,
-        "2,3年以内应收帐款(元)" float64,
+        "1-2年以内应收帐款(元)" float64,
+        "2-3年以内应收帐款(元)" float64,
         "3年以内应收帐款(元)" float64,
         "1年以内预付货款(元)" float64,
-        "1,2年以内预付货款(元)" float64,
-        "2,3年以内预付货款(元)" float64,
+        "1-2年以内预付货款(元)" float64,
+        "2-3年以内预付货款(元)" float64,
         "3年以内预付货款(元)" float64,
         "1年以内其它应收款(元)" float64,
         "1-2年以内其它应收款(元)" float64,
-        "2,3年以内其它应收款(元)" float64,
+        "2-3年以内其它应收款(元)" float64,
         "3年以内其它应收款(元)"	float64
         ); 
         """
@@ -119,17 +119,17 @@ class HsIndicatorRepository:
     def refresh(self, code: str, start_year="2020"):
         rows = self.fetch_from_api(code, start_year)
         # 根据字典的键动态生成插入语句
-        sql = ('INSERT INTO hs_indicator ("code", "' + '", "'.join(rows.columns.values) + '") VALUES (' + code +
+        sql = ('INSERT INTO hs_indicator ("code", "' + '", "'.join(rows.columns.values) + '") VALUES (?, ' +
                ', '.join(['?'] * rows.shape[1]) + ')')
         # 删除历史记录
         self.delete(code)
         # 执行批量插入操作
         sqlite_tool = SqliteTool(self.db_path)
-        sqlite_tool.operate_many(sql, [tuple(row) for index, row in rows.iterrows()])
+        sqlite_tool.operate_many(sql, [(code,) + tuple(row) for index, row in rows.iterrows()])
         sqlite_tool.close_con()
 
 
 if __name__ == "__main__":
     repository = HsIndicatorRepository("finance.db")
-    repository.create_table()
-    # repository.refresh("600004", "2023")
+    # repository.create_table()
+    repository.refresh("600004", "2023")
