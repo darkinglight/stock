@@ -1,5 +1,9 @@
+from collections import namedtuple
+
 from stocks.SqliteTool import SqliteTool
 import akshare as ak
+
+HSStock = namedtuple("HSStock", ['code', 'name'])
 
 
 class HsStockRepository:
@@ -31,8 +35,24 @@ class HsStockRepository:
         sqlite_tool.operate_many(sql, [tuple(row) for index, row in df.iterrows()])
         sqlite_tool.close_con()
 
+    def fetch_one_from_db(self, code: str):
+        sqlite_tool = SqliteTool(self.db_path)
+        row = sqlite_tool.query_one(f"select * from hs_stock where code = '{code}'")
+        sqlite_tool.close_con()
+        return HSStock(code=row[0], name=row[1])
+
+    def fetch_all_from_db(self):
+        sqlite_tool = SqliteTool(self.db_path)
+        rows = sqlite_tool.query_many("select * from hs_stock")
+        sqlite_tool.close_con()
+        if rows is None:
+            return []
+        return [HSStock(code=row[0], name=row[1]) for row in rows]
+
 
 if __name__ == "__main__":
     repository = HsStockRepository()
-    repository.init_table()
-    repository.init_hs_stock()
+    # repository.init_table()
+    # repository.init_hs_stock()
+    for row in repository.fetch_all_from_db():
+        print(row.code, row.name)
