@@ -211,6 +211,15 @@ class HsIndicatorRepository:
         sqlite_tool.close_con()
         return HsIndicator(*row)
 
+    def list_from_db(self, code: str):
+        sqlite_tool = SqliteTool(self.db_path)
+        rows = sqlite_tool.query_many('select * from hs_indicator where code = ?',
+                                    (code,))
+        sqlite_tool.close_con()
+        if not rows:
+            return []
+        return [HsIndicator(*row) for row in rows]
+
     def delete(self, code: str):
         sqlite_tool = SqliteTool(self.db_path)
         sqlite_tool.delete_record(f"delete from hs_indicator where code = '{code}'")
@@ -237,5 +246,6 @@ class HsIndicatorRepository:
 if __name__ == "__main__":
     repository = HsIndicatorRepository("finance.db")
     # repository.create_table()
-    # repository.refresh("600004", "2023")
-    print(repository.fetch_from_db("600004", "2023-03-31"))
+    # repository.refresh("002867", "2023")
+    for item in repository.list_from_db("002867"):
+        print(item.日期, item.净资产收益率, item.净资产报酬率, item.加权每股收益, item.股息发放率)
