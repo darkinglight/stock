@@ -4,28 +4,22 @@ import akshare as ak
 
 from stocks.SqliteTool import SqliteTool
 
+# 同花顺-分红配送
+
 HsFhps = namedtuple("HsFhps",
                     [
                         "code",
                         "报告期",
-                        "业绩披露日期",
-                        "送转股份送转总比例",
-                        "送转股份送股比例",
-                        "送转股份转股比例",
-                        "现金分红现金分红比例",
-                        "现金分红现金分红比例描述",
-                        "现金分红股息率",
-                        "每股收益",
-                        "每股净资产",
-                        "每股公积金",
-                        "每股未分配利润",
-                        "净利润同比增长",
-                        "总股本",
-                        "预案公告日",
-                        "股权登记日",
-                        "除权除息日",
+                        "董事会日期",
+                        "股东大会预案公告日期",
+                        "实施公告日",
+                        "分红方案说明",
+                        "A股股权登记日",
+                        "A股除权除息日",
+                        "分红总额",
                         "方案进度",
-                        "最新公告日期",
+                        "股利支付率",
+                        "税前分红率",
                     ])
 
 
@@ -39,25 +33,17 @@ class HsFhpsRepository:
         sql = """
         create table if not exists hs_fhps(
         code text,
-        "报告期" datetime,
-        "业绩披露日期" datetime,
-        "送转股份-送转总比例" float64,
-        "送转股份-送股比例" float64,
-        "送转股份-转股比例" float64,
-        "现金分红-现金分红比例" float64,
-        "现金分红-现金分红比例描述" text,
-        "现金分红-股息率" float64,
-        "每股收益" float64,
-        "每股净资产" float64,
-        "每股公积金" float64,
-        "每股未分配利润" float64,
-        "净利润同比增长" float64,
-        "总股本" int64,
-        "预案公告日" datetime,
-        "股权登记日" datetime,
-        "除权除息日" datetime,
-        "方案进度" text,
-        "最新公告日期" datetime
+        "报告期" string,
+        "董事会日期" string,
+        "股东大会预案公告日期" string,
+        "实施公告日" string,
+        "分红方案说明" string,
+        "A股股权登记日" string,
+        "A股除权除息日" string,
+        "分红总额" string,
+        "方案进度" string,
+        "股利支付率" string,
+        "税前分红率" string
         ); 
         """
         sqlite_tool = SqliteTool(self.db_path)
@@ -67,7 +53,7 @@ class HsFhpsRepository:
         sqlite_tool.close_con()
 
     def fetch_from_api(self, code: str):
-        df = ak.stock_fhps_detail_em(symbol=code)
+        df = ak.stock_fhps_detail_ths(symbol=code)
         return df
 
     def fetch_from_db(self, code: str, date: str):
@@ -86,14 +72,9 @@ class HsFhpsRepository:
             return []
         return [HsFhps(*row) for row in rows]
 
-    # 最近平均分红率
     def get_bonus_rate(self, code: str):
         entities = self.list_from_db(code)
-        result = []
-        for entity in entities:
-            if entity.报告期 > '2020-01-01':
-                result.append(entity.现金分红现金分红比例 / entity.每股收益 / 10)
-        return sum(result) / len(result)
+        # sum(每年分红) /
 
     def delete(self, code: str):
         sqlite_tool = SqliteTool(self.db_path)
@@ -121,8 +102,7 @@ class HsFhpsRepository:
 
 if __name__ == "__main__":
     repository = HsFhpsRepository("finance.db")
-    # repository.create_table()
-    # repository.refresh("002867")
-    # for item in repository.list_from_db("002867"):
-    #     print(item.报告期, item.每股净资产, item.每股收益, item.现金分红现金分红比例, item.现金分红股息率)
-    print(repository.get_bonus_rate("002867"))
+    repository.create_table()
+    repository.refresh("002867")
+    for item in repository.list_from_db("002867"):
+        print(item.报告期, item.分红总额, item.股利支付率, item.税前分红率)
