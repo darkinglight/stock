@@ -9,8 +9,8 @@ if __name__ == "__main__":
     # stock_dividend_cninfo_df = ak.stock_dividend_cninfo(symbol="002867")
     # print(stock_dividend_cninfo_df)
     # dfcf分红
-    stock_fhps_detail_em_df = ak.stock_fhps_detail_em(symbol="002867")
-    print(stock_fhps_detail_em_df)
+    # stock_fhps_detail_em_df = ak.stock_fhps_detail_em(symbol="002867")
+    # print(stock_fhps_detail_em_df)
     # tonghuashun分红
     # stock_fhps_detail_ths_df = ak.stock_fhps_detail_ths(symbol="002867")
     # print(stock_fhps_detail_ths_df)
@@ -20,3 +20,29 @@ if __name__ == "__main__":
     # 业绩快报
     # stock_yjkb_em_df = ak.stock_yjkb_em(date="20241231")
     # print(stock_yjkb_em_df)
+    # A股实时行情
+    stock_zh_a_spot_em_df = ak.stock_zh_a_spot_em()
+    print(stock_zh_a_spot_em_df)
+序号	int64	-
+代码	object	-
+名称	object	-
+最新价	float64	-
+涨跌幅	float64	注意单位: %
+涨跌额	float64	-
+成交量	float64	注意单位: 手
+成交额	float64	注意单位: 元
+振幅	float64	注意单位: %
+最高	float64	-
+最低	float64	-
+今开	float64	-
+昨收	float64	-
+量比	float64	-
+换手率	float64	注意单位: %
+市盈率-动态	float64	-
+市净率	float64	-
+总市值	float64	注意单位: 元
+流通市值	float64	注意单位: 元
+涨速	float64	-
+5分钟涨跌	float64	注意单位: %
+60日涨跌幅	float64	注意单位: %
+年初至今涨跌幅	float64	注意单位: %

@@ -22,7 +22,7 @@ HsFhps = namedtuple("HsFhps",
                         "税前分红率",
                     ])
 
-
+# deprecated
 class HsFhpsRepository:
 
     def __init__(self, db_path: str):
