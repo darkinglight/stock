@@ -54,5 +54,6 @@ if __name__ == "__main__":
     repository = HsStockRepository()
     # repository.init_table()
     # repository.init_hs_stock()
-    for row in repository.fetch_all_from_db():
-        print(row.code, row.name)
+    # for row in repository.fetch_all_from_db():
+    #     print(row.code, row.name)
+    print(repository.fetch_one_from_db("002867"))
