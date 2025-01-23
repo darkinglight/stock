@@ -4,29 +4,10 @@ from stocks.SqliteTool import SqliteTool
 import akshare as ak
 
 HsSpot = namedtuple("HsSpot", [
-    "序号",
-    "代码",
-    "名称",
-    "最新价",
-    "涨跌幅",
-    "涨跌额",
-    "成交量",
-    "成交额",
-    "振幅",
-    "最高",
-    "最低",
-    "今开",
-    "昨收",
-    "量比",
-    "换手率",
-    "市盈率动态",
-    "市净率",
-    "总市值",
-    "流通市值",
-    "涨速",
-    "five分钟涨跌",
-    "sixty日涨跌幅",
-    "年初至今涨跌幅",
+    "code",
+    "name",
+    "pe",
+    "pb",
 ])
 
 
@@ -88,13 +69,13 @@ class HsSpotRepository:
 
     def fetch_one_from_db(self, code: str):
         sqlite_tool = SqliteTool(self.db_path)
-        row = sqlite_tool.query_one(f"select * from hs_spot where 代码 = '{code}'")
+        row = sqlite_tool.query_one(f"select 代码, 名称, \"市盈率-动态\", 市净率 from hs_spot where 代码 = '{code}'")
         sqlite_tool.close_con()
         return HsSpot(*row)
 
-    def fetch_all_from_db(self):
+    def fetch_all_from_db(self) -> list[HsSpot]:
         sqlite_tool = SqliteTool(self.db_path)
-        rows = sqlite_tool.query_many("select * from hs_spot")
+        rows = sqlite_tool.query_many("select 代码, 名称, '市盈率-动态', 市净率 from hs_spot")
         sqlite_tool.close_con()
         if rows is None:
             return []
@@ -107,4 +88,4 @@ if __name__ == "__main__":
     # repository.refresh()
     # for row in repository.fetch_all_from_db():
     #     print(row.code, row.name)
-    print(repository.fetch_one_from_db("002867"))
+    print(repository.fetch_one_from_db("002867")._asdict())

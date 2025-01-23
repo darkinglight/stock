@@ -1,4 +1,5 @@
 from collections import namedtuple
+from typing import Any
 
 import akshare as ak
 
@@ -206,15 +207,23 @@ class HsIndicatorRepository:
 
     def fetch_from_db(self, code: str, date: str):
         sqlite_tool = SqliteTool(self.db_path)
-        row = sqlite_tool.query_one('select * from hs_indicator where code = ? and "日期" = ?',
-                                    (code, date))
+        row = sqlite_tool.query_one('select * from hs_indicator where code = ? and "日期" = ?',(code, date))
         sqlite_tool.close_con()
         return HsIndicator(*row)
 
     def list_from_db(self, code: str):
         sqlite_tool = SqliteTool(self.db_path)
-        rows = sqlite_tool.query_many('select * from hs_indicator where code = ?',
-                                    (code,))
+        rows = sqlite_tool.query_many('select * from hs_indicator where code = ?',(code,))
+        sqlite_tool.close_con()
+        if not rows:
+            return []
+        return [HsIndicator(*row) for row in rows]
+
+    def list_last_year_report(self) -> list[Any] | list[HsIndicator]:
+        sqlite_tool = SqliteTool(self.db_path)
+        rows = sqlite_tool.query_many("select * from "
+                                      "(SELECT * FROM hs_indicator where 日期 like '%-12-31' ORDER BY 日期 DESC) "
+                                      "GROUP BY code")
         sqlite_tool.close_con()
         if not rows:
             return []
@@ -247,5 +256,7 @@ if __name__ == "__main__":
     repository = HsIndicatorRepository("finance.db")
     # repository.create_table()
     # repository.refresh("002867", "2023")
-    for item in repository.list_from_db("002867"):
-        print(item.日期, item.净资产收益率, item.净资产报酬率, item.加权每股收益, item.股息发放率)
+    # for item in repository.list_from_db("002867"):
+    #     print(item.日期, item.净资产收益率, item.净资产报酬率, item.加权每股收益, item.股息发放率)
+    for item in repository.list_last_year_report():
+        print(item.日期, item.code, item.净资产收益率, item.净资产报酬率, item.加权每股收益, item.股息发放率)

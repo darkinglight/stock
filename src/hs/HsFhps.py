@@ -7,25 +7,10 @@ from stocks.SqliteTool import SqliteTool
 HsFhps = namedtuple("HsFhps",
                     [
                         "code",
-                        "报告期",
-                        "业绩披露日期",
-                        "送转股份送转总比例",
-                        "送转股份送股比例",
-                        "送转股份转股比例",
-                        "现金分红现金分红比例",
-                        "现金分红现金分红比例描述",
-                        "现金分红股息率",
-                        "每股收益",
-                        "每股净资产",
-                        "每股公积金",
-                        "每股未分配利润",
-                        "净利润同比增长",
-                        "总股本",
-                        "预案公告日",
-                        "股权登记日",
-                        "除权除息日",
-                        "方案进度",
-                        "最新公告日期",
+                        "date",
+                        "bonus",  # 每股分红
+                        "eps",  # 每股盈利
+                        "bonus_rate",  # 分红率
                     ])
 
 
@@ -70,30 +55,41 @@ class HsFhpsRepository:
         df = ak.stock_fhps_detail_em(symbol=code)
         return df
 
-    def fetch_from_db(self, code: str, date: str):
+    def fetch_from_db(self, code: str, date: str) -> HsFhps:
         sqlite_tool = SqliteTool(self.db_path)
-        row = sqlite_tool.query_one('select * from hs_fhps where code = ? and "报告期" = ?',
-                                    (code, date))
+        row = sqlite_tool.query_one(
+            'select code, 报告期, "现金分红-现金分红比例", 每股收益 from hs_fhps where code = ? and "报告期" = ?',
+            (code, date))
         sqlite_tool.close_con()
         return HsFhps(*row)
 
-    def list_from_db(self, code: str):
+    def list_from_db(self, code: str) -> list[HsFhps]:
         sqlite_tool = SqliteTool(self.db_path)
-        rows = sqlite_tool.query_many('select * from hs_fhps where code = ?',
-                                      (code,))
+        rows = sqlite_tool.query_many(
+            'select code, 报告期, "现金分红-现金分红比例", 每股收益 from hs_fhps where code = ?',
+            (code,))
         sqlite_tool.close_con()
         if not rows:
             return []
-        return [HsFhps(*row) for row in rows]
+        return [HsFhps(*row, None) for row in rows]
 
     # 最近平均分红率
-    def get_bonus_rate(self, code: str):
+    def get_bonus_rate(self, code: str) -> float:
         entities = self.list_from_db(code)
         result = []
         for entity in entities:
-            if entity.报告期 > '2020-01-01':
-                result.append(entity.现金分红现金分红比例 / entity.每股收益 / 10)
+            if entity.date > '2020-01-01':
+                result.append(entity.bonus_per_stock / entity.eps / 10)
         return sum(result) / len(result)
+
+    def list_bonus_rate(self) -> list[HsFhps]:
+        sql = 'select code, 报告期, sum("现金分红-现金分红比例" / 10), max(每股收益) from hs_fhps group by code, 报告期'
+        sqlite_tool = SqliteTool(self.db_path)
+        rows = sqlite_tool.query_many(sql)
+        sqlite_tool.close_con()
+        if not rows:
+            return []
+        return [HsFhps(*row, row[2] / row[3]) for row in rows]
 
     def delete(self, code: str):
         sqlite_tool = SqliteTool(self.db_path)
@@ -125,4 +121,5 @@ if __name__ == "__main__":
     # repository.refresh("002867")
     # for item in repository.list_from_db("002867"):
     #     print(item.报告期, item.每股净资产, item.每股收益, item.现金分红现金分红比例, item.现金分红股息率)
-    print(repository.get_bonus_rate("002867"))
+    # print(repository.get_bonus_rate("002867"))
+    print(repository.list_bonus_rate())
