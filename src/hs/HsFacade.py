@@ -11,6 +11,8 @@ def list_hs_base_info(db_path: str) -> dict:
     # get roe
     hs_indicator_repository = HsIndicator.HsIndicatorRepository(db_path)
     hs_indicators = hs_indicator_repository.list_last_year_report()
+    for hs_indicator in hs_indicators:
+        result[hs_indicator.code].update(hs_indicator._asdict())
     # get bonus
     hs_fhps_repository = HsFhps.HsFhpsRepository(db_path)
     hs_fhps_list = hs_fhps_repository.list_bonus_rate()
