@@ -41,6 +41,12 @@ class HsStockRepository:
         sqlite_tool.close_con()
         return HSStock(code=row[0], name=row[1])
 
+    def find_one_by_name(self, name: str):
+        sqlite_tool = SqliteTool(self.db_path)
+        row = sqlite_tool.query_one(f"select * from hs_stock where name = '{name}'")
+        sqlite_tool.close_con()
+        return HSStock(*row)
+
     def fetch_all_from_db(self):
         sqlite_tool = SqliteTool(self.db_path)
         rows = sqlite_tool.query_many("select * from hs_stock")
@@ -57,3 +63,4 @@ if __name__ == "__main__":
     # for row in repository.fetch_all_from_db():
     #     print(row.code, row.name)
     print(repository.fetch_one_from_db("002867"))
+    print(repository.find_one_by_name("凌霄泵业"))

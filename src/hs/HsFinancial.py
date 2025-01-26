@@ -8,10 +8,10 @@ from stocks.SqliteTool import SqliteTool
 HsFinancial = namedtuple("HsFinancial",
                          [
                              "code",
-                             "date",
                              "roe",
                              "earning_growth",
                              "debt_ratio",
+                             "earning_growth_rush",  # 增速是否上扬，方便判断困境反转
                          ])
 
 
@@ -63,21 +63,31 @@ class HsFinancialRepository:
         df = ak.stock_financial_abstract_ths(symbol=code, indicator=financial)
         return df
 
-    def fetch_from_db(self, code: str, date: str):
+    def get_report(self, code: str) -> HsFinancial:
+        sql = f"""
+        SELECT
+            code,
+            CAST("净资产收益率" AS REAL), 
+            CAST("净利润同比增长率" AS REAL), 
+            CAST("资产负债率" AS REAL)
+        FROM
+            hs_financial
+        WHERE
+            code = '{code}'
+        ORDER BY
+            "报告期" DESC
+        LIMIT 4
+        """
         sqlite_tool = SqliteTool(self.db_path)
-        row = sqlite_tool.query_one('select "code", "报告期", "净资产收益率", "净利润同比增长率", "资产负债率" '
-                                    'from hs_financial where code = ? and "报告期" = ?', (code, date))
-        sqlite_tool.close_con()
-        return HsFinancial(*row)
-
-    def list_from_db(self, code: str):
-        sqlite_tool = SqliteTool(self.db_path)
-        rows = sqlite_tool.query_many('select "code", "报告期", "净资产收益率", "净利润同比增长率", "资产负债率" '
-                                      'from hs_financial where code = ?', (code,))
-        sqlite_tool.close_con()
+        rows = sqlite_tool.query_many(sql)
         if not rows:
-            return []
-        return [HsFinancial(*row) for row in rows]
+            self.__refresh(code, sqlite_tool)
+            rows = sqlite_tool.query_many(sql)
+        sqlite_tool.close_con()
+        roe_year = sum(row[1] for row in rows)
+        growth_rush = rows[0][2] > rows[1][2] > rows[2][2]
+        result = HsFinancial(code, roe_year, rows[0][2], rows[0][3], growth_rush)
+        return result
 
     def list_last_year_report(self) -> list[Any] | list[HsFinancial]:
         sqlite_tool = SqliteTool(self.db_path)
@@ -91,10 +101,10 @@ class HsFinancialRepository:
         )
         SELECT 
             "code", 
-            "报告期", 
             SUM(CAST("净资产收益率" AS REAL)), 
             CAST("净利润同比增长率" AS REAL), 
-            CAST("资产负债率" AS REAL)
+            CAST("资产负债率" AS REAL),
+            ""
         FROM
             RankedData
         WHERE
@@ -113,7 +123,7 @@ class HsFinancialRepository:
         sqlite_tool.delete_record(f"delete from hs_financial where code = '{code}'")
         sqlite_tool.close_con()
 
-    def refresh(self, code: str):
+    def __refresh(self, code: str, sqlite_tool):
         rows = self.fetch_from_api(code)
         # 根据字典的键动态生成插入语句
         sql = ('INSERT INTO hs_financial ("code", "' + '", "'.join(rows.columns.values) + '") VALUES (?, ' +
@@ -121,21 +131,22 @@ class HsFinancialRepository:
         # 删除历史记录
         self.delete(code)
         # 执行批量插入操作
-        sqlite_tool = SqliteTool(self.db_path)
-        sqlite_tool.operate_many(sql, [(code,) + tuple(row) for index, row in rows.iterrows() if row['报告期'] >= '2020-01-01'])
-        sqlite_tool.close_con()
+        sqlite_tool.operate_many(sql, [(code,) + tuple(row) for index, row in rows.iterrows() if
+                                       row['报告期'] >= '2020-01-01'])
 
     def refresh_all(self, codes: tuple):
+        sqlite_tool = SqliteTool(self.db_path)
         for code in codes:
-            self.refresh(code)
-            print(code, "finish")
+            self.__refresh(code, sqlite_tool)
+            print(code, "financial finish")
+        sqlite_tool.close_con()
 
 
 if __name__ == "__main__":
     repository = HsFinancialRepository("finance.db")
     # repository.create_table()
     # repository.refresh("002867")
-    # for item in repository.list_from_db("002867"):
-    #     print(item)
     for item in repository.list_last_year_report():
         print(item)
+    print(repository.get_report("002867"))
+    print(repository.get_report("002884"))
