@@ -81,6 +81,28 @@ class HsSpotRepository:
             return []
         return [HsSpot(*item) for item in rows]
 
+    def list_low_price_10(self) -> list[HsSpot]:
+        sql = """
+        SELECT 
+            代码, 
+            名称, 
+            "市盈率-动态", 
+            市净率
+        FROM
+            hs_spot 
+        WHERE
+            0 < 市净率 AND 市净率 < 2 AND "市盈率-动态" > 0 AND "市盈率-动态" < 15
+        ORDER BY
+            "市盈率-动态"
+        LIMIT 10
+        """
+        sqlite_tool = SqliteTool(self.db_path)
+        rows = sqlite_tool.query_many(sql)
+        sqlite_tool.close_con()
+        if rows is None:
+            return []
+        return [HsSpot(*item) for item in rows]
+
 
 if __name__ == "__main__":
     repository = HsSpotRepository()
@@ -88,4 +110,4 @@ if __name__ == "__main__":
     # repository.refresh()
     # for row in repository.fetch_all_from_db():
     #     print(row.code, row.name)
-    print(repository.fetch_one_from_db("002867")._asdict())
+    print(repository.list_low_price_10())
