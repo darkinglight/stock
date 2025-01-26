@@ -52,40 +52,49 @@ class HsFhpsRepository:
         df = ak.stock_fhps_detail_em(symbol=code)
         return df
 
-    def fetch_from_db(self, code: str, date: str) -> HsFhps:
-        sqlite_tool = SqliteTool(self.db_path)
-        row = sqlite_tool.query_one(
-            'select code, 报告期, "现金分红-现金分红比例", 每股收益 from hs_fhps where code = ? and "报告期" = ?',
-            (code, date))
-        sqlite_tool.close_con()
-        return HsFhps(*row)
-
-    def list_from_db(self, code: str) -> list[HsFhps]:
-        sqlite_tool = SqliteTool(self.db_path)
-        rows = sqlite_tool.query_many(
-            'select code, 报告期, "现金分红-现金分红比例", 每股收益 from hs_fhps where code = ?',
-            (code,))
-        sqlite_tool.close_con()
-        if not rows:
-            return []
-        return [HsFhps(*row, None) for row in rows]
-
     # 最近平均分红率
     def get_bonus_rate(self, code: str) -> float:
-        entities = self.list_from_db(code)
+        sql = f"""
+        SELECT 
+            code, 
+            substr(报告期, 1, 4) as year, 
+            sum("现金分红-现金分红比例" / 10) as bonus, 
+            max(每股收益) as eps
+        FROM
+            hs_fhps
+        WHERE
+            报告期 > "2020-12-31" and code = '{code}'
+        GROUP BY
+            code, year
+        """
+        sqlite_tool = SqliteTool(self.db_path)
+        rows = sqlite_tool.query_many(sql)
+        sqlite_tool.close_con()
         result = []
-        for entity in entities:
-            if entity.date > '2020-01-01':
-                result.append(entity.bonus_per_stock / entity.eps / 10)
-        return sum(result) / len(result)
+        for entity in rows:
+            result.append(entity[2] / entity[3])
+        return round(sum(result) / len(result), 2)
 
     def list_bonus_rate(self) -> list[HsFhps]:
-        sql = ('select code, round(sum(bonus) / sum(eps), 2) from '
-               '(select code, substr(报告期, 1, 4) as year, sum("现金分红-现金分红比例" / 10) as bonus, max(每股收益) as eps '
-               'from hs_fhps '
-               'where 报告期 > "2020-12-31" '
-               'group by code, year) '
-               'group by code')
+        sql = """
+        SELECT 
+            code, 
+            round(sum(bonus) / sum(eps), 2) 
+        FROM (
+            SELECT 
+                code, 
+                substr(报告期, 1, 4) as year, 
+                sum("现金分红-现金分红比例" / 10) as bonus, 
+                max(每股收益) as eps
+            FROM 
+                hs_fhps
+            WHERE 
+                报告期 > "2020-12-31"
+            GROUP BY 
+                code, year
+        ) GROUP BY
+            code
+        """
         sqlite_tool = SqliteTool(self.db_path)
         rows = sqlite_tool.query_many(sql)
         sqlite_tool.close_con()
@@ -111,11 +120,6 @@ class HsFhpsRepository:
         sqlite_tool.operate_many(sql, [(code,) + tuple(row) for index, row in rows.iterrows()])
         sqlite_tool.close_con()
 
-    def refresh_all(self, codes: tuple):
-        for code in codes:
-            self.refresh(code)
-            print(code, "finish")
-
 
 if __name__ == "__main__":
     repository = HsFhpsRepository("finance.db")
@@ -123,6 +127,6 @@ if __name__ == "__main__":
     # repository.refresh("002867")
     # for item in repository.list_from_db("002867"):
     #     print(item.报告期, item.每股净资产, item.每股收益, item.现金分红现金分红比例, item.现金分红股息率)
-    # print(repository.get_bonus_rate("002867"))
+    print(repository.get_bonus_rate("002867"))
     for item in repository.list_bonus_rate():
         print(item)
