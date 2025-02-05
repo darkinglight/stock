@@ -33,7 +33,7 @@ class stock(toga.App):
 
         container = toga.OptionContainer(content=[
             ("港股通", stocklist.Stocklist(self.db_path, self.stock_detail)),
-            ("A股", HsFacade.HsBox(self.db_path, self.stock_detail)),
+            ("A股", HsFacade.HsBox(self.db_path, None)),
             ("系统配置", toga.Box(children=[table]))
         ])
         self.main_window = toga.MainWindow(title=self.formal_name)
