@@ -5,6 +5,7 @@ import akshare as ak
 
 from stocks.SqliteTool import SqliteTool
 
+# todo 根据财报更新
 HsFinancial = namedtuple("HsFinancial",
                          [
                              "code",
@@ -84,7 +85,7 @@ class HsFinancialRepository:
         sqlite_tool = SqliteTool(self.db_path)
         rows = sqlite_tool.query_many(sql)
         sqlite_tool.close_con()
-        roe_ttm = sum(row[1] for row in rows)
+        roe_ttm = round(sum(row[1] for row in rows), 2)
         growth_rush = rows[0][2] > rows[1][2] > rows[2][2]
         result = HsFinancial(code, roe_ttm, rows[0][2], rows[0][3], growth_rush)
         return result
@@ -101,7 +102,7 @@ class HsFinancialRepository:
         )
         SELECT 
             "code", 
-            SUM(CAST("净资产收益率" AS REAL)), 
+            ROUND(SUM(CAST("净资产收益率" AS REAL)), 2), 
             CAST("净利润同比增长率" AS REAL), 
             CAST("资产负债率" AS REAL),
             ""

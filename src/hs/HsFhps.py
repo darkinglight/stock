@@ -4,6 +4,7 @@ import akshare as ak
 
 from stocks.SqliteTool import SqliteTool
 
+# todo 更新财报后自动更新
 HsFhps = namedtuple("HsFhps",
                     [
                         "code",

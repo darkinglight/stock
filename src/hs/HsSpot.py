@@ -11,6 +11,7 @@ HsSpot = namedtuple("HsSpot", [
 ])
 
 
+# todo 每交易日刷新数据
 class HsSpotRepository:
 
     def __init__(self, db_path: str = "finance.db"):
