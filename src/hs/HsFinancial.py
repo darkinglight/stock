@@ -24,7 +24,7 @@ class HsFinancialRepository:
         for entity in self.__list_last_year_report():
             self.data[entity.code] = entity
 
-    def create_table(self):
+    def init_table(self):
         # %s#\s\+\(.*\)\s\(.*\)\s,#"\1" \2,#
         sql = """
         create table if not exists hs_financial(
@@ -58,7 +58,6 @@ class HsFinancialRepository:
         """
         sqlite_tool = SqliteTool(self.db_path)
         # 创建数据表
-        sqlite_tool.drop_table("drop table hs_financial;")
         sqlite_tool.create_table(sql)
         sqlite_tool.close_con()
 

@@ -48,7 +48,6 @@ class HsSpotRepository:
         """
         sqlite_tool = SqliteTool(self.db_path)
         # 创建数据表
-        sqlite_tool.drop_table("drop table hs_spot;")
         sqlite_tool.create_table(sql)
         sqlite_tool.close_con()
 

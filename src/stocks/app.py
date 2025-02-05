@@ -7,12 +7,13 @@ from threading import Thread
 import toga
 from toga import Table
 from toga.style.pack import COLUMN, ROW, Pack
+
+from hs import HsFacade
 from stocks import hkstock, hkfinancial, stocklist
 from stocks.detail import Detail
 
 
 class stock(toga.App):
-
     pre_page = None
 
     def startup(self):
@@ -32,6 +33,7 @@ class stock(toga.App):
 
         container = toga.OptionContainer(content=[
             ("港股通", stocklist.Stocklist(self.db_path, self.stock_detail)),
+            ("A股", HsFacade.HsBox(self.db_path, self.stock_detail)),
             ("系统配置", toga.Box(children=[table]))
         ])
         self.main_window = toga.MainWindow(title=self.formal_name)
@@ -52,6 +54,7 @@ class stock(toga.App):
                 finance_repository = hkfinancial.HkFinanceRepository(self.db_path)
                 finance_repository.create_table()
                 finance_repository.refresh_all()
+                HsFacade.init(self.db_path)
 
             t = Thread(target=refresh_hk_data)
             t.start()

@@ -21,7 +21,7 @@ class HsFhpsRepository:
         for entity in entities:
             self.data[entity.code] = entity.bonus_rate
 
-    def __create_table(self):
+    def init_table(self):
         # %s#\s\+\(.*\)\s\(.*\)\s,#"\1" \2,#
         sql = """
         create table if not exists hs_fhps(
@@ -49,7 +49,6 @@ class HsFhpsRepository:
         """
         sqlite_tool = SqliteTool(self.db_path)
         # 创建数据表
-        sqlite_tool.drop_table("drop table hs_fhps;")
         sqlite_tool.create_table(sql)
         sqlite_tool.close_con()
 

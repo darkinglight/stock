@@ -159,6 +159,10 @@ class SqliteTool:
         except Exception as e:
             print("[select many records error]", e)
 
+    def table_exist(self, table_name: str) -> bool:
+        self._cur.execute(f"SELECT count(name) FROM sqlite_master WHERE type='table' AND name='{table_name}'")
+        return self._cur.fetchone()[0] == 1
+
 
 if __name__ == '__main__':
     # 创建数据表info的SQL语句
