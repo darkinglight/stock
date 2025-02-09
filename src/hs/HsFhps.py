@@ -126,8 +126,11 @@ class HsFhpsRepository:
 
     def get_bonus_rate(self, code: str) -> float:
         if self.data.get(code) is None:
-            self.__refresh(code)
-            self.data[code] = self.__get_bonus_rate(code)
+            try:
+                self.__refresh(code)
+                self.data[code] = self.__get_bonus_rate(code)
+            except TypeError:
+                self.data[code] = 0
         return self.data[code]
 
 

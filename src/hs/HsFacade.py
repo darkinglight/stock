@@ -33,8 +33,9 @@ def list_hs_base_info(db_path: str) -> list[HsFacade]:
     hs_fhps_repository = HsFhps.HsFhpsRepository(db_path)
     hs_financial_repository = HsFinancial.HsFinancialRepository(db_path)
     hs_spot_repository = HsSpot.HsSpotRepository(db_path)
-    hs_spots = hs_spot_repository.list_low_price_10()
+    hs_spots = hs_spot_repository.fetch_all_from_db()
     for hs_spot in hs_spots:
+        print("start:" + hs_spot.code)
         item = hs_spot._asdict()
         # set bonus rate
         bonus_rate = hs_fhps_repository.get_bonus_rate(hs_spot.code)

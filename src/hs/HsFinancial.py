@@ -145,6 +145,6 @@ class HsFinancialRepository:
 
 if __name__ == "__main__":
     repository = HsFinancialRepository("finance.db")
-    # repository.create_table()
+    repository.init_table()
     # repository.refresh("002867")
-    print(repository.get_by_code("000001"))
+    print(repository.get_by_code("601299"))

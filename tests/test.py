@@ -9,7 +9,7 @@ if __name__ == "__main__":
     # stock_dividend_cninfo_df = ak.stock_dividend_cninfo(symbol="002867")
     # print(stock_dividend_cninfo_df)
     # dfcf分红
-    # stock_fhps_detail_em_df = ak.stock_fhps_detail_em(symbol="002867")
+    # stock_fhps_detail_em_df = ak.stock_fhps_detail_em(symbol="300169")
     # print(stock_fhps_detail_em_df)
     # tonghuashun分红
     # stock_fhps_detail_ths_df = ak.stock_fhps_detail_ths(symbol="002867")
@@ -30,5 +30,5 @@ if __name__ == "__main__":
     # stock_yjbb_em_df = ak.stock_yjbb_em(date="20220331")
     # print(stock_yjbb_em_df)
     # 财务指标-同花顺
-    stock_financial_abstract_ths_df = ak.stock_financial_abstract_ths(symbol="002867", indicator="按单季度")
+    stock_financial_abstract_ths_df = ak.stock_financial_abstract_ths(symbol="833781", indicator="按单季度")
     print(stock_financial_abstract_ths_df)

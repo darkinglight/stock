@@ -75,7 +75,7 @@ class HsSpotRepository:
 
     def fetch_all_from_db(self) -> list[HsSpot]:
         sqlite_tool = SqliteTool(self.db_path)
-        rows = sqlite_tool.query_many('select 代码, 名称, "市盈率-动态", 市净率 from hs_spot')
+        rows = sqlite_tool.query_many('select 代码, 名称, "市盈率-动态", 市净率 from hs_spot where 市净率 is not Null')
         sqlite_tool.close_con()
         if rows is None:
             return []
@@ -110,4 +110,4 @@ if __name__ == "__main__":
     # repository.refresh()
     # for row in repository.fetch_all_from_db():
     #     print(row.code, row.name)
-    print(repository.list_low_price_10())
+    print(repository.fetch_all_from_db())
