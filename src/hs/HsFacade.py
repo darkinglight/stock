@@ -35,6 +35,8 @@ def list_hs_base_info(db_path: str) -> list[HsFacade]:
     hs_spot_repository = HsSpot.HsSpotRepository(db_path)
     hs_spots = hs_spot_repository.fetch_all_from_db()
     for hs_spot in hs_spots:
+        if hs_spot.pe < 0 or hs_spot.pe > 30:
+            continue
         print("start:" + hs_spot.code)
         item = hs_spot._asdict()
         # set bonus rate
@@ -58,6 +60,8 @@ class HsBox(toga.Box):
         rows = list_hs_base_info(self.db_file)
         box_data = []
         for row in rows:
+            if row.bonus_rate < 0.2 or row.debt_ratio > 60:
+                continue
             box_data.append((
                 row.code,
                 row.name,
@@ -68,9 +72,10 @@ class HsBox(toga.Box):
                 row.debt_ratio,
                 row.earning_growth,
                 row.earning_growth_rush,
+                row.roe_ttm * row.bonus_rate / row.pb + row.roe_ttm * (1 - row.bonus_rate)
             ))
         # 回报率： roe * bonus_rate / pb + roe * (1 - bonus_rate)
-        box_data.sort(key=lambda a: a[3] + a[2])
+        box_data.sort(reverse=True, key=lambda a: a[9] / a[3])
         return toga.Table(headings=["code", "name", "pb", "pe", "分红率", "年化净资产收益率(%)", "资产负债率(%)",
                                     "扣非净利润同比增长率", "扣非净利润是否加速增长"],
                           data=box_data,

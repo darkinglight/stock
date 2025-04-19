@@ -44,7 +44,7 @@ class HkStockRepository:
         sqlite_tool.close_con()
         return HKStock(code=row[0], name=row[1], price=row[2])
 
-    def fetch_all_from_db(self):
+    def fetch_all_from_db(self) -> list[HKStock]:
         sqlite_tool = SqliteTool(self.data_path)
         rows = sqlite_tool.query_many("select * from hk_stock")
         sqlite_tool.close_con()

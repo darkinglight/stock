@@ -12,10 +12,7 @@ class Stocklist(toga.Box):
     cache = dict()
 
     def __init__(self, data_path: Path, on_active):
-        # self.cache_path = os.path.join(cache_path, "config_stock_list.json")
         self.db_file = data_path
-        # self.init_cache(path=cache_path)
-        # self.init_stock()
         super().__init__(children=[self.stock_list(on_active)])
 
     def stock_list(self, on_active):
@@ -46,11 +43,3 @@ class Stocklist(toga.Box):
                           on_select=on_active,
                           style=Pack(flex=1))
 
-
-    # def init_stock(self):
-    #     with open(self.cache_path, 'r') as f:
-    #         self.cache = json.load(f)
-    #     if not self.cache.get('init', False):
-    #         self.cache['init'] = True
-    #         with open(self.cache_path, 'w') as f:
-    #             json.dump(self.cache, f)
