@@ -54,7 +54,8 @@ class HkStockRepository:
 
 
 if __name__ == "__main__":
-    # init_table()
-    # init_hk_stock()
-    # print(fetch_one_from_db('00700').name)
+    repository = HkStockRepository()
+    repository.init_table()
+    repository.init_hk_stock()
+    print(repository.fetch_one_from_db('00700').name)
     print(HkStockRepository().fetch_all_from_db())
