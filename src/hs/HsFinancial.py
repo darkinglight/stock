@@ -1,3 +1,4 @@
+import datetime
 from collections import namedtuple
 from typing import Any
 
@@ -5,7 +6,6 @@ import akshare as ak
 
 from stocks.SqliteTool import SqliteTool
 
-# todo 根据财报更新
 HsFinancial = namedtuple("HsFinancial",
                          [
                              "code",
@@ -53,7 +53,8 @@ class HsFinancialRepository:
             "速动比率" text,
             "保守速动比率" text,
             "产权比率" text,
-            "资产负债率" text
+            "资产负债率" text,
+            update_at text -- 最后更新日期
         ); 
         """
         sqlite_tool = SqliteTool(self.db_path)
@@ -123,28 +124,42 @@ class HsFinancialRepository:
         sqlite_tool.delete_record(f"delete from hs_financial where code = '{code}'")
         sqlite_tool.close_con()
 
-    def __refresh(self, code: str):
-        rows = self.__fetch_from_api(code)
-        # 根据字典的键动态生成插入语句
-        sql = ('INSERT INTO hs_financial ("code", "' + '", "'.join(rows.columns.values) + '") VALUES (?, ' +
-               ', '.join(['?'] * rows.shape[1]) + ')')
+    def get_latest_update_time(self, code: str):
+        # 查询最新的更新时间
         sqlite_tool = SqliteTool(self.db_path)
-        # 删除历史记录
-        self.__delete(code)
-        # 执行批量插入操作
-        sqlite_tool.operate_many(sql, [(code,) + tuple(row) for index, row in rows.iterrows() if
-                                       row['报告期'] >= '2020-01-01'])
+        row = sqlite_tool.query_one(f"select max(update_at) from hs_financial where code = '{code}'")
         sqlite_tool.close_con()
+        if row[0]:
+            return datetime.datetime.strptime(row[0], '%Y-%m-%d %H:%M:%S')
+        else:
+            return datetime.datetime.min
+
+    def refresh(self, code: str):
+        # 1. 无记录,时间为min < 当天16:30 2.更新日期 < 当天16:30
+        latest_update_time = self.get_latest_update_time(code)
+        # 计算时间差
+        time_diff = datetime.datetime.now() - latest_update_time
+        if time_diff.total_seconds() > 3600 * 24:
+            rows = self.__fetch_from_api(code)
+            rows['update_at'] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            # 根据字典的键动态生成插入语句
+            sql = ('INSERT INTO hs_financial ("code", "' + '", "'.join(rows.columns.values) +
+                   '") VALUES (?, ' + ', '.join(['?'] * rows.shape[1]) + ')')
+            sqlite_tool = SqliteTool(self.db_path)
+            # 删除历史记录
+            self.__delete(code)
+            # 执行批量插入操作
+            sqlite_tool.operate_many(sql, [(code,) + tuple(row) for index, row in rows.iterrows() if
+                                           row['报告期'] >= '2020-01-01'])
+            sqlite_tool.close_con()
+            # todo 更新统计表
 
     def get_by_code(self, code: str) -> HsFinancial:
-        if self.data.get(code) is None:
-            self.__refresh(code)
-            self.data[code] = self.__get_report(code)
-        return self.data[code]
+        return self.data.get(code)
 
 
 if __name__ == "__main__":
     repository = HsFinancialRepository("finance.db")
     repository.init_table()
-    # repository.refresh("002867")
-    print(repository.get_by_code("601299"))
+    repository.refresh("002867")
+    print(repository.get_by_code("002867"))
