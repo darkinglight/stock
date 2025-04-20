@@ -16,15 +16,17 @@ class Stocklist(toga.Box):
         super().__init__(children=[self.stock_list(on_active)])
 
     def stock_list(self, on_active):
+        # 获取财务数据
         finances = hkfinancial.HkFinanceRepository(self.db_file).list_last_year_report()
+        # 将财务数据存储在字典中，以股票代码作为键
+        finance_dict = {finance_row.SECURITY_CODE: finance_row for finance_row in finances}
+
+        # 获取所有股票记录
         rows = HkStockRepository(self.db_file).fetch_all_from_db()
-        # data = [("root%s" % i, "value %s" % i) for i in range(1, 100)]
         data = []
+
         for row in rows:
-            finance_item = None
-            for finance_row in finances:
-                if finance_row.SECURITY_CODE == row.code:
-                    finance_item = finance_row
+            finance_item = finance_dict.get(row.code)
             if finance_item is None:
                 print(f"{row.code} miss financial data")
                 continue
