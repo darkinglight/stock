@@ -150,7 +150,7 @@ class HkFinanceRepository:
         for row in rows:
             update_at = time_map.get(row.code)
             if update_at and update_at.startswith(today):
-                print(f"{row.name} 的数据今日已更新，跳过。")
+                # print(f"{row.name} 的数据今日已更新，跳过。")
                 continue
             self.refresh(row.code)
             print(row.name + " fetch finish.")

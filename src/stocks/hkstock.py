@@ -43,9 +43,12 @@ class HkStockRepository:
 
     def init_hk_stock(self):
         # 1. 无记录,时间为min < 当天16:30 2.更新日期 < 当天16:30
+        latest_update_time = self.get_latest_update_time()
+        # 计算时间差
+        time_diff = datetime.datetime.now() - latest_update_time
         # 计算当天 16:30 的时间
         today_1630 = datetime.datetime.now().replace(hour=16, minute=30, second=0, microsecond=0)
-        if self.get_latest_update_time() < today_1630:
+        if latest_update_time < today_1630 and time_diff.total_seconds() > 3600:
             # 获取数据
             df = ak.stock_hk_ggt_components_em()
             df = df[["代码", "名称", "最新价"]]

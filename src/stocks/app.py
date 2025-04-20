@@ -48,13 +48,22 @@ class stock(toga.App):
     def menu(self):
         def refresh_hk_data_async(command, **kwargs):
             def refresh_hk_data():
-                stock_repository = hkstock.HkStockRepository(self.db_path)
-                stock_repository.init_table()
-                stock_repository.init_hk_stock()
-                finance_repository = hkfinancial.HkFinanceRepository(self.db_path)
-                finance_repository.create_table()
-                finance_repository.refresh_all()
-                HsFacade.init(self.db_path)
+                try:
+                    stock_repository = hkstock.HkStockRepository(self.db_path)
+                    stock_repository.init_table()
+                    stock_repository.init_hk_stock()
+                except Exception as e:
+                    print(f"refresh hk stock error: {e}")
+                try:
+                    finance_repository = hkfinancial.HkFinanceRepository(self.db_path)
+                    finance_repository.create_table()
+                    finance_repository.refresh_all()
+                except Exception as e:
+                    print(f"refresh hk financial error: {e}")
+                try:
+                    HsFacade.init(self.db_path)
+                except Exception as e:
+                    print(f"refresh hs error: {e}")
 
             t = Thread(target=refresh_hk_data)
             t.start()

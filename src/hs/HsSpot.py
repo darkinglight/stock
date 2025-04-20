@@ -1,3 +1,4 @@
+import datetime
 from collections import namedtuple
 
 from stocks.SqliteTool import SqliteTool
@@ -11,7 +12,6 @@ HsSpot = namedtuple("HsSpot", [
 ])
 
 
-# todo 每交易日刷新数据
 class HsSpotRepository:
 
     def __init__(self, db_path: str = "finance.db"):
@@ -22,7 +22,7 @@ class HsSpotRepository:
         sql = """
         create table if not exists hs_spot(
             "序号" int64,
-            "代码" text,
+            "代码" text primary key,
             "名称" text,
             "最新价" float64,
             "涨跌幅" float64, -- 注意单位:%
@@ -43,7 +43,8 @@ class HsSpotRepository:
             "涨速" float64,
             "5分钟涨跌" float64, -- 注意单位:%
             "60日涨跌幅" float64, -- 注意单位:%
-            "年初至今涨跌幅" float64 -- 注意单位:%
+            "年初至今涨跌幅" float64, -- 注意单位:%
+            update_at text -- 更新时间
         ); 
         """
         sqlite_tool = SqliteTool(self.db_path)
@@ -56,16 +57,34 @@ class HsSpotRepository:
         sqlite_tool.drop_table("drop table hs_spot;")
         sqlite_tool.close_con()
 
-    def refresh(self):
-        # 获取数据
-        rows = ak.stock_zh_a_spot_em()
-        # 根据字典的键动态生成插入语句
-        sql = ('INSERT INTO hs_spot ("' + '", "'.join(rows.columns.values) + '") VALUES (' +
-               ', '.join(['?'] * rows.shape[1]) + ')')
+    def get_latest_update_time(self):
+        # 查询最新的更新时间
         sqlite_tool = SqliteTool(self.db_path)
-        sqlite_tool.delete_record("delete from hs_spot")
-        sqlite_tool.operate_many(sql, [tuple(row) for index, row in rows.iterrows()])
+        row = sqlite_tool.query_one("select max(update_at) from hs_spot")
         sqlite_tool.close_con()
+        if row[0]:
+            return datetime.datetime.strptime(row[0], '%Y-%m-%d %H:%M:%S')
+        else:
+            return datetime.datetime.min
+
+    def refresh(self):
+        # 1. 无记录,时间为min < 当天15:00 2.更新日期 < 当天15:00
+        latest_update_time = self.get_latest_update_time()
+        # 计算时间差
+        time_diff = datetime.datetime.now() - latest_update_time
+        # 计算当天 15:00 的时间
+        today_1500 = datetime.datetime.now().replace(hour=15, minute=00, second=0, microsecond=0)
+        if latest_update_time < today_1500 and time_diff.total_seconds() > 3600:
+            # 获取数据
+            rows = ak.stock_zh_a_spot_em()
+            rows['update_at'] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            # 根据字典的键动态生成插入语句
+            sql = ('INSERT INTO hs_spot ("' + '", "'.join(rows.columns.values) + '") VALUES (' +
+                   ', '.join(['?'] * rows.shape[1]) + ')')
+            sqlite_tool = SqliteTool(self.db_path)
+            sqlite_tool.delete_record("delete from hs_spot")
+            sqlite_tool.operate_many(sql, [tuple(row) for index, row in rows.iterrows()])
+            sqlite_tool.close_con()
 
     def fetch_one_from_db(self, code: str):
         sqlite_tool = SqliteTool(self.db_path)
@@ -106,8 +125,8 @@ class HsSpotRepository:
 
 if __name__ == "__main__":
     repository = HsSpotRepository()
-    # repository.init_table()
-    # repository.refresh()
+    repository.init_table()
+    repository.refresh()
     # for row in repository.fetch_all_from_db():
     #     print(row.code, row.name)
     print(repository.fetch_all_from_db())
