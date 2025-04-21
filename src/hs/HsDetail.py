@@ -1,7 +1,6 @@
 from collections import namedtuple
 
 from stocks.SqliteTool import SqliteTool
-import akshare as ak
 
 HsDetail = namedtuple("HsDetail",
                       [
@@ -21,6 +20,7 @@ class HsDetailRepository:
 
     def __init__(self, db_path: str = "finance.db"):
         self.db_path = db_path
+        self.code_set = self.__code_set()
 
     def init_table(self):
         # 创建数据表info的SQL语句
@@ -42,30 +42,56 @@ class HsDetailRepository:
 
     def drop_table(self):
         sqlite_tool = SqliteTool(self.db_path)
-        sqlite_tool.drop_table("drop table hs_stock;")
+        sqlite_tool.drop_table("drop table hs_detail;")
         sqlite_tool.close_con()
+
+    def __code_set(self) -> set[str]:
+        sqlite_tool = SqliteTool(self.db_path)
+        rows = sqlite_tool.query_many("select code from hs_detail")
+        sqlite_tool.close_con()
+        return set([item[0] for item in rows])
+
+    def init_code(self, code: str):
+        if code in self.code_set:
+            return
+        sqlite_tool = SqliteTool(self.db_path)
+        sqlite_tool.operate_one("insert into hs_detail(code) values(?)", (code,))
+        sqlite_tool.close_con()
+        self.code_set.add(code)
 
     def update_price(self, code: str, name: str, pe: float, pb: float):
+        self.init_code(code)
         sqlite_tool = SqliteTool(self.db_path)
-        sqlite_tool.operate_one(f"update hs_stock set price = {price} where code = '{code}'")
+        sqlite_tool.operate_one("update hs_detail set name = ?, pe = ?, pb = ? where code = ?", (name, pe, pb, code))
         sqlite_tool.close_con()
 
+    def update_bonus(self, code: str, bonus_rate: float):
+        self.init_code(code)
+        sqlite_tool = SqliteTool(self.db_path)
+        sqlite_tool.operate_one("update hs_detail set bonus_rate =? where code =?", (bonus_rate, code))
+        sqlite_tool.close_con()
+
+    def update_finance(self, code: str, roe_ttm: float, earning_growth: float, debt_ratio: float, earning_growth_rush: bool):
+        self.init_code(code)
+        sqlite_tool = SqliteTool(self.db_path)
+        sqlite_tool.operate_one("update hs_detail set roe_ttm =?, earning_growth =?, debt_ratio =?, earning_growth_rush =? where code =?", (roe_ttm, earning_growth, debt_ratio, earning_growth_rush, code))
+        sqlite_tool.close_con()
 
     def fetch_one_from_db(self, code: str):
         sqlite_tool = SqliteTool(self.db_path)
-        row = sqlite_tool.query_one(f"select * from hs_stock where code = '{code}'")
+        row = sqlite_tool.query_one(f"select * from hs_detail where code = '{code}'")
         sqlite_tool.close_con()
         return HsDetail(*row)
 
     def find_one_by_name(self, name: str):
         sqlite_tool = SqliteTool(self.db_path)
-        row = sqlite_tool.query_one(f"select * from hs_stock where name = '{name}'")
+        row = sqlite_tool.query_one(f"select * from hs_detail where name = '{name}'")
         sqlite_tool.close_con()
         return HsDetail(*row)
 
     def fetch_all_from_db(self):
         sqlite_tool = SqliteTool(self.db_path)
-        rows = sqlite_tool.query_many("select * from hs_stock")
+        rows = sqlite_tool.query_many("select * from hs_detail")
         sqlite_tool.close_con()
         if rows is None:
             return []
@@ -74,9 +100,9 @@ class HsDetailRepository:
 
 if __name__ == "__main__":
     repository = HsDetailRepository()
-    # repository.init_table()
-    # repository.init_hs_stock()
-    # for row in repository.fetch_all_from_db():
-    #     print(row.code, row.name)
+    # repository.drop_table()
+    repository.init_table()
+    repository.update_price("002867", "凌霄泵业", 10, 10)
+    repository.update_bonus("002867", 10)
+    repository.update_finance("002867", 10, 10, 10, True)
     print(repository.fetch_one_from_db("002867"))
-    print(repository.find_one_by_name("凌霄泵业"))

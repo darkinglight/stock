@@ -88,6 +88,13 @@ class stock(toga.App):
             icon="resources/icons/brutus",
         )
         self.main_window.toolbar.add(cmd_refresh)
+        cmd_refresh_sh_financial = toga.Command(
+            action=refresh_hk_data_async,
+            text="refresh",
+            tooltip="A股财报数据刷新",
+            icon="resources/icons/brutus",
+        )
+        self.main_window.toolbar.add(cmd_refresh_sh_financial)
 
 
 def main():
