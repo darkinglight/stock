@@ -143,7 +143,7 @@ class HsFinancialRepository:
         time_diff = datetime.datetime.now() - latest_update_time
         if time_diff.total_seconds() > 3600 * 24:
             rows = self.__fetch_from_api(code)
-            rows = rows['报告期' >= '2024-01-01']
+            rows = rows[rows['报告期'] >= '2024-01-01']
             rows['update_at'] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             # 根据字典的键动态生成插入语句
             sql = ('INSERT INTO hs_financial ("code", "' + '", "'.join(rows.columns.values) +
@@ -155,15 +155,15 @@ class HsFinancialRepository:
             sqlite_tool.operate_many(sql, [(code,) + tuple(row) for index, row in rows.iterrows()])
             sqlite_tool.close_con()
             # 计算roe_ttm = 净资产收益率 取平均值 * 4
-            roe_ttm = round(rows['净资产收益率'].astype(float).mean() * 4, 2)
+            roe_ttm = round(rows['净资产收益率'].str.rstrip('%').astype(float).mean() * 4, 2)
             # 计算earning_growth = 净利润同比增长率 取最新值
-            earning_growths = rows['净利润同比增长率'].astype(float)
+            earning_growths = rows['净利润同比增长率'].str.rstrip('%').astype(float)
             # 计算debt_ratio
-            debt_ratio = rows['资产负债率'].astype(float)[0]
+            debt_ratio = rows['资产负债率'].str.rstrip('%').astype(float).iloc[0]
             hs_detail_repository = HsDetailRepository(self.db_path)
-            hs_detail_repository.update_finance(code, roe_ttm, earning_growths[0],
+            hs_detail_repository.update_finance(code, roe_ttm, earning_growths.iloc[0],
                                                 debt_ratio,
-                                                earning_growths[0] > earning_growths[1] > earning_growths[2])
+                                                earning_growths.iloc[0] > earning_growths.iloc[1] > earning_growths.iloc[2])
 
     def get_by_code(self, code: str) -> HsFinancial:
         return self.data.get(code)

@@ -19,8 +19,8 @@ HsDetail = namedtuple("HsDetail",
 class HsDetailRepository:
 
     def __init__(self, db_path: str = "finance.db"):
+        self.code_set = None
         self.db_path = db_path
-        self.code_set = self.__code_set()
 
     def init_table(self):
         # 创建数据表info的SQL语句
@@ -45,14 +45,16 @@ class HsDetailRepository:
         sqlite_tool.drop_table("drop table hs_detail;")
         sqlite_tool.close_con()
 
-    def __code_set(self) -> set[str]:
-        sqlite_tool = SqliteTool(self.db_path)
-        rows = sqlite_tool.query_many("select code from hs_detail")
-        sqlite_tool.close_con()
-        return set([item[0] for item in rows])
+    def get_code_set(self) -> set[str]:
+        if self.code_set is None:
+            sqlite_tool = SqliteTool(self.db_path)
+            rows = sqlite_tool.query_many("select code from hs_detail")
+            sqlite_tool.close_con()
+            self.code_set = set([item[0] for item in rows])
+        return self.code_set
 
     def init_code(self, code: str):
-        if code in self.code_set:
+        if code in self.get_code_set():
             return
         sqlite_tool = SqliteTool(self.db_path)
         sqlite_tool.operate_one("insert into hs_detail(code) values(?)", (code,))
