@@ -1,9 +1,11 @@
 import datetime
 from collections import namedtuple
+from itertools import count
 from typing import Any
 
 import akshare as ak
 
+from hs.HsDetail import HsDetail, HsDetailRepository
 from stocks.SqliteTool import SqliteTool
 
 HsFinancial = namedtuple("HsFinancial",
@@ -141,6 +143,7 @@ class HsFinancialRepository:
         time_diff = datetime.datetime.now() - latest_update_time
         if time_diff.total_seconds() > 3600 * 24:
             rows = self.__fetch_from_api(code)
+            rows = rows['报告期' >= '2024-01-01']
             rows['update_at'] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             # 根据字典的键动态生成插入语句
             sql = ('INSERT INTO hs_financial ("code", "' + '", "'.join(rows.columns.values) +
@@ -149,10 +152,18 @@ class HsFinancialRepository:
             # 删除历史记录
             self.__delete(code)
             # 执行批量插入操作
-            sqlite_tool.operate_many(sql, [(code,) + tuple(row) for index, row in rows.iterrows() if
-                                           row['报告期'] >= '2020-01-01'])
+            sqlite_tool.operate_many(sql, [(code,) + tuple(row) for index, row in rows.iterrows()])
             sqlite_tool.close_con()
-            # todo 更新统计表
+            # 计算roe_ttm = 净资产收益率 取平均值 * 4
+            roe_ttm = round(rows['净资产收益率'].astype(float).mean() * 4, 2)
+            # 计算earning_growth = 净利润同比增长率 取最新值
+            earning_growths = rows['净利润同比增长率'].astype(float)
+            # 计算debt_ratio
+            debt_ratio = rows['资产负债率'].astype(float)[0]
+            hs_detail_repository = HsDetailRepository(self.db_path)
+            hs_detail_repository.update_finance(code, roe_ttm, earning_growths[0],
+                                                debt_ratio,
+                                                earning_growths[0] > earning_growths[1] > earning_growths[2])
 
     def get_by_code(self, code: str) -> HsFinancial:
         return self.data.get(code)
