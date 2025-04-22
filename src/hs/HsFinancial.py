@@ -163,6 +163,13 @@ class HsFinancialRepository:
                                                 debt_ratio,
                                                 earning_growths.iloc[0] > earning_growths.iloc[1] > earning_growths.iloc[2])
 
+    def refresh_all(self):
+        hs_detail_repository = HsDetailRepository(self.db_path)
+        hs_details = hs_detail_repository.fetch_all_from_db()
+        for hs_detail in hs_details:
+            # todo 存储最近检测时间直接检测
+            self.refresh(hs_detail.code)
+
     def get_by_code(self, code: str) -> HsFinancial:
         return self.data.get(code)
 

@@ -18,16 +18,6 @@ HsFacade = namedtuple("HsFacade",
                           "earning_growth_rush",  # 增速是否上扬，方便判断困境反转
                       ])
 
-def init(db_path: str):
-    hs_fhps_repository = HsFhps.HsFhpsRepository(db_path)
-    hs_fhps_repository.init_table()
-    hs_financial_repository = HsFinancial.HsFinancialRepository(db_path)
-    hs_financial_repository.init_table()
-    hs_spot_repository = HsSpot.HsSpotRepository(db_path)
-    hs_spot_repository.init_table()
-    # 更新pe,pb
-    hs_spot_repository.refresh()
-
 def list_hs_base_info(db_path: str) -> list[HsFacade]:
     result = []
     hs_fhps_repository = HsFhps.HsFhpsRepository(db_path)

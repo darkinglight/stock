@@ -137,6 +137,12 @@ class HsFhpsRepository:
             hs_detail_repository = HsDetailRepository(self.db_path)
             hs_detail_repository.update_bonus(code, self.__get_bonus_rate(code))
 
+    def refresh_all(self):
+        hs_detail_repository = HsDetailRepository(self.db_path)
+        hs_details = hs_detail_repository.fetch_all_from_db()
+        for hs_detail in hs_details:
+            self.__refresh(hs_detail.code)
+
     def get_bonus_rate(self, code: str) -> float:
         if self.data.get(code) is None:
             try:

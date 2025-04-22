@@ -8,7 +8,9 @@ import toga
 from toga import Table
 from toga.style.pack import COLUMN, ROW, Pack
 
-from hs import HsFacade
+from hs import HsFacade, HsSpot
+from hs.HsFhps import HsFhps, HsFhpsRepository
+from hs.HsFinancial import HsFinancialRepository
 from stocks import hkstock, hkfinancial, stocklist
 from stocks.detail import Detail
 
@@ -46,8 +48,8 @@ class stock(toga.App):
         self.main_window.content = Detail(self.db_path, widget.selection.code)
 
     def menu(self):
-        def refresh_hk_data_async(command, **kwargs):
-            def refresh_hk_data():
+        def refresh_price_async(command, **kwargs):
+            def refresh_price_data():
                 try:
                     stock_repository = hkstock.HkStockRepository(self.db_path)
                     stock_repository.init_table()
@@ -55,19 +57,38 @@ class stock(toga.App):
                 except Exception as e:
                     print(f"refresh hk stock error: {e}")
                 try:
+                    hs_spot_repository = HsSpot.HsSpotRepository(self.db_path)
+                    hs_spot_repository.init_table()
+                    hs_spot_repository.refresh()
+                except Exception as e:
+                    print(f"refresh hs stock error: {e}")
+
+            t = Thread(target=refresh_price_data)
+            t.start()
+
+        def refresh_financial_async(command, **kwargs):
+            def refresh_financial_data():
+                try:
                     finance_repository = hkfinancial.HkFinanceRepository(self.db_path)
                     finance_repository.create_table()
                     finance_repository.refresh_all()
                 except Exception as e:
                     print(f"refresh hk financial error: {e}")
                 try:
-                    HsFacade.init(self.db_path)
+                    hs_financial_repository = HsFinancialRepository(self.db_path)
+                    hs_financial_repository.init_table()
+                    hs_financial_repository.refresh_all()
                 except Exception as e:
-                    print(f"refresh hs error: {e}")
+                    print(f"refresh hs financial error: {e}")
+                try:
+                    hs_fhps_repository = HsFhpsRepository(self.db_path)
+                    hs_fhps_repository.init_table()
+                    hs_fhps_repository.refresh_all()
+                except Exception as e:
+                    print(f"refresh hs fhps error: {e}")
 
-            t = Thread(target=refresh_hk_data)
+            t = Thread(target=refresh_financial_data)
             t.start()
-            print("refresh finish")
 
         def goto_pre_page(command):
             if self.pre_page is not None:
@@ -82,19 +103,19 @@ class stock(toga.App):
         )
         self.main_window.toolbar.add(cmd_pre_page)
         cmd_refresh = toga.Command(
-            action=refresh_hk_data_async,
+            action=refresh_price_async,
             text="refresh",
-            tooltip="港股数据刷新",
+            tooltip="日k数据刷新",
             icon="resources/icons/brutus",
         )
         self.main_window.toolbar.add(cmd_refresh)
-        cmd_refresh_sh_financial = toga.Command(
-            action=refresh_hk_data_async,
+        cmd_refresh_financial = toga.Command(
+            action=refresh_financial_async,
             text="refresh",
-            tooltip="A股财报数据刷新",
+            tooltip="财报刷新",
             icon="resources/icons/brutus",
         )
-        self.main_window.toolbar.add(cmd_refresh_sh_financial)
+        self.main_window.toolbar.add(cmd_refresh_financial)
 
 
 def main():
