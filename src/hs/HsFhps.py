@@ -1,10 +1,11 @@
+import datetime
 from collections import namedtuple
 
 import akshare as ak
 
+from hs.HsDetail import HsDetailRepository
 from stocks.SqliteTool import SqliteTool
 
-# todo 更新财报后自动更新
 HsFhps = namedtuple("HsFhps",
                     [
                         "code",
@@ -44,7 +45,8 @@ class HsFhpsRepository:
             "股权登记日" datetime,
             "除权除息日" datetime,
             "方案进度" text,
-            "最新公告日期" datetime
+            "最新公告日期" datetime,
+            update_at text -- 最后更新日期
         ); 
         """
         sqlite_tool = SqliteTool(self.db_path)
@@ -106,23 +108,34 @@ class HsFhpsRepository:
             return []
         return [HsFhps(*row) for row in rows]
 
-    def __delete(self, code: str):
+    def get_latest_update_time(self, code: str):
+        # 查询最新的更新时间
         sqlite_tool = SqliteTool(self.db_path)
-        sqlite_tool.delete_record(f"delete from hs_fhps where code = '{code}'")
+        row = sqlite_tool.query_one(f"select max(update_at) from hs_fhps where code = '{code}'")
         sqlite_tool.close_con()
+        if row[0]:
+            return datetime.datetime.strptime(row[0], '%Y-%m-%d %H:%M:%S')
+        else:
+            return datetime.datetime.min
 
     def __refresh(self, code: str):
-        rows = self.__fetch_from_api(code)
-        rows.fillna("", inplace=True)
-        # 根据字典的键动态生成插入语句
-        sql = ('INSERT INTO hs_fhps ("code", "' + '", "'.join(rows.columns.values) + '") VALUES (?, ' +
-               ', '.join(['?'] * rows.shape[1]) + ')')
-        # 删除历史记录
-        self.__delete(code)
-        # 执行批量插入操作
-        sqlite_tool = SqliteTool(self.db_path)
-        sqlite_tool.operate_many(sql, [(code,) + tuple(row) for index, row in rows.iterrows()])
-        sqlite_tool.close_con()
+        latest_update_time = self.get_latest_update_time(code)
+        # 计算时间差
+        time_diff = datetime.datetime.now() - latest_update_time
+        if time_diff.total_seconds() > 3600 * 24 * 7:
+            rows = self.__fetch_from_api(code)
+            rows.fillna("", inplace=True)
+            rows['update_at'] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            # 根据字典的键动态生成插入语句
+            sql = ('INSERT INTO hs_fhps ("code", "' + '", "'.join(rows.columns.values) + '") VALUES (?, ' +
+                   ', '.join(['?'] * rows.shape[1]) + ')')
+            # 执行批量插入操作
+            sqlite_tool = SqliteTool(self.db_path)
+            sqlite_tool.delete_record(f"delete from hs_fhps where code = '{code}'")
+            sqlite_tool.operate_many(sql, [(code,) + tuple(row) for index, row in rows.iterrows()])
+            sqlite_tool.close_con()
+            hs_detail_repository = HsDetailRepository(self.db_path)
+            hs_detail_repository.update_bonus(code, self.__get_bonus_rate(code))
 
     def get_bonus_rate(self, code: str) -> float:
         if self.data.get(code) is None:

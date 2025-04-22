@@ -1,6 +1,5 @@
 import datetime
 from collections import namedtuple
-from itertools import count
 from typing import Any
 
 import akshare as ak
@@ -137,13 +136,12 @@ class HsFinancialRepository:
             return datetime.datetime.min
 
     def refresh(self, code: str):
-        # 1. 无记录,时间为min < 当天16:30 2.更新日期 < 当天16:30
         latest_update_time = self.get_latest_update_time(code)
         # 计算时间差
         time_diff = datetime.datetime.now() - latest_update_time
-        if time_diff.total_seconds() > 3600 * 24:
+        if time_diff.total_seconds() > 3600 * 24 * 7:
             rows = self.__fetch_from_api(code)
-            rows = rows[rows['报告期'] >= '2024-01-01']
+            rows = rows[rows['报告期'] >= '2023-01-01'].sort_values(by='报告期', ascending=False)
             rows['update_at'] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             # 根据字典的键动态生成插入语句
             sql = ('INSERT INTO hs_financial ("code", "' + '", "'.join(rows.columns.values) +
