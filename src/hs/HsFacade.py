@@ -4,6 +4,7 @@ import toga
 from toga.style import Pack
 
 from hs import HsSpot, HsFhps, HsFinancial
+from hs.HsDetail import HsDetailRepository
 
 HsFacade = namedtuple("HsFacade",
                       [
@@ -18,27 +19,6 @@ HsFacade = namedtuple("HsFacade",
                           "earning_growth_rush",  # 增速是否上扬，方便判断困境反转
                       ])
 
-def list_hs_base_info(db_path: str) -> list[HsFacade]:
-    result = []
-    hs_fhps_repository = HsFhps.HsFhpsRepository(db_path)
-    hs_financial_repository = HsFinancial.HsFinancialRepository(db_path)
-    hs_spot_repository = HsSpot.HsSpotRepository(db_path)
-    hs_spots = hs_spot_repository.fetch_all_from_db()
-    for hs_spot in hs_spots:
-        if hs_spot.pe < 0 or hs_spot.pe > 30:
-            continue
-        print("start:" + hs_spot.code)
-        item = hs_spot._asdict()
-        # set bonus rate
-        bonus_rate = hs_fhps_repository.get_bonus_rate(hs_spot.code)
-        item['bonus_rate'] = bonus_rate
-        # set roe
-        roe_entity = hs_financial_repository.get_by_code(hs_spot.code)
-        item.update(roe_entity._asdict())
-        result.append(HsFacade(**item))
-    return result
-
-
 class HsBox(toga.Box):
     cache = dict()
 
@@ -47,7 +27,8 @@ class HsBox(toga.Box):
         super().__init__(children=[self.__stock_list(on_active)])
 
     def __stock_list(self, on_active):
-        rows = list_hs_base_info(self.db_file)
+        hs_detail_repository = HsDetailRepository(self.db_file)
+        rows = hs_detail_repository.fetch_all_from_db()
         box_data = []
         for row in rows:
             if row.bonus_rate < 0.2 or row.debt_ratio > 60:
@@ -71,8 +52,3 @@ class HsBox(toga.Box):
                           data=box_data,
                           on_select=on_active,
                           style=Pack(flex=1))
-
-
-if __name__ == "__main__":
-    data = list_hs_base_info("finance.db")
-    print(data)
