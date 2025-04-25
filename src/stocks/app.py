@@ -9,7 +9,7 @@ from toga import Table
 from toga.style.pack import COLUMN, ROW, Pack
 
 from hs import HsFacade, HsSpot
-from hs.HsFhps import HsFhps, HsFhpsRepository
+from hs.HsFhps import HsFhpsRepository
 from hs.HsFinancial import HsFinancialRepository
 from stocks import hkstock, hkfinancial, stocklist
 from stocks.detail import Detail

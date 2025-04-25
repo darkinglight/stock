@@ -1,6 +1,7 @@
 import toga
 from toga.style.pack import COLUMN, ROW, Pack
 
+from hs.HsFinancial import HsFinancialRepository
 from stocks import hkfinancial
 
 
@@ -27,3 +28,10 @@ class Detail(toga.ScrollContainer):
             main_box.add(item_box)
             # main_box.add(toga.Label(text=value))
         return main_box
+
+    def sh_financial_list(self, code: str):
+        rows = HsFinancialRepository(self.db_path).list_by_code(code)
+        return toga.Table(headings=["报告期", "净利润", "净利润同比增长率", "扣非净利润", "扣非净利润同比增长率",
+                                    "营业总收入", "营业总收入同比增长率", "销售净利率", "销售毛利率", "净资产收益率", "资产负债率"],
+                          data=rows,
+                          style=Pack(flex=1))

@@ -15,7 +15,8 @@ HsFinancial = namedtuple("HsFinancial",
                              "debt_ratio",
                              "earning_growth_rush",  # 增速是否上扬，方便判断困境反转
                          ])
-
+fields = ('"报告期", "净利润", "净利润同比增长率", "扣非净利润", "扣非净利润同比增长率", '
+          '"营业总收入", "营业总收入同比增长率", "销售净利率", "销售毛利率", "净资产收益率", "资产负债率"')
 
 class HsFinancialRepository:
 
@@ -172,6 +173,13 @@ class HsFinancialRepository:
 
     def get_by_code(self, code: str) -> HsFinancial:
         return self.data.get(code)
+
+    def list_by_code(self, code: str) -> list[dict]:
+        sqlite_tool = SqliteTool(self.db_path)
+        sql = "SELECT {} FROM hs_financial WHERE code = '{}' ORDER BY '报告期' DESC".format(fields, code)
+        rows = sqlite_tool.query_many(sql)
+        sqlite_tool.close_con()
+        return rows
 
 
 if __name__ == "__main__":
