@@ -17,6 +17,17 @@ HsFinancial = namedtuple("HsFinancial",
                          ])
 
 
+def convert_percentage(value):
+    if isinstance(value, str) and '%' in value:
+        return float(value.rstrip('%'))
+    else:
+        try:
+            return float(value)
+        except ValueError:
+            print(f"无法将值 {value} 转换为浮点数")
+            return 0
+
+
 class HsFinancialRepository:
 
     def __init__(self, db_path: str):
@@ -153,15 +164,16 @@ class HsFinancialRepository:
             sqlite_tool.operate_many(sql, [(code,) + tuple(row) for index, row in rows.iterrows()])
             sqlite_tool.close_con()
             # 计算roe_ttm = 净资产收益率 取平均值 * 4
-            roe_ttm = round(rows['净资产收益率'].str.rstrip('%').astype(float).mean() * 4, 2)
+            roe_ttm = round(rows['净资产收益率'].apply(convert_percentage).mean() * 4, 2)
             # 计算earning_growth = 净利润同比增长率 取最新值
-            earning_growths = rows['净利润同比增长率'].str.rstrip('%').astype(float)
+            earning_growths = rows['净利润同比增长率'].apply(convert_percentage)
             # 计算debt_ratio
-            debt_ratio = rows['资产负债率'].str.rstrip('%').astype(float).iloc[0]
+            debt_ratio = rows['资产负债率'].apply(convert_percentage).iloc[0]
             hs_detail_repository = HsDetailRepository(self.db_path)
             hs_detail_repository.update_finance(code, roe_ttm, earning_growths.iloc[0],
                                                 debt_ratio,
-                                                earning_growths.iloc[0] > earning_growths.iloc[1] > earning_growths.iloc[2])
+                                                earning_growths.iloc[0] > earning_growths.iloc[1] >
+                                                earning_growths.iloc[2])
 
     def refresh_all(self):
         hs_detail_repository = HsDetailRepository(self.db_path)
@@ -178,4 +190,4 @@ if __name__ == "__main__":
     repository = HsFinancialRepository("finance.db")
     repository.init_table()
     repository.refresh("301616")
-    print(repository.get_by_code("002867"))
+    print(repository.get_by_code("301616"))
