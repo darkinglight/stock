@@ -1,6 +1,7 @@
 import datetime
 from collections import namedtuple
 
+from hs.HsDetail import HsDetailRepository
 from stocks.SqliteTool import SqliteTool
 import akshare as ak
 
@@ -85,6 +86,9 @@ class HsSpotRepository:
             sqlite_tool.delete_record("delete from hs_spot")
             sqlite_tool.operate_many(sql, [tuple(row) for index, row in rows.iterrows()])
             sqlite_tool.close_con()
+            hs_detail_repository = HsDetailRepository(self.db_path)
+            for index, row in rows.iterrows():
+                hs_detail_repository.upsert_price(row["代码"], row["名称"], row["市盈率-动态"], row["市净率"])
 
     def fetch_one_from_db(self, code: str):
         sqlite_tool = SqliteTool(self.db_path)
