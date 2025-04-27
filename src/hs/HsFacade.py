@@ -31,7 +31,10 @@ class HsBox(toga.Box):
         rows = hs_detail_repository.fetch_all_from_db()
         box_data = []
         for row in rows:
-            if row.bonus_rate < 0.2 or row.debt_ratio > 60:
+            # 检查 bonus_rate 和 debt_ratio 是否为 None，若为 None 则赋予默认值
+            bonus_rate = row.bonus_rate if row.bonus_rate is not None else 0
+            debt_ratio = row.debt_ratio if row.debt_ratio is not None else 100
+            if bonus_rate < 0.2 or debt_ratio > 60:
                 continue
             box_data.append((
                 row.code,
