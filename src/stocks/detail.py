@@ -5,7 +5,7 @@ from hs.HsFinancial import HsFinancialRepository
 from stocks import hkfinancial
 
 
-class Detail(toga.ScrollContainer):
+class HkDetailPage(toga.ScrollContainer):
     def __init__(self, db_path, code: str):
         self.db_path = db_path
         super().__init__(content=self.stock_detail(code))
@@ -28,6 +28,12 @@ class Detail(toga.ScrollContainer):
             main_box.add(item_box)
             # main_box.add(toga.Label(text=value))
         return main_box
+
+
+class HsDetailPage(toga.ScrollContainer):
+    def __init__(self, db_path, code: str):
+        self.db_path = db_path
+        super().__init__(content=self.sh_financial_list(code))
 
     def sh_financial_list(self, code: str):
         rows = HsFinancialRepository(self.db_path).list_by_code(code)
