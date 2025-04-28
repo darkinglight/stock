@@ -51,7 +51,7 @@ class HsBox(toga.Box):
         # 回报率： roe * bonus_rate / pb + roe * (1 - bonus_rate)
         box_data.sort(reverse=True, key=lambda a: a[9] / a[3])
         return toga.Table(headings=["code", "name", "pb", "pe", "分红率", "年化净资产收益率(%)", "资产负债率(%)",
-                                    "扣非净利润同比增长率", "扣非净利润是否加速增长"],
+                                    "扣非净利润同比增长率", "扣非净利润是否加速增长", "回报率"],
                           data=box_data,
                           on_select=on_active,
                           style=Pack(flex=1))
