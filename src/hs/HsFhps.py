@@ -118,35 +118,40 @@ class HsFhpsRepository:
         else:
             return datetime.datetime.min
 
-    def __refresh(self, code: str):
+    def refresh(self, code: str):
         latest_update_time = self.get_latest_update_time(code)
         # 计算时间差
         time_diff = datetime.datetime.now() - latest_update_time
         if time_diff.total_seconds() > 3600 * 24 * 7:
-            rows = self.__fetch_from_api(code)
-            rows.fillna("", inplace=True)
-            rows['update_at'] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-            # 根据字典的键动态生成插入语句
-            sql = ('INSERT INTO hs_fhps ("code", "' + '", "'.join(rows.columns.values) + '") VALUES (?, ' +
-                   ', '.join(['?'] * rows.shape[1]) + ')')
-            # 执行批量插入操作
-            sqlite_tool = SqliteTool(self.db_path)
-            sqlite_tool.delete_record(f"delete from hs_fhps where code = '{code}'")
-            sqlite_tool.operate_many(sql, [(code,) + tuple(row) for index, row in rows.iterrows()])
-            sqlite_tool.close_con()
-            hs_detail_repository = HsDetailRepository(self.db_path)
-            hs_detail_repository.update_bonus(code, self.__get_bonus_rate(code))
+            try:
+                rows = self.__fetch_from_api(code)
+                rows.fillna(0, inplace=True)
+                rows['update_at'] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                # 根据字典的键动态生成插入语句
+                sql = ('INSERT INTO hs_fhps ("code", "' + '", "'.join(rows.columns.values) + '") VALUES (?, ' +
+                       ', '.join(['?'] * rows.shape[1]) + ')')
+                # 执行批量插入操作
+                sqlite_tool = SqliteTool(self.db_path)
+                sqlite_tool.delete_record(f"delete from hs_fhps where code = '{code}'")
+                sqlite_tool.operate_many(sql, [(code,) + tuple(row) for index, row in rows.iterrows()])
+                sqlite_tool.close_con()
+                hs_detail_repository = HsDetailRepository(self.db_path)
+                hs_detail_repository.update_bonus(code, self.__get_bonus_rate(code))
+            except TypeError:
+                hs_detail_repository = HsDetailRepository(self.db_path)
+                hs_detail_repository.update_bonus(code, 0)
+
 
     def refresh_all(self):
         hs_detail_repository = HsDetailRepository(self.db_path)
         hs_details = hs_detail_repository.fetch_all_from_db()
         for hs_detail in hs_details:
-            self.__refresh(hs_detail.code)
+            self.refresh(hs_detail.code)
 
     def get_bonus_rate(self, code: str) -> float:
         if self.data.get(code) is None:
             try:
-                self.__refresh(code)
+                self.refresh(code)
                 self.data[code] = self.__get_bonus_rate(code)
             except TypeError:
                 self.data[code] = 0
@@ -155,8 +160,8 @@ class HsFhpsRepository:
 
 if __name__ == "__main__":
     repository = HsFhpsRepository("finance.db")
-    # repository.create_table()
-    # repository.refresh("002867")
+    repository.init_table()
+    repository.refresh("002250")
     # for item in repository.list_from_db("002867"):
     #     print(item.报告期, item.每股净资产, item.每股收益, item.现金分红现金分红比例, item.现金分红股息率)
     print(repository.get_bonus_rate("002884"))
