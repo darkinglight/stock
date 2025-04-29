@@ -78,6 +78,7 @@ class HsSpotRepository:
         if latest_update_time < today_1500 and time_diff.total_seconds() > 3600:
             # 获取数据
             rows = ak.stock_zh_a_spot_em()
+            rows = rows[rows['市净率'] > 0]
             rows['update_at'] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             # 根据字典的键动态生成插入语句
             sql = ('INSERT INTO hs_spot ("' + '", "'.join(rows.columns.values) + '") VALUES (' +

@@ -54,6 +54,11 @@ class HsFhpsRepository:
         sqlite_tool.create_table(sql)
         sqlite_tool.close_con()
 
+    def drop_table(self):
+        sqlite_tool = SqliteTool(self.db_path)
+        sqlite_tool.drop_table("drop table hs_fhps;")
+        sqlite_tool.close_con()
+
     def __fetch_from_api(self, code: str):
         df = ak.stock_fhps_detail_em(symbol=code)
         return df
@@ -78,6 +83,8 @@ class HsFhpsRepository:
         sqlite_tool.close_con()
         result = []
         for entity in rows:
+            if entity[3] == 0:
+                continue
             result.append(entity[2] / entity[3])
         return round(sum(result) / len(result), 2) if len(result) > 0 else 0
 
@@ -125,6 +132,7 @@ class HsFhpsRepository:
         if time_diff.total_seconds() > 3600 * 24 * 7:
             try:
                 rows = self.__fetch_from_api(code)
+                rows = rows[rows['方案进度'] == '实施分配']
                 rows.fillna(0, inplace=True)
                 rows['update_at'] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
                 # 根据字典的键动态生成插入语句
@@ -146,7 +154,12 @@ class HsFhpsRepository:
         hs_detail_repository = HsDetailRepository(self.db_path)
         hs_details = hs_detail_repository.fetch_all_from_db()
         for hs_detail in hs_details:
-            self.refresh(hs_detail.code)
+            try:
+                self.refresh(hs_detail.code)
+            except Exception as e:
+                print(f"refresh {hs_detail.code} failed, {e}")
+                raise e
+
 
     def get_bonus_rate(self, code: str) -> float:
         if self.data.get(code) is None:
@@ -160,8 +173,9 @@ class HsFhpsRepository:
 
 if __name__ == "__main__":
     repository = HsFhpsRepository("finance.db")
+    repository.drop_table()
     repository.init_table()
-    repository.refresh("002250")
+    repository.refresh("002931")
     # for item in repository.list_from_db("002867"):
     #     print(item.报告期, item.每股净资产, item.每股收益, item.现金分红现金分红比例, item.现金分红股息率)
-    print(repository.get_bonus_rate("002884"))
+    print(repository.get_bonus_rate("002931"))
