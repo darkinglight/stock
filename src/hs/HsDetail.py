@@ -35,7 +35,7 @@ class HsDetailRepository:
             "roe_ttm REAL, "
             "earning_growth REAL, "
             "debt_ratio REAL, "
-            "earning_growth_rush BOOLEAN "  # 增速是否上扬，方便判断困境反转
+            "earning_growth_rush INTEGER "  # 增速是否上扬，方便判断困境反转
             ");"
         )
         sqlite_tool = SqliteTool(self.db_path)
@@ -70,7 +70,7 @@ class HsDetailRepository:
         sqlite_tool.operate_one(sql, (code, bonus_rate))
         sqlite_tool.close_con()
 
-    def update_finance(self, code: str, roe_ttm: float, earning_growth: float, debt_ratio: float, earning_growth_rush: bool):
+    def update_finance(self, code: str, roe_ttm: float, earning_growth: float, debt_ratio: float, earning_growth_rush: int):
         sql = (
             "INSERT INTO hs_detail "
             "(code, roe_ttm, earning_growth, debt_ratio, earning_growth_rush) "
@@ -112,5 +112,5 @@ if __name__ == "__main__":
     # repository.init_table()
     repository.upsert_price("002867", "凌霄泵业", 10, 10)
     repository.update_bonus("002867", 10)
-    repository.update_finance("002867", 10, 10, 10, True)
+    repository.update_finance("002867", 10, 10, 10, 1)
     print(repository.fetch_one_from_db("002867"))

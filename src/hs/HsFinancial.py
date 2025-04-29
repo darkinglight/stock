@@ -173,8 +173,8 @@ class HsFinancialRepository:
             hs_detail_repository = HsDetailRepository(self.db_path)
             hs_detail_repository.update_finance(code, roe_ttm, earning_growths.iloc[0],
                                                 debt_ratio,
-                                                earning_growths.iloc[0] > earning_growths.iloc[1] >
-                                                earning_growths.iloc[2])
+                                                1 if earning_growths.iloc[0] > earning_growths.iloc[1] >
+                                                earning_growths.iloc[2] else 0)
 
     def refresh_all(self):
         hs_detail_repository = HsDetailRepository(self.db_path)
