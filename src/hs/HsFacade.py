@@ -34,7 +34,7 @@ class HsBox(toga.Box):
             # 检查 bonus_rate 和 debt_ratio 是否为 None，若为 None 则赋予默认值
             bonus_rate = row.bonus_rate if row.bonus_rate is not None else 0
             debt_ratio = row.debt_ratio if row.debt_ratio is not None else 100
-            if bonus_rate < 0.2 or debt_ratio > 60:
+            if bonus_rate < 0.2 or debt_ratio > 60 or row.roe_ttm < 5:
                 continue
             box_data.append((
                 row.code,
@@ -46,10 +46,11 @@ class HsBox(toga.Box):
                 row.debt_ratio,
                 row.earning_growth,
                 row.earning_growth_rush,
-                row.roe_ttm * row.bonus_rate / row.pb + row.roe_ttm * (1 - row.bonus_rate)
+                row.roe_ttm * row.bonus_rate * 1.3 / row.pb + row.roe_ttm * (1 - row.bonus_rate)
             ))
         # 回报率： roe * bonus_rate / pb + roe * (1 - bonus_rate)
         box_data.sort(reverse=True, key=lambda a: a[9] / a[3])
+        # todo pe不是pe_ttm，需要修改
         return toga.Table(headings=["code", "name", "pb", "pe", "分红率", "年化净资产收益率(%)", "资产负债率(%)",
                                     "扣非净利润同比增长率", "扣非净利润是否加速增长", "回报率"],
                           data=box_data,
