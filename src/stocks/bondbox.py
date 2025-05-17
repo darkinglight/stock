@@ -27,7 +27,9 @@ class BondBox(toga.Box):
             if bond_price > 150:
                 continue
             stock_detail = hs_detail_repository.fetch_one_from_db(row.stock_code)
-            if stock_detail is None or stock_detail.roe_ttm < 5 or stock_detail.debt_ratio > 60:
+            roe_ttm = stock_detail.roe_ttm if stock_detail.roe_ttm is not None else 0
+            debt_ratio = stock_detail.debt_ratio if stock_detail.debt_ratio is not None else 100
+            if stock_detail is None or roe_ttm < 5 or debt_ratio > 60:
                 continue
             box_data.append((
                 row.bond_code,
