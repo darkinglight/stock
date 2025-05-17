@@ -13,6 +13,7 @@ from hs.HsDetail import HsDetailRepository
 from hs.HsFhps import HsFhpsRepository
 from hs.HsFinancial import HsFinancialRepository
 from stocks import hkstock, hkfinancial, stocklist
+from stocks.bond import BondBox, BondRepository
 from stocks.detail import HkDetailPage, HsDetailPage
 
 
@@ -37,6 +38,7 @@ class stock(toga.App):
         container = toga.OptionContainer(content=[
             ("港股通", stocklist.Stocklist(self.db_path, self.hk_detail)),
             ("A股", HsFacade.HsBox(self.db_path, self.hs_detail)),
+            ("可转债", BondBox(self.db_path, self.hs_detail))
             ("系统配置", toga.Box(children=[table]))
         ])
         self.main_window = toga.MainWindow(title=self.formal_name)
@@ -73,6 +75,13 @@ class stock(toga.App):
                     print("refresh hs stock finish.")
                 except Exception as e:
                     print(f"refresh hs stock error: {e}")
+                try:
+                    bond_repository = BondRepository(self.db_path)
+                    bond_repository.init_table()
+                    bond_repository.refresh()
+                    print("refresh bond finish.")
+                except Exception as e:
+                    print(f"refresh bond stock error: {e}")
 
             t = Thread(target=refresh_price_data)
             t.start()
