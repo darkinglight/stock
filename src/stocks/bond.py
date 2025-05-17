@@ -1,12 +1,7 @@
 from collections import namedtuple
 from datetime import datetime
-from pathlib import Path
 
 import akshare as ak
-import toga
-from toga.style import Pack
-
-from hs.HsDetail import HsDetailRepository
 from stocks.SqliteTool import SqliteTool
 
 Bond = namedtuple("Bond", [
@@ -101,36 +96,6 @@ class BondRepository:
         return [Bond(bond_code=row[1], bond_name=row[2], bond_price=row[3], stock_code=row[5],
                      stock_over_percent=row[11], bond_over_percent=row[12],
                      stock_roe=1, stock_debt_ratio=1) for row in rows]
-
-
-class BondBox(toga.Box):
-    def __init__(self, data_path: Path, on_active):
-        self.db_file = data_path
-        super().__init__(children=[self.stock_list(on_active)])
-
-    def stock_list(self, on_active):
-        bond_repository = BondRepository(self.db_file)
-        rows = bond_repository.fetch_all_from_db()
-        hs_detail_repository = HsDetailRepository(self.db_file)
-        box_data = []
-        for row in rows:
-            stock_detail = hs_detail_repository.fetch_one_from_db(row.stock_code)
-            # 检查 bonus_rate 和 debt_ratio 是否为 None，若为 None 则赋予默认值
-            if row.bond_price > 150:
-                continue
-            box_data.append((
-                row.bond_code,
-                row.bond_name,
-                row.bond_price,
-                row.bond_over_percent,
-                row.stock_over_percent
-            ))
-        box_data.sort(reverse=False, key=lambda a: a[2])
-        return toga.Table(headings=["转债代码", "转债名称", "转债最新价", "纯债溢价率", "转股溢价率"],
-                          data=box_data,
-                          on_select=on_active,
-                          style=Pack(flex=1))
-
 
 if __name__ == "__main__":
     repository = BondRepository()

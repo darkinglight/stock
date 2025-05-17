@@ -13,7 +13,8 @@ from hs.HsDetail import HsDetailRepository
 from hs.HsFhps import HsFhpsRepository
 from hs.HsFinancial import HsFinancialRepository
 from stocks import hkstock, hkfinancial, stocklist
-from stocks.bond import BondBox, BondRepository
+from stocks.bond import BondRepository
+from stocks.bondbox import BondBox
 from stocks.detail import HkDetailPage, HsDetailPage
 
 
@@ -38,7 +39,7 @@ class stock(toga.App):
         container = toga.OptionContainer(content=[
             ("港股通", stocklist.Stocklist(self.db_path, self.hk_detail)),
             ("A股", HsFacade.HsBox(self.db_path, self.hs_detail)),
-            ("可转债", BondBox(self.db_path, self.hs_detail))
+            ("可转债", BondBox(self.db_path, self.hs_detail)),
             ("系统配置", toga.Box(children=[table]))
         ])
         self.main_window = toga.MainWindow(title=self.formal_name)
