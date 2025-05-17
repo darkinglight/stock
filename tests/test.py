@@ -30,12 +30,12 @@ if __name__ == "__main__":
     # stock_yjbb_em_df = ak.stock_yjbb_em(date="20220331")
     # print(stock_yjbb_em_df)
     # 财务指标-同花顺
-    stock_financial_abstract_ths_df = ak.stock_financial_abstract_ths(symbol="833781", indicator="按单季度")
-    print(stock_financial_abstract_ths_df)
-    bond_zh_hs_cov_spot_df = ak.bond_zh_hs_cov_spot()
-    print(bond_zh_hs_cov_spot_df)
-    bond_zh_cov_df = ak.bond_zh_cov()
-    print(bond_zh_cov_df)
+    # stock_financial_abstract_ths_df = ak.stock_financial_abstract_ths(symbol="833781", indicator="按单季度")
+    # print(stock_financial_abstract_ths_df)
+    # bond_zh_hs_cov_spot_df = ak.bond_zh_hs_cov_spot()
+    # print(bond_zh_hs_cov_spot_df)
+    # bond_zh_cov_df = ak.bond_zh_cov()
+    # print(bond_zh_cov_df)
     # https://quote.eastmoney.com/center/fullscreenlist.html#convertible_comparison
     bond_cov_comparison_df = ak.bond_cov_comparison()
     print(bond_cov_comparison_df)
