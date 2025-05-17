@@ -18,10 +18,16 @@ class BondBox(toga.Box):
         hs_detail_repository = HsDetailRepository(self.db_file)
         box_data = []
         for row in rows:
-            stock_detail = hs_detail_repository.fetch_one_from_db(row.stock_code)
-            # 检查 bonus_rate 和 debt_ratio 是否为 None，若为 None 则赋予默认值
-            if row.bond_price > 150:
+            try:
+                # 尝试将 bond_price 转换为浮点数
+                bond_price = float(row.bond_price) if row.bond_price is not None else 1000
+            except ValueError:
+                # 转换失败，将 bond_price 设为 None
+                bond_price = 1000
+            if bond_price > 150:
                 continue
+
+            stock_detail = hs_detail_repository.fetch_one_from_db(row.stock_code)
             box_data.append((
                 row.bond_code,
                 row.bond_name,

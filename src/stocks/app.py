@@ -82,7 +82,7 @@ class stock(toga.App):
                     bond_repository.refresh()
                     print("refresh bond finish.")
                 except Exception as e:
-                    print(f"refresh bond stock error: {e}")
+                    print(f"refresh bond error: {e}")
 
             t = Thread(target=refresh_price_data)
             t.start()
