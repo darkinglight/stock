@@ -40,7 +40,7 @@ class HsBox(toga.Box):
                 row.code,
                 row.name,
                 row.pb,
-                row.pe,
+                row.pb / row.roe_ttm,
                 row.bonus_rate,
                 row.roe_ttm,
                 row.debt_ratio,

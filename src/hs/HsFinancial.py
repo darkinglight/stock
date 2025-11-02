@@ -180,8 +180,10 @@ class HsFinancialRepository:
         hs_detail_repository = HsDetailRepository(self.db_path)
         hs_details = hs_detail_repository.fetch_all_from_db()
         for hs_detail in hs_details:
-            # todo 存储最近检测时间直接检测
-            self.refresh(hs_detail.code)
+            try:
+                self.refresh(hs_detail.code)
+            except Exception as e:
+                print(f"refresh {hs_detail.code} financial data error: {e}")
 
     def get_by_code(self, code: str) -> HsFinancial:
         return self.data.get(code)
@@ -197,5 +199,5 @@ class HsFinancialRepository:
 if __name__ == "__main__":
     repository = HsFinancialRepository("finance.db")
     repository.init_table()
-    repository.refresh("301616")
-    print(repository.get_by_code("301616"))
+    repository.refresh("834770")
+    print(repository.get_by_code("834770"))
