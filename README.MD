@@ -39,3 +39,4 @@ g + shift + j
 [toga](https://toga.readthedocs.io/en/stable/)  
 [beeware论坛](https://github.com/beeware/toga/discussions)  
 [akshare数据源](https://akshare.akfamily.xyz/data/stock/stock.html#id122)  
+[flet](https://flet.dev/docs/getting-started/async-apps)
