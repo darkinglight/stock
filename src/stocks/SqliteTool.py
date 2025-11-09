@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import sqlite3
+import threading  # 新增：导入线程模块
 
 
 class SqliteTool:
@@ -7,24 +8,35 @@ class SqliteTool:
        简单sqlite数据库工具类
        编写这个类主要是为了封装sqlite，继承此类复用方法
        """
+    # 新增：线程本地存储，用于管理每个线程的独立连接
+    _thread_local = threading.local()
 
     def __init__(self, dbname="finance.db"):
         """
-        初始化连接——使用完需关闭连接
+        初始化数据库名称（延迟创建连接，首次操作时创建）
         :param dbname: 连接库的名字，注意，以'.db'结尾
         """
-        # 连接数据库
-        self._conn = sqlite3.connect(dbname)
-        # 创建游标
-        self._cur = self._conn.cursor()
+        self.dbname = dbname  # 存储数据库名称，不立即创建连接
+
+    # 新增：获取当前线程的数据库连接和游标（线程隔离）
+    def _get_conn_cur(self):
+        if not hasattr(self._thread_local, 'conn'):
+            # 首次使用时创建线程专属连接
+            self._thread_local.conn = sqlite3.connect(self.dbname)
+            self._thread_local.cur = self._thread_local.conn.cursor()
+        return self._thread_local.conn, self._thread_local.cur
 
     def close_con(self):
         """
-        关闭连接对象——主动调用
-        :return:
+        关闭当前线程的数据库连接和游标（线程隔离）
         """
-        self._cur.close()
-        self._conn.close()
+        if hasattr(self._thread_local, 'conn'):
+            self._thread_local.cur.close()
+            self._thread_local.conn.close()
+            # 移除线程本地存储中的连接信息
+            del self._thread_local.conn
+            del self._thread_local.cur
+            print("[connection closed]")
 
     # 创建数据表
     def create_table(self, sql: str):
@@ -34,8 +46,9 @@ class SqliteTool:
         :return: True表示创建表成功
         """
         try:
-            self._cur.execute(sql)
-            self._conn.commit()
+            conn, cur = self._get_conn_cur()  # 修改：使用线程本地连接
+            cur.execute(sql)
+            conn.commit()
             print("[create table success]")
             return True
         except Exception as e:
@@ -49,8 +62,9 @@ class SqliteTool:
         :return: True表示删除成功
         """
         try:
-            self._cur.execute(sql)
-            self._conn.commit()
+            conn, cur = self._get_conn_cur()  # 修改：使用线程本地连接
+            cur.execute(sql)
+            conn.commit()
             return True
         except Exception as e:
             print("[drop table error]", e)
@@ -65,16 +79,17 @@ class SqliteTool:
         :return: True表示插入或更新成功
         """
         try:
-            self._cur.execute(sql, value)
-            self._conn.commit()
+            conn, cur = self._get_conn_cur()  # 修改：使用线程本地连接
+            cur.execute(sql, value)
+            conn.commit()
             if 'INSERT' in sql.upper():
                 print("[insert one record success]")
-            if 'UPDATE' in sql.upper():
+            elif 'UPDATE' in sql.upper():
                 print("[update one record success]")
             return True
         except Exception as e:
             print("[insert/update one record error]", e)
-            self._conn.rollback()
+            conn.rollback()  # 修改：使用线程本地连接回滚
             return False
 
     # 插入或更新表数据，一次插入或更新多条数据
@@ -86,17 +101,17 @@ class SqliteTool:
         :return: True表示插入或更新成功
         """
         try:
-            # 调用executemany()方法
-            self._cur.executemany(sql, value)
-            self._conn.commit()
+            conn, cur = self._get_conn_cur()  # 修改：使用线程本地连接
+            cur.executemany(sql, value)
+            conn.commit()
             if 'INSERT' in sql.upper():
                 print("[insert many  records success]")
-            if 'UPDATE' in sql.upper():
+            elif 'UPDATE' in sql.upper():
                 print("[update many  records success]")
             return True
         except Exception as e:
             print("[insert/update many  records error]", e)
-            self._conn.rollback()
+            conn.rollback()  # 修改：使用线程本地连接回滚
             return False
 
     # 删除表数据
@@ -108,8 +123,9 @@ class SqliteTool:
         """
         try:
             if 'DELETE' in sql.upper():
-                self._cur.execute(sql)
-                self._conn.commit()
+                conn, cur = self._get_conn_cur()  # 修改：使用线程本地连接
+                cur.execute(sql)
+                conn.commit()
                 print("[detele record success]")
                 return True
             else:
@@ -128,12 +144,12 @@ class SqliteTool:
         :return: 语句查询单条结果
         """
         try:
+            conn, cur = self._get_conn_cur()  # 修改：使用线程本地连接
             if params:
-                self._cur.execute(sql, params)
+                cur.execute(sql, params)
             else:
-                self._cur.execute(sql)
-            # 调用fetchone()方法
-            r = self._cur.fetchone()
+                cur.execute(sql)
+            r = cur.fetchone()
             print("[select one record success]")
             return r
         except Exception as e:
@@ -148,20 +164,21 @@ class SqliteTool:
         :return: 语句查询多条结果
         """
         try:
+            conn, cur = self._get_conn_cur()  # 修改：使用线程本地连接
             if params:
-                self._cur.execute(sql, params)
+                cur.execute(sql, params)
             else:
-                self._cur.execute(sql)
-            # 调用fetchall()方法
-            r = self._cur.fetchall()
+                cur.execute(sql)
+            r = cur.fetchall()
             print("[select many records success]")
             return r
         except Exception as e:
             print("[select many records error]", e)
 
     def table_exist(self, table_name: str) -> bool:
-        self._cur.execute(f"SELECT count(name) FROM sqlite_master WHERE type='table' AND name='{table_name}'")
-        return self._cur.fetchone()[0] == 1
+        conn, cur = self._get_conn_cur()  # 修改：使用线程本地连接
+        cur.execute(f"SELECT count(name) FROM sqlite_master WHERE type='table' AND name='{table_name}'")
+        return cur.fetchone()[0] == 1
 
 
 if __name__ == '__main__':
@@ -182,16 +199,14 @@ if __name__ == '__main__':
     mySqlite.operate_many('insert into info values(?,?,?)', [
         (5, 'Alice', 22),
         (6, 'John', 21)])
-    '''
     # 更新数据SQL语句
     update_sql = "update info set age=? where name=?"
-    update_value = (22,'Tom')
-    update_values = [(22,'Tom'),(32,'John')]
+    update_value = (22, 'Tom')
+    update_values = [(22, 'Tom'), (32, 'John')]
     # 一次更新一条数据
-    mySqlite.operate_one(update_sql,update_value)
+    mySqlite.operate_one(update_sql, update_value)
     # 一次更新多条数据
-    mySqlite.operate_many(update_sql,update_values)
-    '''
+    mySqlite.operate_many(update_sql, update_values)
     # 查询数据
     select_sql = "select name from info where age =? and name = ?"
     conn = sqlite3.connect("finance.db")
@@ -204,9 +219,7 @@ if __name__ == '__main__':
     result_many = mySqlite.query_many(select_sql, (23, 'Tom'))
     print(result_many)
     # 删除数据
-    '''
     delete_sql = "delete from info where name = 'Tom'"
     mySqlite.delete_record(delete_sql)
-    '''
     # 关闭游标和连接
     mySqlite.close_con()

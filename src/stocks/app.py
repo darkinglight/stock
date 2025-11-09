@@ -8,7 +8,7 @@ import toga
 from toga import Table
 from toga.style.pack import COLUMN, ROW, Pack
 
-from hs import HsFacade, HsSpot
+from hs import HsFacade, HsStock
 from hs.HsDetail import HsDetailRepository
 from hs.HsFhps import HsFhpsRepository
 from hs.HsFinancial import HsFinancialRepository
@@ -70,9 +70,7 @@ class stock(toga.App):
                 try:
                     hs_detail_repository = HsDetailRepository(self.db_path)
                     hs_detail_repository.init_table()
-                    hs_spot_repository = HsSpot.HsSpotRepository(self.db_path)
-                    hs_spot_repository.init_table()
-                    hs_spot_repository.refresh()
+                    hs_detail_repository.refresh_by_bao_stock()
                     print("refresh hs stock finish.")
                 except Exception as e:
                     print(f"refresh hs stock error: {e}")
