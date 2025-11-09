@@ -2,8 +2,6 @@ from collections import namedtuple
 
 import toga
 from toga.style import Pack
-
-from hs import HsSpot, HsFhps, HsFinancial
 from hs.HsDetail import HsDetailRepository
 
 HsFacade = namedtuple("HsFacade",
