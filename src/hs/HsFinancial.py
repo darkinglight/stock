@@ -163,7 +163,7 @@ class HsFinancialRepository:
             self.__delete(code)
             # 执行批量插入操作
             sqlite_tool.operate_many(sql, [(code,) + tuple(row) for index, row in rows.iterrows()])
-            sqlite_tool.close_con()
+            # sqlite_tool.close_con()
             # 计算roe_ttm = 净资产收益率 取平均值 * 4
             roe_ttm = round(rows['净资产收益率'].apply(convert_percentage).mean() * 4, 2)
             # 计算earning_growth = 净利润同比增长率 取最新值

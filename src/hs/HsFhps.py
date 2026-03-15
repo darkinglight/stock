@@ -142,7 +142,7 @@ class HsFhpsRepository:
                 sqlite_tool = SqliteTool(self.db_path)
                 sqlite_tool.delete_record(f"delete from hs_fhps where code = '{code}'")
                 sqlite_tool.operate_many(sql, [(code,) + tuple(row) for index, row in rows.iterrows()])
-                sqlite_tool.close_con()
+                # sqlite_tool.close_con()
                 hs_detail_repository = HsDetailRepository(self.db_path)
                 hs_detail_repository.update_bonus(code, self.__get_bonus_rate(code))
             except TypeError:

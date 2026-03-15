@@ -141,7 +141,7 @@ class HkFinanceRepository:
         # 执行批量插入操作
         sqlite_tool = SqliteTool(self.db_path)
         sqlite_tool.operate_many(sql, [tuple(row) for index, row in rows.iterrows()])
-        sqlite_tool.close_con()
+        # sqlite_tool.close_con()
 
     def refresh_all(self):
         time_map = self.code_time_map()
