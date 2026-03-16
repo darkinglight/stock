@@ -62,6 +62,94 @@ class SqliteTool:
             except Exception as e:
                 logger.error("[close connection error]", exc_info=e)
 
+    # 执行SQL语句
+    def _execute_sql(self, sql, params=None, many=False):
+        """
+        执行SQL语句
+        :param sql: SQL语句
+        :param params: 参数
+        :param many: 是否执行多条
+        :return: 游标对象
+        """
+        conn, cur = self._get_conn_cur()
+        if many:
+            cur.executemany(sql, params)
+        elif params:
+            cur.execute(sql, params)
+        else:
+            cur.execute(sql)
+        return conn, cur
+
+    # 处理查询结果
+    def _handle_query_result(self, cur, sql):
+        """
+        处理查询结果
+        :param cur: 游标对象
+        :param sql: SQL语句
+        :return: 查询结果
+        """
+        if 'LIMIT 1' in sql.upper() or self._is_single_query(sql):
+            result = cur.fetchone()
+            logger.info("[select one record success]")
+        else:
+            result = cur.fetchall()
+            logger.info("[select many records success]")
+        return result
+
+    # 判断是否为单条查询
+    def _is_single_query(self, sql):
+        """
+        判断是否为单条查询
+        :param sql: SQL语句
+        :return: 是否为单条查询
+        """
+        # 简单判断，实际应用中可能需要更复杂的逻辑
+        return False
+
+    # 处理非查询操作
+    def _handle_non_query(self, conn, sql):
+        """
+        处理非查询操作
+        :param conn: 连接对象
+        :param sql: SQL语句
+        :return: 是否成功
+        """
+        conn.commit()
+        if 'INSERT' in sql.upper():
+            logger.info("[insert record success]")
+        elif 'UPDATE' in sql.upper():
+            logger.info("[update record success]")
+        elif 'DELETE' in sql.upper():
+            logger.info("[delete record success]")
+        elif 'CREATE' in sql.upper():
+            logger.info("[create table success]")
+        elif 'DROP' in sql.upper():
+            logger.info("[drop table success]")
+        return True
+
+    # 通用执行方法，处理异常和事务
+    def _execute(self, sql, params=None, many=False, is_query=False):
+        """
+        通用SQL执行方法
+        :param sql: SQL语句
+        :param params: 参数
+        :param many: 是否执行多条
+        :param is_query: 是否为查询操作
+        :return: 执行结果
+        """
+        try:
+            conn, cur = self._execute_sql(sql, params, many)
+            
+            if is_query:
+                return self._handle_query_result(cur, sql)
+            else:
+                return self._handle_non_query(conn, sql)
+        except Exception as e:
+            logger.error(f"[execute error] {sql}", exc_info=e)
+            if hasattr(self._thread_local, 'conn') and not is_query:
+                self._thread_local.conn.rollback()
+            return None if is_query else False
+
     # 创建数据表
     def create_table(self, sql: str) -> bool:
         """
@@ -69,17 +157,7 @@ class SqliteTool:
         :param sql: create sql语句
         :return: True表示创建表成功，False表示失败
         """
-        try:
-            conn, cur = self._get_conn_cur()  # 使用线程本地连接
-            cur.execute(sql)
-            conn.commit()
-            logger.info("[create table success]")
-            return True
-        except Exception as e:
-            logger.error("[create table error]", exc_info=e)
-            if hasattr(self._thread_local, 'conn'):
-                self._thread_local.conn.rollback()
-            return False
+        return self._execute(sql)
 
     # 删除数据表
     def drop_table(self, sql: str) -> bool:
@@ -88,17 +166,7 @@ class SqliteTool:
         :param sql: drop sql语句
         :return: True表示删除成功，False表示失败
         """
-        try:
-            conn, cur = self._get_conn_cur()  # 使用线程本地连接
-            cur.execute(sql)
-            conn.commit()
-            logger.info("[drop table success]")
-            return True
-        except Exception as e:
-            logger.error("[drop table error]", exc_info=e)
-            if hasattr(self._thread_local, 'conn'):
-                self._thread_local.conn.rollback()
-            return False
+        return self._execute(sql)
 
     # 插入或更新表数据，一次插入或更新一条数据
     def operate_one(self, sql: str, value: tuple) -> bool:
@@ -108,20 +176,7 @@ class SqliteTool:
         :param value: 插入或更新的值，形如（）
         :return: True表示插入或更新成功，False表示失败
         """
-        try:
-            conn, cur = self._get_conn_cur()  # 使用线程本地连接
-            cur.execute(sql, value)
-            conn.commit()
-            if 'INSERT' in sql.upper():
-                logger.info("[insert one record success]")
-            elif 'UPDATE' in sql.upper():
-                logger.info("[update one record success]")
-            return True
-        except Exception as e:
-            logger.error("[insert/update one record error]", exc_info=e)
-            if hasattr(self._thread_local, 'conn'):
-                self._thread_local.conn.rollback()
-            return False
+        return self._execute(sql, value)
 
     # 插入或更新表数据，一次插入或更新多条数据
     def operate_many(self, sql: str, value: list) -> bool:
@@ -131,20 +186,7 @@ class SqliteTool:
         :param value: 插入或更新的字段的具体值，列表形式为list:[(),()]
         :return: True表示插入或更新成功，False表示失败
         """
-        try:
-            conn, cur = self._get_conn_cur()  # 使用线程本地连接
-            cur.executemany(sql, value)
-            conn.commit()
-            if 'INSERT' in sql.upper():
-                logger.info("[insert many records success]")
-            elif 'UPDATE' in sql.upper():
-                logger.info("[update many records success]")
-            return True
-        except Exception as e:
-            logger.error("[insert/update many records error]", exc_info=e)
-            if hasattr(self._thread_local, 'conn'):
-                self._thread_local.conn.rollback()
-            return False
+        return self._execute(sql, value, many=True)
 
     # 删除表数据
     def delete_record(self, sql: str) -> bool:
@@ -153,20 +195,10 @@ class SqliteTool:
         :param sql: 删除记录SQL语句
         :return: True表示删除成功，False表示失败
         """
-        try:
-            if 'DELETE' in sql.upper():
-                conn, cur = self._get_conn_cur()  # 使用线程本地连接
-                cur.execute(sql)
-                conn.commit()
-                logger.info("[delete record success]")
-                return True
-            else:
-                logger.warning("[sql is not delete]")
-                return False
-        except Exception as e:
-            logger.error("[delete record error]", exc_info=e)
-            if hasattr(self._thread_local, 'conn'):
-                self._thread_local.conn.rollback()
+        if 'DELETE' in sql.upper():
+            return self._execute(sql)
+        else:
+            logger.warning("[sql is not delete]")
             return False
 
     # 查询一条数据
@@ -177,18 +209,7 @@ class SqliteTool:
         :param params: 查询参数，形如()
         :return: 语句查询单条结果，None表示查询失败
         """
-        try:
-            conn, cur = self._get_conn_cur()  # 使用线程本地连接
-            if params:
-                cur.execute(sql, params)
-            else:
-                cur.execute(sql)
-            r = cur.fetchone()
-            logger.info("[select one record success]")
-            return r
-        except Exception as e:
-            logger.error("[select one record error]", exc_info=e)
-            return None
+        return self._execute(sql, params, is_query=True)
 
     # 查询多条数据
     def query_many(self, sql: str, params=None) -> list:
@@ -198,18 +219,8 @@ class SqliteTool:
         :param params: 查询参数，形如()
         :return: 语句查询多条结果，空列表表示查询失败
         """
-        try:
-            conn, cur = self._get_conn_cur()  # 使用线程本地连接
-            if params:
-                cur.execute(sql, params)
-            else:
-                cur.execute(sql)
-            r = cur.fetchall()
-            logger.info("[select many records success]")
-            return r
-        except Exception as e:
-            logger.error("[select many records error]", exc_info=e)
-            return []
+        result = self._execute(sql, params, is_query=True)
+        return result if result is not None else []
 
     def table_exist(self, table_name: str) -> bool:
         """
@@ -217,22 +228,20 @@ class SqliteTool:
         :param table_name: 表名
         :return: True表示表存在，False表示表不存在
         """
-        try:
-            conn, cur = self._get_conn_cur()  # 使用线程本地连接
-            # 使用参数化查询，避免SQL注入
-            cur.execute("SELECT count(name) FROM sqlite_master WHERE type='table' AND name=?", (table_name,))
-            return cur.fetchone()[0] == 1
-        except Exception as e:
-            logger.error("[check table exist error]", exc_info=e)
-            return False
+        result = self._execute(
+            "SELECT count(name) FROM sqlite_master WHERE type='table' AND name=?",
+            (table_name,),
+            is_query=True
+        )
+        return result[0] == 1 if result else False
 
 
 if __name__ == '__main__':
     # 创建数据表info的SQL语句
-    create_tb_sql = ("create table if not exists info("
-                     "id  int  primary key,"
-                     "name text not null,"
-                     "age int not null,"
+    create_tb_sql = ("create table if not exists info("  
+                     "id  int  primary key,"  
+                     "name text not null,"  
+                     "age int not null,"  
                      "address char(50));")
     
     # 使用上下文管理器
@@ -241,11 +250,11 @@ if __name__ == '__main__':
         mySqlite.create_table(create_tb_sql)
         # 插入数据
         # 一次插入一条数据
-        mySqlite.operate_one('insert into info values(?,?,?)', (4, 'Tom3', 22))
+        mySqlite.operate_one('insert into info values(?,?,?,?)', (4, 'Tom3', 22, 'Beijing'))
         # 一次插入多条数据
-        mySqlite.operate_many('insert into info values(?,?,?)', [
-            (5, 'Alice', 22),
-            (6, 'John', 21)])
+        mySqlite.operate_many('insert into info values(?,?,?,?)', [
+            (5, 'Alice', 22, 'Shanghai'),
+            (6, 'John', 21, 'Guangzhou')])
         # 更新数据SQL语句
         update_sql = "update info set age=? where name=?"
         update_value = (22, 'Tom')
@@ -259,7 +268,7 @@ if __name__ == '__main__':
         result_many = mySqlite.query_many(select_sql, (23, 'Tom'))
         print(result_many)
         # 删除数据
-        delete_sql = "delete from info where name = 'Tom'"
+        delete_sql = "delete from info"
         mySqlite.delete_record(delete_sql)
     
     # 连接会在with语句结束时自动关闭
