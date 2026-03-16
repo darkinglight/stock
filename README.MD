@@ -2,7 +2,8 @@
 
 ## ENV PREPARE
 1. python -m pip install briefcase
-2. briefcase new .
+2. uv add baostock
+3. briefcase new .
 
 ## update akshare
 1. pip install akshare --upgrade
