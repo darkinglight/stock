@@ -78,17 +78,20 @@ class MyRepository(BaseRepository):
 src/
 ├── database/         # 数据库管理
 ├── a_stock/          # A 股模块
-│   ├── data/         # 数据层
-│   ├── view/         # 视图层
-│   └── models/       # 数据模型
+│   ├── entities/         # 实体层
+│   ├── repositories/     # 仓储层
+│   ├── services/         # 服务层
+│   └── view/            # 视图层
 ├── h_stock/          # H 股模块
-│   ├── data/
-│   ├── view/
-│   └── models/
+│   ├── entities/
+│   ├── repositories/
+│   ├── services/
+│   └── view/
 └── us_stock/         # 美股模块（可扩展）
-   ├── data/
-   ├── view/
-   └── models/
+   ├── entities/
+   ├── repositories/
+   ├── services/
+   └── view/
 ```
 
 **优势**：
@@ -99,84 +102,322 @@ src/
 
 ### 4. 分层架构
 
-严格分离数据层和视图层：
+采用 DDD（领域驱动设计）的分层架构，严格分离各层职责：
 
-```python
-# 数据层 - 负责数据访问和业务逻辑
-class StockRepository(BaseRepository):
-    def get_all_stocks(self):
-        sql = "SELECT * FROM a_stock"
-        return self.query_many(sql)
-
-# 视图层 - 负责 UI 展示和用户交互
-class StockListView(toga.Box):
-    def __init__(self, repository: StockRepository):
-        self.repository = repository
-        super().__init__(children=[self._create_table()])
-    
-    def _create_table(self):
-        stocks = self.repository.get_all_stocks()
-        data = [(stock.code, stock.name, stock.price) for stock in stocks]
-        return toga.Table(
-            headings=["代码", "名称", "价格"],
-            data=data
-        )
+```
+┌─────────────────────────────────────────┐
+│         View Layer (视图层)          │  UI 展示和用户交互
+├─────────────────────────────────────────┤
+│      Service Layer (服务层)          │  业务逻辑和 API 调用
+├─────────────────────────────────────────┤
+│    Repository Layer (仓储层)        │  纯数据访问
+├─────────────────────────────────────────┤
+│      Entity Layer (实体层)           │  数据模型和验证
+├─────────────────────────────────────────┤
+│   Database Layer (数据库层)          │  数据持久化
+└─────────────────────────────────────────┘
 ```
 
-**优势**：
-- ✅ 职责清晰，易于理解
-- ✅ 便于单元测试
-- ✅ 可替换实现
-- ✅ 降低耦合度
+**各层职责**：
+
+**1. Entity Layer (实体层)**:
+- 定义领域模型和数据结构
+- 提供数据验证逻辑
+- 使用 dataclass 实现强类型
+
+**2. Repository Layer (仓储层)**:
+- 纯数据访问，不包含业务逻辑
+- 封装数据库操作
+- 继承自 BaseRepository
+
+**3. Service Layer (服务层)**:
+- 实现业务逻辑
+- 协调多个 Repository 和 Entity
+- 调用外部 API（akshare、baostock）
+
+**4. View Layer (视图层)**:
+- 负责 UI 展示和用户交互
+- 调用 Service 层获取数据
+- 不包含业务逻辑
+
+**5. Database Layer (数据库层)**:
+- 统一管理数据库连接
+- 提供连接池机制
 
 ## 快速示例
 
-### 示例 1：创建新的数据仓储
+### 示例 1：创建 Entity、Repository、Service、View
+
+#### 步骤 1：创建实体层（Entity）
 
 ```python
-# src/a_stock/data/custom_repository.py
-from src.database.base_repository import BaseRepository
-from typing import Optional, List
-from collections import namedtuple
+# src/a_stock/entities/stock.py
+from dataclasses import dataclass
+from typing import Optional
 
-# 定义数据模型
-CustomStock = namedtuple("CustomStock", ["code", "name", "price", "pe"])
-
-class CustomStockRepository(BaseRepository):
-    """
-    自定义股票数据仓储
-    """
+@dataclass
+class Stock:
+    """A 股实体"""
+    code: str
+    name: str
+    price: float
+    pe: Optional[float] = None
+    pb: Optional[float] = None
     
-    def __init__(self, db_name: str = "finance.db"):
-        super().__init__(db_name)
+    def validate(self) -> bool:
+        """验证实体数据"""
+        if not self.code or not self.name:
+            return False
+        if self.price <= 0:
+            return False
+        return True
+    
+    @classmethod
+    def from_dict(cls, data: dict) -> 'Stock':
+        """从字典创建实体"""
+        return cls(
+            code=data.get('code', ''),
+            name=data.get('name', ''),
+            price=float(data.get('price', 0)),
+            pe=float(data.get('pe')) if data.get('pe') else None,
+            pb=float(data.get('pb')) if data.get('pb') else None
+        )
+```
+
+#### 步骤 2：创建仓储层（Repository）
+
+```python
+# src/a_stock/repositories/stock_repository.py
+from src.database.base_repository import BaseRepository
+from src.a_stock.entities.stock import Stock
+
+class StockRepository(BaseRepository):
+    """
+    A 股数据仓储 - 纯数据访问
+    """
     
     def init_table(self):
         """初始化数据表"""
         sql = """
-        CREATE TABLE IF NOT EXISTS custom_stock (
+        CREATE TABLE IF NOT EXISTS a_stock (
             code TEXT PRIMARY KEY,
             name TEXT NOT NULL,
             price REAL,
             pe REAL,
+            pb REAL,
             created_at TEXT DEFAULT CURRENT_TIMESTAMP
         )
         """
         return self.create_table(sql)
     
-    def add_stock(self, code: str, name: str, price: float, pe: float) -> bool:
-        """添加股票"""
+    def save(self, stock: Stock) -> bool:
+        """保存股票实体"""
         sql = """
-        INSERT INTO custom_stock (code, name, price, pe) 
-        VALUES (?, ?, ?, ?)
-        ON CONFLICT(code) DO UPDATE SET 
-            name=excluded.name, 
-            price=excluded.price, 
-            pe=excluded.pe
+        INSERT INTO a_stock (code, name, price, pe, pb)
+        VALUES (?, ?, ?, ?, ?)
+        ON CONFLICT(code) DO UPDATE SET
+            name=excluded.name,
+            price=excluded.price,
+            pe=excluded.pe,
+            pb=excluded.pb
         """
-        return self.insert(sql, (code, name, price, pe))
+        return self.insert(sql, (
+            stock.code, stock.name, stock.price, stock.pe, stock.pb
+        ))
     
-    def get_stock(self, code: str) -> Optional[CustomStock]:
-        """获取单个股票"""
+    def find_by_code(self, code: str) -> Optional[Stock]:
+        """根据代码查询股票"""
+        sql = "SELECT * FROM a_stock WHERE code = ?"
+        result = self.query_one(sql, (code,))
+        if result:
+            return Stock(*result)
+        return None
+    
+    def find_all(self) -> list[Stock]:
+        """查询所有股票"""
+        sql = "SELECT * FROM a_stock"
+        results = self.query_many(sql)
+        return [Stock(*row) for row in results]
+```
+
+#### 步骤 3：创建服务层（Service）
+
+```python
+# src/a_stock/services/stock_service.py
+from typing import List, Optional
+from src.a_stock.repositories.stock_repository import StockRepository
+from src.a_stock.entities.stock import Stock
+import akshare as ak
+
+class StockService:
+    """
+    A 股服务 - 业务逻辑层
+    """
+    
+    def __init__(self, repository: StockRepository):
+        self.repository = repository
+    
+    def get_all_stocks(self) -> List[Stock]:
+        """获取所有股票"""
+        return self.repository.find_all()
+    
+    def get_stock_by_code(self, code: str) -> Optional[Stock]:
+        """根据代码获取股票"""
+        return self.repository.find_by_code(code)
+    
+    def fetch_and_save_stocks(self) -> int:
+        """从 API 获取并保存股票数据"""
+        stocks = self._fetch_from_api()
+        count = 0
+        for stock in stocks:
+            if stock.validate():
+                self.repository.save(stock)
+                count += 1
+        return count
+    
+    def filter_by_pe(self, min_pe: float, max_pe: float) -> List[Stock]:
+        """根据市盈率筛选股票"""
+        all_stocks = self.repository.find_all()
+        return [s for s in all_stocks if s.pe and min_pe <= s.pe <= max_pe]
+    
+    def _fetch_from_api(self) -> List[Stock]:
+        """从外部 API 获取数据（内部方法）"""
+        df = ak.stock_zh_a_spot()
+        stocks = []
+        for _, row in df.iterrows():
+            stock = Stock.from_dict({
+                'code': str(row['code']),
+                'name': str(row['name']),
+                'price': float(row.get('price', 0)),
+                'pe': None,
+                'pb': None
+            })
+            stocks.append(stock)
+        return stocks
+```
+
+#### 步骤 4：创建视图层（View）
+
+```python
+# src/a_stock/view/stock_list_view.py
+import toga
+from toga.style import Pack
+from src.a_stock.services.stock_service import StockService
+from src.a_stock.entities.stock import Stock
+
+class StockListView(toga.Box):
+    """
+    A 股列表视图
+    """
+    
+    def __init__(self, service: StockService):
+        self.service = service
+        super().__init__(children=[self._create_ui()])
+    
+    def _create_ui(self) -> toga.Box:
+        """创建 UI"""
+        self.table = toga.Table(
+            headings=["代码", "名称", "价格", "市盈率", "市净率"],
+            on_select=self._on_select,
+            style=Pack(flex=1)
+        )
+        
+        refresh_button = toga.Button(
+            "刷新数据",
+            on_press=self._refresh_data,
+            style=Pack(padding=10)
+        )
+        
+        filter_button = toga.Button(
+            "筛选 PE < 10",
+            on_press=self._filter_stocks,
+            style=Pack(padding=10)
+        )
+        
+        return toga.Box(
+            children=[self.table, refresh_button, filter_button],
+            style=Pack(direction=Column, flex=1)
+        )
+    
+    def _refresh_data(self, widget):
+        """刷新数据"""
+        count = self.service.fetch_and_save_stocks()
+        print(f"成功获取并保存了 {count} 只股票")
+        self._update_table()
+    
+    def _filter_stocks(self, widget):
+        """筛选股票"""
+        filtered_stocks = self.service.filter_by_pe(0, 10)
+        self._update_table(filtered_stocks)
+    
+    def _update_table(self, stocks: List[Stock] = None):
+        """更新表格数据"""
+        if stocks is None:
+            stocks = self.service.get_all_stocks()
+        
+        data = [
+            (stock.code, stock.name, stock.price, stock.pe or '-', stock.pb or '-')
+            for stock in stocks
+        ]
+        self.table.data = data
+    
+    def _on_select(self, widget, row):
+        """选择行时的回调"""
+        if row:
+            code = row[0]
+            stock = self.service.get_stock_by_code(code)
+            if stock:
+                print(f"Selected stock: {stock.code} - {stock.name}")
+```
+
+#### 步骤 5：在主应用中使用
+
+```python
+# src/ui/app.py
+import toga
+from src.a_stock.repositories.stock_repository import StockRepository
+from src.a_stock.services.stock_service import StockService
+from src.a_stock.view.stock_list_view import StockListView
+from src.database.connection import DatabaseConnectionManager
+
+class StockApp(toga.App):
+    """
+    股票应用主类
+    """
+    
+    def __init__(self):
+        super().__init__(
+            formal_name="Stock Analysis",
+            app_id="com.example.stocks"
+        )
+        
+        # 获取数据库路径
+        self.db_path = str(self.paths.data / "finance.db")
+        
+        # 创建仓储实例
+        stock_repo = StockRepository(self.db_path)
+        stock_repo.init_table()
+        
+        # 创建服务实例
+        stock_service = StockService(stock_repo)
+        
+        # 创建视图实例
+        self.stock_view = StockListView(stock_service)
+        
+        # 创建主窗口
+        self.main_window = toga.MainWindow(title=self.formal_name)
+        self.main_window.content = self.stock_view
+    
+    def on_exit(self):
+        """应用退出时的清理"""
+        # 关闭所有数据库连接
+        db_manager = DatabaseConnectionManager()
+        db_manager.close_all()
+        return True
+
+def main():
+    return StockApp()
+```
         sql = "SELECT code, name, price, pe FROM custom_stock WHERE code = ?"
         result = self.query_one(sql, (code,))
         if result:

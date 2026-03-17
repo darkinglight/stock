@@ -32,6 +32,7 @@ stock/
 │   ├── DATABASE.md                # 数据库设计文档
 │   ├── MIGRATION.md              # 迁移指南
 │   ├── QUICK_START.md            # 快速开始指南
+│   ├── TDD.md                   # 测试驱动开发指南
 │   └── INDEX.md                 # 文档索引
 ├── src/
 │   ├── database/                  # 数据库管理
@@ -40,37 +41,46 @@ stock/
 │   │   └── base_repository.py    # 基础仓储类
 │   ├── a_stock/                  # A 股模块
 │   │   ├── __init__.py
-│   │   ├── data/                # 数据层
+│   │   ├── entities/             # 实体层
+│   │   │   ├── __init__.py
+│   │   │   ├── stock.py      # 股票实体
+│   │   │   ├── detail.py     # 详情实体
+│   │   │   └── financial.py  # 财务实体
+│   │   ├── repositories/         # 仓储层
 │   │   │   ├── __init__.py
 │   │   │   ├── stock_repository.py      # 股票数据仓储
 │   │   │   ├── detail_repository.py     # 详情数据仓储
 │   │   │   ├── financial_repository.py  # 财务数据仓储
 │   │   │   └── indicator_repository.py  # 指标数据仓储
-│   │   ├── view/                # 视图层
+│   │   ├── services/            # 服务层
 │   │   │   ├── __init__.py
-│   │   │   ├── stock_list_view.py      # 股票列表视图
-│   │   │   ├── detail_view.py          # 详情视图
-│   │   │   └── financial_view.py       # 财务视图
-│   │   └── models/              # 数据模型
+│   │   │   ├── stock_service.py      # 股票业务逻辑
+│   │   │   ├── detail_service.py     # 详情业务逻辑
+│   │   │   └── financial_service.py  # 财务业务逻辑
+│   │   └── view/               # 视图层
 │   │       ├── __init__.py
-│   │       ├── stock.py
-│   │       ├── detail.py
-│   │       └── financial.py
+│   │       ├── stock_list_view.py      # 股票列表视图
+│   │       ├── detail_view.py          # 详情视图
+│   │       └── financial_view.py       # 财务视图
 │   ├── h_stock/                  # H 股模块
 │   │   ├── __init__.py
-│   │   ├── data/                # 数据层
+│   │   ├── entities/             # 实体层
+│   │   │   ├── __init__.py
+│   │   │   ├── stock.py
+│   │   │   └── financial.py
+│   │   ├── repositories/         # 仓储层
 │   │   │   ├── __init__.py
 │   │   │   ├── stock_repository.py
 │   │   │   ├── financial_repository.py
 │   │   │   └── report_repository.py
-│   │   ├── view/                # 视图层
+│   │   ├── services/            # 服务层
 │   │   │   ├── __init__.py
-│   │   │   ├── stock_list_view.py
-│   │   │   └── financial_view.py
-│   │   └── models/              # 数据模型
+│   │   │   ├── stock_service.py
+│   │   │   └── financial_service.py
+│   │   └── view/               # 视图层
 │   │       ├── __init__.py
-│   │       ├── stock.py
-│   │       └── financial.py
+│   │       ├── stock_list_view.py
+│   │       └── financial_view.py
 │   ├── us_stock/                 # 美股模块（示例扩展）
 │   │   └── ...
 │   ├── ui/                       # 主 UI 模块
@@ -85,9 +95,15 @@ stock/
 │       └── calculator.py        # 计算工具
 ├── tests/                        # 测试目录
 │   ├── __init__.py
-│   ├── test_database.py
+│   ├── test_database/
 │   ├── test_a_stock/
+│   │   ├── test_entities/
+│   │   ├── test_repositories/
+│   │   └── test_services/
 │   └── test_h_stock/
+│       ├── test_entities/
+│       ├── test_repositories/
+│       └── test_services/
 ├── pyproject.toml
 └── README.MD
 ```
@@ -116,6 +132,7 @@ class DatabaseConnectionManager:
 - 提供通用的数据库操作方法
 - 封装 CRUD 操作
 - 处理事务和异常
+- 纯数据访问，不包含业务逻辑
 
 **接口设计**:
 ```python
@@ -125,49 +142,269 @@ class BaseRepository:
     def drop_table(self, table_name: str) -> bool
     def insert(self, sql: str, data: Union[tuple, list]) -> bool
     def update(self, sql: str, data: Union[tuple, list]) -> bool
-    def delete(self, sql: str) -> bool
+    def delete(self, sql: str, params: tuple = None) -> bool
     def query_one(self, sql: str, params: tuple = None) -> Optional[tuple]
     def query_many(self, sql: str, params: tuple = None) -> List[tuple]
     def execute(self, sql: str, params: tuple = None) -> bool
+    def table_exists(self, table_name: str) -> bool
 ```
 
-### 3. 模块仓储接口
+### 3. 实体层 (Entity)
 
-**A 股模块数据层**:
+**职责**:
+- 定义领域模型和数据结构
+- 提供数据验证逻辑
+- 封装业务规则
+- 使用 dataclass 实现强类型
+
+**设计原则**:
+```python
+from dataclasses import dataclass
+from typing import Optional
+
+@dataclass
+class Stock:
+    """股票实体"""
+    code: str
+    name: str
+    price: float
+    pe: Optional[float] = None
+    pb: Optional[float] = None
+    
+    def validate(self) -> bool:
+        """验证实体数据"""
+        if not self.code or not self.name:
+            return False
+        if self.price <= 0:
+            return False
+        return True
+    
+    @classmethod
+    def from_dict(cls, data: dict) -> 'Stock':
+        """从字典创建实体"""
+        return cls(
+            code=data.get('code', ''),
+            name=data.get('name', ''),
+            price=float(data.get('price', 0)),
+            pe=float(data.get('pe')) if data.get('pe') else None,
+            pb=float(data.get('pb')) if data.get('pb') else None
+        )
+```
+
+### 3.1 Entity 操作方法
+
+**BaseRepository 新增的 Entity 操作方法**：
+
+```python
+from src.database.entity import BaseEntity
+
+# 保存单个 Entity
+repository.save(stock_entity)
+
+# 批量保存 Entity
+repository.save_all([stock1, stock2, stock3])
+
+# 更新 Entity
+repository.update_entity(stock_entity)
+
+# 批量更新 Entity
+repository.update_all([stock1, stock2])
+
+# 删除 Entity
+repository.delete_entity(stock_entity)
+
+# 根据主键查找 Entity
+stock = repository.find_by_id(Stock, "600000")
+
+# 查找所有 Entity
+stocks = repository.find_all(Stock)
+
+# 条件查找 Entity
+stocks = repository.find_all(Stock, status=1)
+
+# 检查 Entity 是否存在
+exists = repository.exists(stock_entity)
+```
+
+**优势**：
+- ✅ **类型安全**：直接操作 Entity 对象，编译时类型检查
+- ✅ **代码简洁**：不需要手动处理 SQL 字段映射
+- ✅ **易于维护**：字段变更只需修改 Entity 定义
+- ✅ **自动验证**：Entity 可以包含验证逻辑
+- ✅ **类似 ORM**：提供类似 ORM 的开发体验
+
+### 4. 服务层 (Service)
+
+**职责**:
+- 实现业务逻辑
+- 协调多个 Repository 和 Entity
+- 调用外部 API（akshare、baostock）
+- 数据转换和处理
+
+**设计原则**:
+```python
+from typing import List, Optional
+
+class StockService:
+    """股票服务 - 业务逻辑层"""
+    
+    def __init__(self, repository: StockRepository):
+        self.repository = repository
+    
+    def fetch_and_save_stocks(self) -> int:
+        """从 API 获取并保存股票数据"""
+        stocks = self._fetch_from_api()
+        count = 0
+        for stock in stocks:
+            if stock.validate():
+                self.repository.save(stock)
+                count += 1
+        return count
+    
+    def filter_by_pe(self, min_pe: float, max_pe: float) -> List[Stock]:
+        """根据市盈率筛选股票"""
+        all_stocks = self.repository.find_all()
+        return [s for s in all_stocks if s.pe and min_pe <= s.pe <= max_pe]
+    
+    def get_stock_detail(self, code: str) -> Optional[Stock]:
+        """获取股票详情"""
+        return self.repository.find_by_code(code)
+    
+    def _fetch_from_api(self) -> List[Stock]:
+        """从外部 API 获取数据（内部方法）"""
+        # 调用 akshare 或 baostock
+        import akshare as ak
+        df = ak.stock_zh_a_spot()
+        return [Stock.from_dict(row) for _, row in df.iterrows()]
+```
+
+### 5. 模块仓储接口
+
+**A 股模块仓储层**:
 - `StockRepository`: A 股基础信息管理
 - `DetailRepository`: A 股详情数据管理
 - `FinancialRepository`: A 股财务数据管理
 - `IndicatorRepository`: A 股指标数据管理
 
-**H 股模块数据层**:
+**A 股模块服务层**:
+- `StockService`: A 股业务逻辑
+- `DetailService`: A 股详情业务逻辑
+- `FinancialService`: A 股财务业务逻辑
+
+**H 股模块仓储层**:
 - `StockRepository`: H 股基础信息管理
 - `FinancialRepository`: H 股财务数据管理
 - `ReportRepository`: H 股报告数据管理
+
+**H 股模块服务层**:
+- `StockService`: H 股业务逻辑
+- `FinancialService`: H 股财务业务逻辑
 
 ### 4. 视图层设计
 
 **原则**:
 - 视图层只负责 UI 展示和用户交互
-- 通过接口调用数据层获取数据
+- 通过接口调用 Service 层获取数据
 - 不包含任何业务逻辑
 - 使用 Toga 框架组件构建
 
 **接口设计**:
 ```python
 class BaseView(toga.Box):
-    def __init__(self, repository: BaseRepository)
+    def __init__(self, service: BaseService)
     def refresh_data(self)
     def get_selected_item(self)
 ```
+
+## 分层架构说明
+
+### 架构层次
+
+本项目采用 DDD（领域驱动设计）的分层架构，从上到下分为：
+
+```
+┌─────────────────────────────────────────┐
+│         View Layer (视图层)          │  UI 展示和用户交互
+├─────────────────────────────────────────┤
+│      Service Layer (服务层)          │  业务逻辑和 API 调用
+├─────────────────────────────────────────┤
+│    Repository Layer (仓储层)        │  纯数据访问
+├─────────────────────────────────────────┤
+│      Entity Layer (实体层)           │  数据模型和验证
+├─────────────────────────────────────────┤
+│   Database Layer (数据库层)          │  数据持久化
+└─────────────────────────────────────────┘
+```
+
+### 各层职责
+
+**1. View Layer (视图层)**:
+- 负责 UI 展示和用户交互
+- 调用 Service 层获取数据
+- 不包含业务逻辑
+- 使用 Toga 框架组件
+
+**2. Service Layer (服务层)**:
+- 实现业务逻辑
+- 协调多个 Repository 和 Entity
+- 调用外部 API（akshare、baostock）
+- 数据转换和处理
+- 不直接操作数据库
+
+**3. Repository Layer (仓储层)**:
+- 纯数据访问，不包含业务逻辑
+- 封装数据库操作
+- 继承自 BaseRepository
+- 只负责 CRUD 操作
+
+**4. Entity Layer (实体层)**:
+- 定义领域模型和数据结构
+- 提供数据验证逻辑
+- 封装业务规则
+- 使用 dataclass 实现强类型
+
+**5. Database Layer (数据库层)**:
+- 统一管理数据库连接
+- 提供连接池机制
+- 确保线程安全
+
+### 依赖关系
+
+```
+View → Service → Repository → Database
+  ↓         ↓           ↓
+Entity    Entity    Entity
+```
+
+- View 依赖 Service
+- Service 依赖 Repository 和 Entity
+- Repository 依赖 Entity
+- 所有层都依赖 Database
+
+### 调用规则
+
+**1. 向下调用**:
+- View 调用 Service
+- Service 调用 Repository
+- Repository 调用 Database
+
+**2. 不跨层调用**:
+- View 不直接调用 Repository
+- Service 不直接调用 Database
+- Repository 不调用外部 API
+
+**3. 数据流向**:
+- 数据从下往上流：Database → Repository → Service → View
+- 命令从上往下流：View → Service → Repository → Database
 
 ## 数据流设计
 
 ### 1. 数据获取流程
 
 ```
-用户操作 → 视图层 → 数据层 → 数据库
-                ↓
-            数据处理
+用户操作 → 视图层 → 服务层 → 仓储层 → 数据库
+                ↓         ↓         ↓
+            数据处理  Entity  Entity
                 ↓
             视图更新
 ```
@@ -175,13 +412,43 @@ class BaseView(toga.Box):
 ### 2. 数据更新流程
 
 ```
-定时任务/用户触发 → 数据层 → 外部 API
+定时任务/用户触发 → 服务层 → 外部 API
                         ↓
-                    数据处理
+                    数据处理和转换
                         ↓
-                    数据库存储
+                    创建 Entity 对象
+                        ↓
+                    仓储层 → 数据库
                         ↓
                     视图刷新
+```
+
+### 3. 典型业务流程示例
+
+**查询股票列表**:
+```
+View → StockService.get_all_stocks()
+       ↓
+StockService → StockRepository.find_all()
+       ↓
+StockRepository → Database
+       ↓
+返回 List[Stock] → StockService → View
+```
+
+**更新股票数据**:
+```
+View → StockService.refresh_stocks()
+       ↓
+StockService → akshare API
+       ↓
+返回 DataFrame → 转换为 List[Stock]
+       ↓
+StockService → StockRepository.save_all(stocks)
+       ↓
+StockRepository → Database
+       ↓
+通知 View 刷新
 ```
 
 ## 数据库设计

@@ -55,19 +55,32 @@ python -m pytest tests/
 # 创建数据库管理目录
 mkdir -p src/database
 
-# 创建业务模块目录
-mkdir -p src/a_stock/data
+# 创建 A 股模块目录
+mkdir -p src/a_stock/entities
+mkdir -p src/a_stock/repositories
+mkdir -p src/a_stock/services
 mkdir -p src/a_stock/view
-mkdir -p src/a_stock/models
-mkdir -p src/h_stock/data
+
+# 创建 H 股模块目录
+mkdir -p src/h_stock/entities
+mkdir -p src/h_stock/repositories
+mkdir -p src/h_stock/services
 mkdir -p src/h_stock/view
-mkdir -p src/h_stock/models
 
 # 创建 UI 模块目录
 mkdir -p src/ui/components
 
 # 创建工具模块目录
 mkdir -p src/utils
+
+# 创建测试目录
+mkdir -p tests/test_database
+mkdir -p tests/test_a_stock/test_entities
+mkdir -p tests/test_a_stock/test_repositories
+mkdir -p tests/test_a_stock/test_services
+mkdir -p tests/test_h_stock/test_entities
+mkdir -p tests/test_h_stock/test_repositories
+mkdir -p tests/test_h_stock/test_services
 ```
 
 #### 1.2 创建 __init__.py 文件
@@ -75,6 +88,7 @@ mkdir -p src/utils
 ```bash
 # 为所有目录创建 __init__.py
 find src -type d -exec touch {}/__init__.py \;
+find tests -type d -exec touch {}/__init__.py \;
 ```
 
 ### 第二阶段：重构数据库连接管理
@@ -368,71 +382,447 @@ class BaseRepository:
 
 ### 第三阶段：重构 A 股模块
 
-#### 3.1 迁移 A 股数据层
+#### 3.1 创建 A 股实体层
 
-将 `src/hs/` 下的数据层文件迁移到 `src/a_stock/data/`：
+创建 A 股的实体类，使用 dataclass 替代 namedtuple：
 
-```bash
-# 迁移数据层文件
-cp src/hs/HsStock.py src/a_stock/data/stock_repository.py
-cp src/hs/HsDetail.py src/a_stock/data/detail_repository.py
-cp src/hs/HsFinancial.py src/a_stock/data/financial_repository.py
-cp src/hs/HsIndicator.py src/a_stock/data/indicator_repository.py
+```python
+# src/a_stock/entities/stock.py
+from dataclasses import dataclass
+from typing import Optional
+
+@dataclass
+class Stock:
+    """A 股实体"""
+    code: str
+    name: str
+    market: str
+    code_number: str
+    industry: Optional[str] = None
+    list_date: Optional[str] = None
+    status: int = 1
+    
+    def validate(self) -> bool:
+        """验证实体数据"""
+        if not self.code or not self.name:
+            return False
+        return True
 ```
 
-#### 3.2 迁移 A 股视图层
+#### 3.2 重构 A 股仓储层
 
-将 `src/hs/` 下的视图层文件迁移到 `src/a_stock/view/`：
+将 `src/hs/` 下的数据层文件迁移到 `src/a_stock/repositories/`，并重构为纯数据访问：
+
+```bash
+# 迁移仓储层文件
+cp src/hs/HsStock.py src/a_stock/repositories/stock_repository.py
+cp src/hs/HsDetail.py src/a_stock/repositories/detail_repository.py
+cp src/hs/HsFinancial.py src/a_stock/repositories/financial_repository.py
+cp src/hs/HsIndicator.py src/a_stock/repositories/indicator_repository.py
+```
+
+重构仓储类，移除业务逻辑，只保留数据访问：
+
+```python
+# src/a_stock/repositories/stock_repository.py
+from src.database.base_repository import BaseRepository
+from src.a_stock.entities.stock import Stock
+
+class StockRepository(BaseRepository):
+    """A 股数据仓储 - 纯数据访问"""
+    
+    def init_table(self):
+        """初始化数据表"""
+        sql = """
+        CREATE TABLE IF NOT EXISTS a_stock (
+            code TEXT PRIMARY KEY,
+            name TEXT NOT NULL,
+            market TEXT,
+            code_number TEXT,
+            industry TEXT,
+            list_date TEXT,
+            status INTEGER DEFAULT 1
+        )
+        """
+        return self.create_table(sql)
+    
+    def save(self, stock: Stock) -> bool:
+        """保存股票实体"""
+        sql = """
+        INSERT INTO a_stock (code, name, market, code_number, industry, list_date, status)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(code) DO UPDATE SET
+            name=excluded.name,
+            market=excluded.market,
+            code_number=excluded.code_number,
+            industry=excluded.industry,
+            list_date=excluded.list_date,
+            status=excluded.status
+        """
+        return self.insert(sql, (
+            stock.code, stock.name, stock.market, stock.code_number,
+            stock.industry, stock.list_date, stock.status
+        ))
+    
+    def find_by_code(self, code: str) -> Optional[Stock]:
+        """根据代码查询股票"""
+        sql = "SELECT * FROM a_stock WHERE code = ?"
+        result = self.query_one(sql, (code,))
+        if result:
+            return Stock(*result)
+        return None
+    
+    def find_all(self) -> List[Stock]:
+        """查询所有股票"""
+        sql = "SELECT * FROM a_stock WHERE status = 1"
+        results = self.query_many(sql)
+        return [Stock(*row) for row in results]
+```
+
+#### 3.3 创建 A 股服务层
+
+创建 A 股的服务类，将业务逻辑从仓储层分离：
+
+```python
+# src/a_stock/services/stock_service.py
+from typing import List, Optional
+from src.a_stock.repositories.stock_repository import StockRepository
+from src.a_stock.entities.stock import Stock
+import akshare as ak
+
+class StockService:
+    """A 股服务 - 业务逻辑层"""
+    
+    def __init__(self, repository: StockRepository):
+        self.repository = repository
+    
+    def get_all_stocks(self) -> List[Stock]:
+        """获取所有股票"""
+        return self.repository.find_all()
+    
+    def get_stock_by_code(self, code: str) -> Optional[Stock]:
+        """根据代码获取股票"""
+        return self.repository.find_by_code(code)
+    
+    def fetch_and_save_stocks(self) -> int:
+        """从 API 获取并保存股票数据"""
+        stocks = self._fetch_from_api()
+        count = 0
+        for stock in stocks:
+            if stock.validate():
+                self.repository.save(stock)
+                count += 1
+        return count
+    
+    def _fetch_from_api(self) -> List[Stock]:
+        """从外部 API 获取数据（内部方法）"""
+        df = ak.stock_zh_a_spot()
+        stocks = []
+        for _, row in df.iterrows():
+            stock = Stock(
+                code=str(row['code']),
+                name=str(row['name']),
+                market='SH' if str(row['code']).startswith('6') else 'SZ',
+                code_number=str(row['code']),
+                industry=None,
+                list_date=None,
+                status=1
+            )
+            stocks.append(stock)
+        return stocks
+```
+
+#### 3.4 重构 A 股视图层
+
+将 `src/hs/` 下的视图层文件迁移到 `src/a_stock/view/`，并更新为调用服务层：
 
 ```bash
 # 迁移视图层文件
 cp src/hs/HsFacade.py src/a_stock/view/stock_list_view.py
 ```
 
-#### 3.3 更新导入路径
-
-更新所有迁移文件中的导入路径：
+重构视图类，改为调用服务层而不是仓储层：
 
 ```python
-# 旧导入
-from stocks.SqliteTool import SqliteTool
+# src/a_stock/view/stock_list_view.py
+import toga
+from toga.style import Pack
+from src.a_stock.services.stock_service import StockService
+from src.a_stock.entities.stock import Stock
 
-# 新导入
-from src.database.base_repository import BaseRepository
+class StockListView(toga.Box):
+    """A 股列表视图"""
+    
+    def __init__(self, service: StockService):
+        self.service = service
+        super().__init__(children=[self._create_ui()])
+    
+    def _create_ui(self) -> toga.Box:
+        """创建 UI"""
+        self.table = toga.Table(
+            headings=["代码", "名称", "市场", "行业"],
+            on_select=self._on_select,
+            style=Pack(flex=1)
+        )
+        
+        refresh_button = toga.Button(
+            "刷新数据",
+            on_press=self._refresh_data,
+            style=Pack(padding=10)
+        )
+        
+        return toga.Box(
+            children=[self.table, refresh_button],
+            style=Pack(direction=Column, flex=1)
+        )
+    
+    def _refresh_data(self, widget):
+        """刷新数据"""
+        count = self.service.fetch_and_save_stocks()
+        self._update_table()
+    
+    def _update_table(self):
+        """更新表格数据"""
+        stocks = self.service.get_all_stocks()
+        data = [
+            (stock.code, stock.name, stock.market, stock.industry or '-')
+            for stock in stocks
+        ]
+        self.table.data = data
+    
+    def _on_select(self, widget, row):
+        """选择行时的回调"""
+        if row:
+            code = row[0]
+            stock = self.service.get_stock_by_code(code)
+            print(f"Selected stock: {stock.code} - {stock.name}")
 ```
 
 ### 第四阶段：重构 H 股模块
 
-#### 4.1 迁移 H 股数据层
+#### 4.1 创建 H 股实体层
 
-将 `src/stocks/hkstock.py` 和 `src/stocks/hkfinancial.py` 迁移到 `src/h_stock/data/`：
+创建 H 股的实体类，使用 dataclass 替代 namedtuple：
 
-```bash
-# 迁移数据层文件
-cp src/stocks/hkstock.py src/h_stock/data/stock_repository.py
-cp src/stocks/hkfinancial.py src/h_stock/data/financial_repository.py
-cp src/hk/hkreport.py src/h_stock/data/report_repository.py
+```python
+# src/h_stock/entities/stock.py
+from dataclasses import dataclass
+from typing import Optional
+
+@dataclass
+class Stock:
+    """H 股实体"""
+    code: str
+    name: str
+    price: Optional[float] = None
+    market_cap: Optional[float] = None
+    circulating_cap: Optional[float] = None
+    update_at: Optional[str] = None
+    
+    def validate(self) -> bool:
+        """验证实体数据"""
+        if not self.code or not self.name:
+            return False
+        return True
 ```
 
-#### 4.2 迁移 H 股视图层
+#### 4.2 重构 H 股仓储层
 
-将 `src/stocks/stocklist.py` 迁移到 `src/h_stock/view/`：
+将 `src/stocks/hkstock.py` 和 `src/stocks/hkfinancial.py` 迁移到 `src/h_stock/repositories/`，并重构为纯数据访问：
+
+```bash
+# 迁移仓储层文件
+cp src/stocks/hkstock.py src/h_stock/repositories/stock_repository.py
+cp src/stocks/hkfinancial.py src/h_stock/repositories/financial_repository.py
+cp src/hk/hkreport.py src/h_stock/repositories/report_repository.py
+```
+
+重构仓储类，移除业务逻辑，只保留数据访问：
+
+```python
+# src/h_stock/repositories/stock_repository.py
+from src.database.base_repository import BaseRepository
+from src.h_stock.entities.stock import Stock
+
+class StockRepository(BaseRepository):
+    """H 股数据仓储 - 纯数据访问"""
+    
+    def init_table(self):
+        """初始化数据表"""
+        sql = """
+        CREATE TABLE IF NOT EXISTS h_stock (
+            code TEXT PRIMARY KEY,
+            name TEXT NOT NULL,
+            price REAL,
+            market_cap REAL,
+            circulating_cap REAL,
+            update_at TEXT
+        )
+        """
+        return self.create_table(sql)
+    
+    def save(self, stock: Stock) -> bool:
+        """保存股票实体"""
+        sql = """
+        INSERT INTO h_stock (code, name, price, market_cap, circulating_cap, update_at)
+        VALUES (?, ?, ?, ?, ?, ?)
+        ON CONFLICT(code) DO UPDATE SET
+            name=excluded.name,
+            price=excluded.price,
+            market_cap=excluded.market_cap,
+            circulating_cap=excluded.circulating_cap,
+            update_at=excluded.update_at
+        """
+        return self.insert(sql, (
+            stock.code, stock.name, stock.price, stock.market_cap,
+            stock.circulating_cap, stock.update_at
+        ))
+    
+    def find_by_code(self, code: str) -> Optional[Stock]:
+        """根据代码查询股票"""
+        sql = "SELECT * FROM h_stock WHERE code = ?"
+        result = self.query_one(sql, (code,))
+        if result:
+            return Stock(*result)
+        return None
+    
+    def find_all(self) -> List[Stock]:
+        """查询所有股票"""
+        sql = "SELECT * FROM h_stock"
+        results = self.query_many(sql)
+        return [Stock(*row) for row in results]
+```
+
+#### 4.3 创建 H 股服务层
+
+创建 H 股的服务类，将业务逻辑从仓储层分离：
+
+```python
+# src/h_stock/services/stock_service.py
+from typing import List, Optional
+from src.h_stock.repositories.stock_repository import StockRepository
+from src.h_stock.entities.stock import Stock
+import akshare as ak
+
+class StockService:
+    """H 股服务 - 业务逻辑层"""
+    
+    def __init__(self, repository: StockRepository):
+        self.repository = repository
+    
+    def get_all_stocks(self) -> List[Stock]:
+        """获取所有股票"""
+        return self.repository.find_all()
+    
+    def get_stock_by_code(self, code: str) -> Optional[Stock]:
+        """根据代码获取股票"""
+        return self.repository.find_by_code(code)
+    
+    def fetch_and_save_stocks(self) -> int:
+        """从 API 获取并保存股票数据"""
+        stocks = self._fetch_from_api()
+        count = 0
+        for stock in stocks:
+            if stock.validate():
+                self.repository.save(stock)
+                count += 1
+        return count
+    
+    def _fetch_from_api(self) -> List[Stock]:
+        """从外部 API 获取数据（内部方法）"""
+        df = ak.stock_hk_spot()
+        stocks = []
+        for _, row in df.iterrows():
+            stock = Stock(
+                code=str(row['code']),
+                name=str(row['name']),
+                price=float(row['price']) if 'price' in row else None,
+                market_cap=float(row['market_cap']) if 'market_cap' in row else None,
+                circulating_cap=float(row['circulating_cap']) if 'circulating_cap' in row else None,
+                update_at=None
+            )
+            stocks.append(stock)
+        return stocks
+```
+
+#### 4.4 重构 H 股视图层
+
+将 `src/stocks/stocklist.py` 迁移到 `src/h_stock/view/`，并更新为调用服务层：
 
 ```bash
 # 迁移视图层文件
 cp src/stocks/stocklist.py src/h_stock/view/stock_list_view.py
 ```
 
+重构视图类，改为调用服务层而不是仓储层：
+
+```python
+# src/h_stock/view/stock_list_view.py
+import toga
+from toga.style import Pack
+from src.h_stock.services.stock_service import StockService
+from src.h_stock.entities.stock import Stock
+
+class StockListView(toga.Box):
+    """H 股列表视图"""
+    
+    def __init__(self, service: StockService):
+        self.service = service
+        super().__init__(children=[self._create_ui()])
+    
+    def _create_ui(self) -> toga.Box:
+        """创建 UI"""
+        self.table = toga.Table(
+            headings=["代码", "名称", "价格", "市值"],
+            on_select=self._on_select,
+            style=Pack(flex=1)
+        )
+        
+        refresh_button = toga.Button(
+            "刷新数据",
+            on_press=self._refresh_data,
+            style=Pack(padding=10)
+        )
+        
+        return toga.Box(
+            children=[self.table, refresh_button],
+            style=Pack(direction=Column, flex=1)
+        )
+    
+    def _refresh_data(self, widget):
+        """刷新数据"""
+        count = self.service.fetch_and_save_stocks()
+        self._update_table()
+    
+    def _update_table(self):
+        """更新表格数据"""
+        stocks = self.service.get_all_stocks()
+        data = [
+            (stock.code, stock.name, stock.price or '-', stock.market_cap or '-')
+            for stock in stocks
+        ]
+        self.table.data = data
+    
+    def _on_select(self, widget, row):
+        """选择行时的回调"""
+        if row:
+            code = row[0]
+            stock = self.service.get_stock_by_code(code)
+            print(f"Selected stock: {stock.code} - {stock.name}")
+```
+
 ### 第五阶段：更新主应用代码
 
 #### 5.1 更新 app.py
 
-更新主应用文件以使用新的模块结构：
+更新主应用文件以使用新的模块结构和 DDD 分层：
 
 ```python
 # 更新导入
-from src.a_stock.view.stock_list_view import StockListView
-from src.h_stock.view.stock_list_view import HkStockListView
+from src.a_stock.services.stock_service import StockService
+from src.h_stock.services.stock_service import HkStockService
+from src.a_stock.repositories.stock_repository import StockRepository
+from src.h_stock.repositories.stock_repository import HkStockRepository
 from src.database.connection import DatabaseConnectionManager
 
 # 在应用退出时关闭所有数据库连接
@@ -441,9 +831,23 @@ def on_exit(self):
     db_manager.close_all()
 ```
 
-#### 5.2 更新其他文件
+#### 5.2 更新依赖注入
 
-更新 `src/stocks/` 下其他文件的导入路径。
+使用依赖注入的方式创建服务实例：
+
+```python
+# 创建仓储实例
+a_stock_repo = StockRepository("finance.db")
+h_stock_repo = HkStockRepository("finance.db")
+
+# 创建服务实例
+a_stock_service = StockService(a_stock_repo)
+h_stock_service = HkStockService(h_stock_repo)
+
+# 创建视图实例
+a_stock_view = StockListView(a_stock_service)
+h_stock_view = HkStockListView(h_stock_service)
+```
 
 ### 第六阶段：测试驱动开发（TDD）实施
 
