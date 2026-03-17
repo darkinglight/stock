@@ -27,6 +27,36 @@ class stock(toga.App):
         if not os.path.exists(self.paths.data):
             os.makedirs(self.paths.data, exist_ok=True)
 
+        # 初始化所有必要的表
+        try:
+            # 初始化港股股票表
+            stock_repository = hkstock.HkStockRepository(self.db_path)
+            stock_repository.init_table()
+            
+            # 初始化A股详情表
+            hs_detail_repository = HsDetailRepository(self.db_path)
+            hs_detail_repository.init_table()
+            
+            # 初始化可转债表
+            bond_repository = BondRepository(self.db_path)
+            bond_repository.init_table()
+            
+            # 初始化港股财务表
+            finance_repository = hkfinancial.HkFinanceRepository(self.db_path)
+            finance_repository.create_table()
+            
+            # 初始化A股财务表
+            hs_financial_repository = HsFinancialRepository(self.db_path)
+            hs_financial_repository.init_table()
+            
+            # 初始化A股分红表
+            hs_fhps_repository = HsFhpsRepository(self.db_path)
+            hs_fhps_repository.init_table()
+            
+            print("All tables initialized successfully")
+        except Exception as e:
+            print(f"Error initializing tables: {e}")
+
         table = toga.Table(
             headings=["配置项", "值"],
             data=[
