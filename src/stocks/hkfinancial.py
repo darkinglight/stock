@@ -85,11 +85,13 @@ class HkFinanceRepository:
         df = ak.stock_financial_hk_analysis_indicator_em(symbol=code, indicator=indicator)
         return df
 
-    def fetch_from_db(self, SECURITY_CODE: str, REPORT_DATE: str) -> HKFinancial:
+    def fetch_from_db(self, SECURITY_CODE: str, REPORT_DATE: str) -> HKFinancial | None:
         sqlite_tool = SqliteTool(self.db_path)
         row = sqlite_tool.query_one("select * from hk_financial where SECURITY_CODE = ? and REPORT_DATE = ?",
                                     (SECURITY_CODE, REPORT_DATE))
         sqlite_tool.close_con()
+        if not row:
+            return None
         return HKFinancial(*row)
 
     def fetch_last_3year_report(self, SECURITY_CODE: str):
@@ -103,13 +105,15 @@ class HkFinanceRepository:
             return []
         return [HKFinancial(*row) for row in rows]
 
-    def fetch_last_year_report(self, SECURITY_CODE: str) -> HKFinancial:
+    def fetch_last_year_report(self, SECURITY_CODE: str) -> HKFinancial | None:
         sqlite_tool = SqliteTool(self.db_path)
         row = sqlite_tool.query_one("select * from hk_financial "
                                    f"where SECURITY_CODE = '{SECURITY_CODE}' and DATE_TYPE_CODE = '001' "
                                    "order by REPORT_DATE DESC "
                                    "limit 1")
         sqlite_tool.close_con()
+        if not row:
+            return None
         return HKFinancial(*row)
 
     def list_last_year_report(self) -> list[Any] | list[HKFinancial]:
@@ -120,7 +124,15 @@ class HkFinanceRepository:
         sqlite_tool.close_con()
         if not rows:
             return []
-        return [HKFinancial(*row) for row in rows]
+        result = []
+        for row in rows:
+            if row:
+                try:
+                    result.append(HKFinancial(*row))
+                except Exception as e:
+                    print(f"Error creating HKFinancial: {e}")
+                    continue
+        return result
 
     def delete(self, SECURITY_CODE: str):
         sqlite_tool = SqliteTool(self.db_path)

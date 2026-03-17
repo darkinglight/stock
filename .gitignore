@@ -63,3 +63,4 @@ logs/
 
 # light
 finance.db
+.venv/

@@ -1,7 +1,7 @@
 # INSTALL
 
 ## ENV PREPARE
-1. python -m pip install briefcase
+1. uv add briefcase
 2. uv add baostock
 3. briefcase new .
 

@@ -11,6 +11,7 @@ requires-python = ">=3.10"
 dependencies = [
     "akshare",
     "baostock>=0.8.9",
+    "briefcase>=0.4.1",
 ]
 
 [tool.briefcase]
@@ -165,7 +166,8 @@ flatpak_sdk = "org.gnome.Sdk"
 
 [tool.briefcase.app.stocks.windows]
 requires = [
-    "toga-winforms~=0.4.7",
+    "toga-winforms",
+    "pythonnet==3.1.0rc0",
 ]
 
 # Mobile deployments
