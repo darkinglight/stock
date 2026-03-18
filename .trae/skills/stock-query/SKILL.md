@@ -32,6 +32,38 @@ print(stock_info_a_code_name_df)
 ### 2. 实时行情数据
 
 #### 2.1 沪深京A股实时行情 ⚠️
+
+**函数**: `stock_zh_a_spot()`
+
+**使用示例**:
+```python
+import akshare as ak
+
+# 获取所有A股实时行情
+stock_zh_a_spot_df = ak.stock_zh_a_spot()
+print(stock_zh_a_spot_df)
+
+# 筛选特定股票（如贵州茅台）
+gm_data = stock_zh_a_spot_df[stock_zh_a_spot_df['代码'] == 'sh600519']
+print(gm_data)
+```
+
+**返回数据**:
+- 代码: 股票代码（格式如 sh600000）
+- 名称: 股票名称
+- 最新价: 最新价格
+- 涨跌额: 涨跌额
+- 涨跌幅: 涨跌幅
+- 买入: 买入价
+- 卖出: 卖出价
+- 成交量: 成交量
+- 成交额: 成交额
+- 今开: 今开
+- 最高: 最高价
+- 最低: 最低价
+- 时间戳: 数据时间戳
+
+#### 2.2 沪深京A股实时行情（东方财富） ⚠️
 获取所有A股的实时行情数据（**接口不稳定，建议谨慎使用**）。
 
 **函数**: `stock_zh_a_spot_em()`
