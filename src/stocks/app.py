@@ -26,6 +26,11 @@ class stock(toga.App):
         # self.db_path = "/Users/janet"
         if not os.path.exists(self.paths.data):
             os.makedirs(self.paths.data, exist_ok=True)
+        
+        # 设置默认数据库名称
+        from src.database.connection import DatabaseConnectionManager
+        db_manager = DatabaseConnectionManager()
+        db_manager.set_default_db_name(self.db_path)
 
         # 初始化所有必要的表
         try:

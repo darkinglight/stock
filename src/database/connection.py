@@ -25,8 +25,18 @@ class DatabaseConnectionManager:
                     cls._instance = super().__new__(cls)
                     # 使用threading.local()存储线程本地连接
                     cls._instance._local = threading.local()
+                    # 默认数据库名称
+                    cls._instance._default_db_name = "finance.db"
                     logger.info("DatabaseConnectionManager instance created")
         return cls._instance
+    
+    def set_default_db_name(self, db_name: str):
+        """
+        设置默认数据库名称
+        :param db_name: 数据库名称
+        """
+        self._default_db_name = db_name
+        logger.info(f"Default database name set to: {db_name}")
     
     def _get_thread_connections(self) -> Dict[str, sqlite3.Connection]:
         """
@@ -37,12 +47,16 @@ class DatabaseConnectionManager:
             self._local.connections = {}
         return self._local.connections
     
-    def get_connection(self, db_name: str = "finance.db") -> sqlite3.Connection:
+    def get_connection(self, db_name: str = None) -> sqlite3.Connection:
         """
         获取数据库连接，如果不存在则创建
-        :param db_name: 数据库名称
+        :param db_name: 数据库名称，默认为None，使用默认数据库名称
         :return: 数据库连接对象
         """
+        # 使用默认数据库名称如果未提供
+        if db_name is None:
+            db_name = self._default_db_name
+        
         connections = self._get_thread_connections()
         if db_name not in connections:
             try:
@@ -56,11 +70,15 @@ class DatabaseConnectionManager:
                 raise
         return connections[db_name]
     
-    def close_connection(self, db_name: str):
+    def close_connection(self, db_name: str = None):
         """
         关闭指定数据库连接
-        :param db_name: 数据库名称
+        :param db_name: 数据库名称，默认为None，使用默认数据库名称
         """
+        # 使用默认数据库名称如果未提供
+        if db_name is None:
+            db_name = self._default_db_name
+        
         connections = self._get_thread_connections()
         if db_name in connections:
             try:
@@ -84,10 +102,10 @@ class DatabaseConnectionManager:
         connections.clear()
         logger.info(f"All database connections closed in thread {threading.current_thread().name}")
     
-    def get_cursor(self, db_name: str = "finance.db") -> sqlite3.Cursor:
+    def get_cursor(self, db_name: str = None) -> sqlite3.Cursor:
         """
         获取数据库游标
-        :param db_name: 数据库名称
+        :param db_name: 数据库名称，默认为None，使用默认数据库名称
         :return: 数据库游标对象
         """
         conn = self.get_connection(db_name)

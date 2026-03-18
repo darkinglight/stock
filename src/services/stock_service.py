@@ -6,12 +6,10 @@ from src.database.connection import DatabaseConnectionManager
 class StockService:
     """股票服务 - 业务逻辑层"""
     
-    def __init__(self, db_name: str = "finance.db"):
+    def __init__(self):
         """
         初始化股票服务
-        :param db_name: 数据库名称
         """
-        self.db_name = db_name
         self.db_manager = DatabaseConnectionManager()
         self._init_tables()
     
@@ -19,7 +17,7 @@ class StockService:
         """
         初始化数据库表
         """
-        conn = self.db_manager.get_connection(self.db_name)
+        conn = self.db_manager.get_connection()
         cursor = conn.cursor()
         
         # 创建股票表
@@ -40,9 +38,6 @@ class StockService:
         
         # 创建索引
         cursor.execute('CREATE INDEX IF NOT EXISTS idx_stock_market ON stock(market)')
-        cursor.execute('CREATE INDEX IF NOT EXISTS idx_stock_pe ON stock(pe)')
-        cursor.execute('CREATE INDEX IF NOT EXISTS idx_stock_pb ON stock(pb)')
-        cursor.execute('CREATE INDEX IF NOT EXISTS idx_stock_bonus ON stock(bonus_rate)')
         
         conn.commit()
     
@@ -110,7 +105,7 @@ class StockService:
         :return: 是否成功
         """
         try:
-            conn = self.db_manager.get_connection(self.db_name)
+            conn = self.db_manager.get_connection()
             cursor = conn.cursor()
             
             # 使用 UPSERT 语法
@@ -144,7 +139,7 @@ class StockService:
         :return: 股票列表
         """
         try:
-            conn = self.db_manager.get_connection(self.db_name)
+            conn = self.db_manager.get_connection()
             cursor = conn.cursor()
             
             cursor.execute('SELECT code, name, market, price, pe, pb, bonus_rate, market_cap, created_at, updated_at FROM stock WHERE market = ?', (market,))
@@ -179,7 +174,7 @@ class StockService:
         :return: 股票对象或 None
         """
         try:
-            conn = self.db_manager.get_connection(self.db_name)
+            conn = self.db_manager.get_connection()
             cursor = conn.cursor()
             
             cursor.execute('SELECT code, name, market, price, pe, pb, bonus_rate, market_cap, created_at, updated_at FROM stock WHERE code = ? AND market = ?', (code, market))
