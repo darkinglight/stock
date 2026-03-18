@@ -71,7 +71,7 @@ stock/
 class DatabaseConnectionManager:
     def get_connection(self, db_name: str) -> sqlite3.Connection
     def close_connection(self, db_name: str)
-    def close_all(self)
+    def close_all()
     def get_cursor(self, db_name: str) -> sqlite3.Cursor
 ```
 
@@ -97,6 +97,7 @@ class Stock:
     market: str  # 'a' for A股, 'h' for H股
     pe: Optional[float] = None
     pb: Optional[float] = None
+    bonus_rate: Optional[float] = None
     
     def validate(self) -> bool:
         """验证模型数据"""
@@ -115,7 +116,8 @@ class Stock:
             price=float(data.get('price', 0)),
             market=data.get('market', 'a'),
             pe=float(data.get('pe')) if data.get('pe') else None,
-            pb=float(data.get('pb')) if data.get('pb') else None
+            pb=float(data.get('pb')) if data.get('pb') else None,
+            bonus_rate=float(data.get('bonus_rate')) if data.get('bonus_rate') else None
         )
 ```
 
@@ -157,8 +159,7 @@ class StockService:
         return self._get_stock_by_code(code, market)
     
     def _fetch_from_api(self, market: str) -> List[Stock]:
-        """从外部 API 获取数据（内部方法）"""
-        # 调用 akshare 或 baostock
+        """从外部 API 获取数据"""
         import akshare as ak
         if market == 'a':
             df = ak.stock_zh_a_spot()
@@ -196,15 +197,15 @@ class StockService:
 ```python
 class BaseView(toga.Box):
     def __init__(self, service: StockService)
-    def refresh_data(self)
-    def get_selected_item(self)
+    def refresh_data()
+    def get_selected_item()
 ```
 
 ## 分层架构说明
 
 ### 架构层次
 
-本项目采用简化的三层架构，从上到下分为：
+本项目采用简化的三层架构：
 
 ```
 ┌─────────────────────────────────────────┐
@@ -247,16 +248,6 @@ Model
 - Service 依赖 Database 和 Model
 - 所有层都依赖 Database
 
-### 调用规则
-
-**1. 向下调用**:
-- View 调用 Service
-- Service 调用 Database
-
-**2. 数据流向**:
-- 数据从下往上流：Database → Service → View
-- 命令从上往下流：View → Service → Database
-
 ## 数据流设计
 
 ### 1. 数据获取流程
@@ -281,30 +272,6 @@ Model
                     服务层 → 数据库
                         ↓
                     视图刷新
-```
-
-### 3. 典型业务流程示例
-
-**查询股票列表**:
-```
-View → StockService.get_all_stocks()
-       ↓
-StockService → 数据库查询
-       ↓
-返回 List[Stock] → View
-```
-
-**更新股票数据**:
-```
-View → StockService.refresh_stocks()
-       ↓
-StockService → akshare API
-       ↓
-返回 DataFrame → 转换为 List[Stock]
-       ↓
-StockService → 数据库保存
-       ↓
-通知 View 刷新
 ```
 
 ## 数据库设计
@@ -356,27 +323,6 @@ StockService → 数据库保存
 - **核心功能测试**: 测试主要业务逻辑
 - **数据库操作测试**: 测试数据库连接和基本操作
 - **API 集成测试**: 测试外部 API 调用
-
-### 测试示例
-
-```python
-# tests/test_stock.py
-import pytest
-from src.services.stock_service import StockService
-
-def test_fetch_stocks():
-    """测试获取股票数据"""
-    service = StockService(":memory:")
-    count = service.fetch_and_save_stocks()
-    assert count > 0
-
-def test_filter_stocks():
-    """测试筛选股票"""
-    service = StockService(":memory:")
-    service.fetch_and_save_stocks()
-    stocks = service.filter_by_pe(5.0, 20.0)
-    assert len(stocks) > 0
-```
 
 ### 测试运行
 

@@ -4,7 +4,7 @@ import pytest
 @pytest.fixture
 def repository():
     """创建测试用的仓储实例"""
-    from database.base_repository import BaseRepository
+    from src.database.base_repository import BaseRepository
     return BaseRepository(":memory:")
 
 

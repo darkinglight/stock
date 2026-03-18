@@ -9,14 +9,13 @@ logger = logging.getLogger(__name__)
 class DatabaseConnectionManager:
     """
     数据库连接管理器
+    - 每个线程独立连接
     - 延迟创建连接
-    - 连接复用，减少重连
     - 自动释放连接
     - 线程安全
     """
     
     _instance: Optional['DatabaseConnectionManager'] = None
-    _connections: Dict[str, sqlite3.Connection] = {}
     _lock = threading.Lock()
     
     def __new__(cls):
@@ -24,8 +23,19 @@ class DatabaseConnectionManager:
             with cls._lock:
                 if cls._instance is None:
                     cls._instance = super().__new__(cls)
+                    # 使用threading.local()存储线程本地连接
+                    cls._instance._local = threading.local()
                     logger.info("DatabaseConnectionManager instance created")
         return cls._instance
+    
+    def _get_thread_connections(self) -> Dict[str, sqlite3.Connection]:
+        """
+        获取当前线程的连接字典
+        :return: 当前线程的连接字典
+        """
+        if not hasattr(self._local, 'connections'):
+            self._local.connections = {}
+        return self._local.connections
     
     def get_connection(self, db_name: str = "finance.db") -> sqlite3.Connection:
         """
@@ -33,47 +43,46 @@ class DatabaseConnectionManager:
         :param db_name: 数据库名称
         :return: 数据库连接对象
         """
-        if db_name not in self._connections:
-            with self._lock:
-                if db_name not in self._connections:
-                    try:
-                        conn = sqlite3.connect(db_name, check_same_thread=False)
-                        conn.row_factory = sqlite3.Row
-                        self._connections[db_name] = conn
-                        logger.info(f"Created new connection for database: {db_name}")
-                    except Exception as e:
-                        logger.error(f"Failed to create connection for {db_name}: {e}")
-                        raise
-        return self._connections[db_name]
+        connections = self._get_thread_connections()
+        if db_name not in connections:
+            try:
+                # 为每个线程创建独立连接
+                conn = sqlite3.connect(db_name)
+                conn.row_factory = sqlite3.Row
+                connections[db_name] = conn
+                logger.info(f"Created new connection for database {db_name} in thread {threading.current_thread().name}")
+            except Exception as e:
+                logger.error(f"Failed to create connection for {db_name}: {e}")
+                raise
+        return connections[db_name]
     
     def close_connection(self, db_name: str):
         """
         关闭指定数据库连接
         :param db_name: 数据库名称
         """
-        if db_name in self._connections:
-            with self._lock:
-                if db_name in self._connections:
-                    try:
-                        self._connections[db_name].close()
-                        del self._connections[db_name]
-                        logger.info(f"Closed connection for database: {db_name}")
-                    except Exception as e:
-                        logger.error(f"Failed to close connection for {db_name}: {e}")
+        connections = self._get_thread_connections()
+        if db_name in connections:
+            try:
+                connections[db_name].close()
+                del connections[db_name]
+                logger.info(f"Closed connection for database {db_name} in thread {threading.current_thread().name}")
+            except Exception as e:
+                logger.error(f"Failed to close connection for {db_name}: {e}")
     
     def close_all(self):
         """
-        关闭所有数据库连接
+        关闭当前线程的所有数据库连接
         """
-        with self._lock:
-            for db_name, conn in list(self._connections.items()):
-                try:
-                    conn.close()
-                    logger.info(f"Closed connection for database: {db_name}")
-                except Exception as e:
-                    logger.error(f"Failed to close connection for {db_name}: {e}")
-            self._connections.clear()
-            logger.info("All database connections closed")
+        connections = self._get_thread_connections()
+        for db_name, conn in list(connections.items()):
+            try:
+                conn.close()
+                logger.info(f"Closed connection for database {db_name} in thread {threading.current_thread().name}")
+            except Exception as e:
+                logger.error(f"Failed to close connection for {db_name}: {e}")
+        connections.clear()
+        logger.info(f"All database connections closed in thread {threading.current_thread().name}")
     
     def get_cursor(self, db_name: str = "finance.db") -> sqlite3.Cursor:
         """
