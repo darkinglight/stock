@@ -165,3 +165,97 @@ class AStockService(BaseStockService):
         except Exception as e:
             print(f"获取A股数据失败: {e}")
             return []
+    
+    def get_financial_data(self, code: str) -> Optional[dict]:
+        """
+        获取股票财报数据
+        :param code: 股票代码
+        :return: 财报数据字典，包含：
+            - roe: 最近4个季度ROE总和
+            - bonus_rate: 分红率
+            - pb: 市净率
+            - debt_ratio: 资产负债率
+        """
+        import akshare as ak
+        
+        try:
+            # 获取财务摘要数据
+            stock_financial_abstract_df = ak.stock_financial_abstract(symbol=code)
+            
+            # 初始化结果字典
+            financial_data = {
+                'roe': 0.0,
+                'bonus_rate': 0.0,
+                'pb': 0.0,
+                'debt_ratio': 0.0
+            }
+            
+            # 提取ROE数据（最近4个季度）
+            roe_values = []
+            for _, row in stock_financial_abstract_df.iterrows():
+                if row['指标'] == '净资产收益率(ROE)':
+                    # 获取最近4个季度的数据
+                    for col in ['20250930', '20250630', '20250331', '20241231']:
+                        if col in stock_financial_abstract_df.columns:
+                            value = row[col]
+                            if value is not None and not isinstance(value, str):
+                                try:
+                                    roe_values.append(float(value))
+                                except:
+                                    pass
+                    break
+            
+            # 计算最近4个季度ROE总和
+            if roe_values:
+                financial_data['roe'] = sum(roe_values[:4])
+            
+            # 提取分红率
+            for _, row in stock_financial_abstract_df.iterrows():
+                if row['指标'] == '分红率':
+                    # 获取最新季度的分红率
+                    for col in ['20250930', '20250630', '20250331', '20241231']:
+                        if col in stock_financial_abstract_df.columns:
+                            value = row[col]
+                            if value is not None and not isinstance(value, str):
+                                try:
+                                    financial_data['bonus_rate'] = float(value)
+                                    break
+                                except:
+                                    pass
+                    break
+            
+            # 提取市净率
+            for _, row in stock_financial_abstract_df.iterrows():
+                if row['指标'] == '市净率':
+                    # 获取最新季度的市净率
+                    for col in ['20250930', '20250630', '20250331', '20241231']:
+                        if col in stock_financial_abstract_df.columns:
+                            value = row[col]
+                            if value is not None and not isinstance(value, str):
+                                try:
+                                    financial_data['pb'] = float(value)
+                                    break
+                                except:
+                                    pass
+                    break
+            
+            # 提取资产负债率
+            for _, row in stock_financial_abstract_df.iterrows():
+                if row['指标'] == '资产负债率':
+                    # 获取最新季度的资产负债率
+                    for col in ['20250930', '20250630', '20250331', '20241231']:
+                        if col in stock_financial_abstract_df.columns:
+                            value = row[col]
+                            if value is not None and not isinstance(value, str):
+                                try:
+                                    financial_data['debt_ratio'] = float(value)
+                                    break
+                                except:
+                                    pass
+                    break
+            
+            return financial_data
+            
+        except Exception as e:
+            print(f"获取财报数据失败: {e}")
+            return None

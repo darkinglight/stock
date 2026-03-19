@@ -154,6 +154,23 @@ class BaseStockService:
         """
         return self._get_stock_by_code(code)
     
+    def get_financial_data(self, code: str) -> Optional[dict]:
+        """
+        获取股票财报数据
+        :param code: 股票代码
+        :return: 财报数据字典，包含 ROE、分红率、PB、资产负债率等
+        """
+        """
+        获取股票财报数据
+        :param code: 股票代码
+        :return: 财报数据字典，包含：
+            - roe: 最近4个季度ROE总和
+            - bonus_rate: 分红率
+            - pb: 市净率
+            - debt_ratio: 资产负债率
+        """
+        raise NotImplementedError("子类必须实现此方法")
+    
     def _refresh_from_api(self) -> List[Stock]:
         """
         从外部 API 获取数据
