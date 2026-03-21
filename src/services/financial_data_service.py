@@ -1,5 +1,5 @@
 from typing import List, Optional, Tuple
-from src.models.financial import FinancialReport
+from models.financial import FinancialReport
 import akshare as ak
 
 
@@ -40,11 +40,11 @@ class FinancialDataService:
             print(f"获取股票 {code} 季度财务数据失败: {e}")
             return []
     
-    def calculate_quarterly_roe(self, roe_list: List[Tuple[str, float]]) -> List[float]:
+    def calculate_quarterly_roe(self, roe_list: List[Tuple[str, float]]) -> List[Tuple[str, float]]:
         """
         计算季度ROE
         :param roe_list: 最近13个季度的ROE数据列表，每个元素为(财报日期, ROE值)元组
-        :return: 季度ROE列表
+        :return: 季度ROE列表，每个元素为(财报日期, 季度ROE值)元组
         """
         if len(roe_list) < 13:
             return []
@@ -52,8 +52,14 @@ class FinancialDataService:
         # 计算最近12个季度的季度ROE
         quarterly_roe_list = []
         for i in range(1, 13):
-            quarterly_roe = roe_list[i-1][1] - roe_list[i][1]
-            quarterly_roe_list.append(quarterly_roe)
+            current_period = roe_list[i-1][0]
+            if current_period.endswith('0331'):
+                # 03-31报告期的ROE就是季度ROE
+                quarterly_roe = roe_list[i-1][1]
+            else:
+                # 其他报告期需要当期减去上期
+                quarterly_roe = roe_list[i-1][1] - roe_list[i][1]
+            quarterly_roe_list.append((current_period, quarterly_roe))
         
         return quarterly_roe_list
     
@@ -87,27 +93,29 @@ class FinancialDataService:
         
         return roe_list
     
-    def _generate_financial_reports(self, code: str, quarterly_roe_list: List[float]) -> List[FinancialReport]:
+    def _generate_financial_reports(self, code: str, quarterly_roe_list: List[Tuple[str, float]]) -> List[FinancialReport]:
         """
         生成季度财务报告模型列表
         :param code: 股票代码
-        :param quarterly_roe_list: 季度ROE列表
+        :param quarterly_roe_list: 季度ROE列表，每个元素为(财报日期, 季度ROE值)元组
         :return: 季度财务报告模型列表
         """
         reports = []
         
-        for i in range(len(quarterly_roe_list)):
-            # 生成报告期（这里简化处理，实际应该根据真实的财报日期）
-            year = 2026 - (i // 4)
-            quarter = 4 - (i % 4)
-            report_period = f"{year}-{quarter*3:02d}-30"
+        for item in quarterly_roe_list:
+            report_period, quarterly_roe = item
             
             # 创建模型对象
             report = FinancialReport(
                 code=code,
                 report_period=report_period,
-                quarterly_roe=quarterly_roe_list[i]
+                quarterly_roe=quarterly_roe
             )
             reports.append(report)
         
         return reports
+
+if __name__ == "__main__":
+    service = FinancialDataService()
+    reports = service.get_quarterly_financial_data('600987')
+    print(reports)

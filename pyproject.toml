@@ -12,6 +12,7 @@ dependencies = [
     "akshare",
     "baostock>=0.8.9",
     "briefcase>=0.4.1",
+    "pytest>=9.0.2",
 ]
 
 [tool.briefcase]
