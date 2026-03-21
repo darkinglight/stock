@@ -1,7 +1,9 @@
 from typing import List, Optional
 import time
 from src.models.stock import Stock
+from src.models.quarterly_financial import QuarterlyFinancialReport
 from src.services.base_stock_service import BaseStockService
+from src.services.financial_data_service import FinancialDataService
 
 
 class AStockService(BaseStockService):
@@ -13,6 +15,7 @@ class AStockService(BaseStockService):
         """
         super().__init__()
         self.refresh_config_key = "a_stock_last_refresh"
+        self.financial_data_service = FinancialDataService()
 
     def _get_all_stocks(self) -> List[Stock]:
         """
@@ -166,96 +169,77 @@ class AStockService(BaseStockService):
             print(f"获取A股数据失败: {e}")
             return []
     
-    def get_financial_data(self, code: str) -> Optional[dict]:
+    def refresh_quarterly_financial_data(self) -> int:
         """
-        获取股票财报数据
-        :param code: 股票代码
-        :return: 财报数据字典，包含：
-            - roe: 最近4个季度ROE总和
-            - bonus_rate: 分红率
-            - pb: 市净率
-            - debt_ratio: 资产负债率
+        刷新季度财务数据，包括ROE、季度ROE和年化ROE
+        :return: 更新的股票数量
         """
-        import akshare as ak
-        
         try:
-            # 获取财务摘要数据
-            stock_financial_abstract_df = ak.stock_financial_abstract(symbol=code)
+            # 获取所有A股股票
+            stocks = self._get_all_stocks()
+            updated_count = 0
             
-            # 初始化结果字典
-            financial_data = {
-                'roe': 0.0,
-                'bonus_rate': 0.0,
-                'pb': 0.0,
-                'debt_ratio': 0.0
-            }
+            for stock in stocks:
+                if self._update_quarterly_financial_data(stock.code):
+                    updated_count += 1
             
-            # 提取ROE数据（最近4个季度）
-            roe_values = []
-            for _, row in stock_financial_abstract_df.iterrows():
-                if row['指标'] == '净资产收益率(ROE)':
-                    # 获取最近4个季度的数据
-                    for col in ['20250930', '20250630', '20250331', '20241231']:
-                        if col in stock_financial_abstract_df.columns:
-                            value = row[col]
-                            if value is not None and not isinstance(value, str):
-                                try:
-                                    roe_values.append(float(value))
-                                except:
-                                    pass
-                    break
-            
-            # 计算最近4个季度ROE总和
-            if roe_values:
-                financial_data['roe'] = sum(roe_values[:4])
-            
-            # 提取分红率
-            for _, row in stock_financial_abstract_df.iterrows():
-                if row['指标'] == '分红率':
-                    # 获取最新季度的分红率
-                    for col in ['20250930', '20250630', '20250331', '20241231']:
-                        if col in stock_financial_abstract_df.columns:
-                            value = row[col]
-                            if value is not None and not isinstance(value, str):
-                                try:
-                                    financial_data['bonus_rate'] = float(value)
-                                    break
-                                except:
-                                    pass
-                    break
-            
-            # 提取市净率
-            for _, row in stock_financial_abstract_df.iterrows():
-                if row['指标'] == '市净率':
-                    # 获取最新季度的市净率
-                    for col in ['20250930', '20250630', '20250331', '20241231']:
-                        if col in stock_financial_abstract_df.columns:
-                            value = row[col]
-                            if value is not None and not isinstance(value, str):
-                                try:
-                                    financial_data['pb'] = float(value)
-                                    break
-                                except:
-                                    pass
-                    break
-            
-            # 提取资产负债率
-            for _, row in stock_financial_abstract_df.iterrows():
-                if row['指标'] == '资产负债率':
-                    # 获取最新季度的资产负债率
-                    for col in ['20250930', '20250630', '20250331', '20241231']:
-                        if col in stock_financial_abstract_df.columns:
-                            value = row[col]
-                            if value is not None and not isinstance(value, str):
-                                try:
-                                    financial_data['debt_ratio'] = float(value)
-                                    break
-                                except:
-                                    pass
-                    break
-            
-            return financial_data
+            print(f"季度财务数据刷新完成，共更新 {updated_count} 只股票")
+            return updated_count
             
         except Exception as e:
-            print(f"获取财报数据失败: {e}")
-            return None
+            print(f"刷新季度财务数据失败: {e}")
+            return 0
+    
+    def _update_quarterly_financial_data(self, code: str) -> bool:
+        """
+        更新单个股票的季度财务数据
+        :param code: 股票代码
+        :return: 是否更新成功
+        """
+        try:
+            # 使用FinancialDataService获取季度财务数据
+            reports = self.financial_data_service.get_quarterly_financial_data(code)
+            
+            if not reports:
+                print(f"股票 {code} 无法获取季度财务数据，跳过")
+                return False
+            
+            # 保存到数据库
+            return self._save_quarterly_financial_data(reports)
+            
+        except Exception as e:
+            print(f"更新股票 {code} 季度财务数据失败: {e}")
+            return False
+    
+    def _save_quarterly_financial_data(self, reports: List[QuarterlyFinancialReport]) -> bool:
+        """
+        保存季度财务数据到数据库
+        :param reports: 季度财务报告列表
+        :return: 是否保存成功
+        """
+        try:
+            if not reports:
+                return False
+            
+            conn = self.db_manager.get_connection()
+            cursor = conn.cursor()
+            
+            # 清空该股票的现有季度财务数据
+            code = reports[0].code
+            cursor.execute('DELETE FROM quarterly_financial WHERE code = ?', (code,))
+            
+            # 保存新数据
+            for report in reports:
+                # 插入数据
+                cursor.execute(
+                    'INSERT INTO quarterly_financial (code, report_period, quarterly_roe, annualized_roe) VALUES (?, ?, ?, ?)',
+                    (report.code, report.report_period, report.quarterly_roe, report.annualized_roe)
+                )
+            
+            conn.commit()
+            return True
+            
+        except Exception as e:
+            print(f"保存季度财务数据失败: {e}")
+            return False
+    

@@ -49,6 +49,25 @@ class BaseStockService:
         )
         ''')
         
+        # 创建季度财务数据表
+        cursor.execute('''
+        CREATE TABLE IF NOT EXISTS quarterly_financial (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            code TEXT NOT NULL,              -- 股票代码
+            report_period TEXT NOT NULL,     -- 报告期，格式：YYYY-MM-DD
+            roe REAL,                        -- 净资产收益率（当期）
+            quarterly_roe REAL,              -- 季度ROE
+            annualized_roe REAL,             -- 年化ROE
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(code, report_period)
+        )
+        ''')
+        
+        # 创建索引
+        cursor.execute('CREATE INDEX IF NOT EXISTS idx_quarterly_financial_code ON quarterly_financial(code)')
+        cursor.execute('CREATE INDEX IF NOT EXISTS idx_quarterly_financial_period ON quarterly_financial(report_period)')
+        
         conn.commit()
     
     def _set_config(self, key: str, value: str):
