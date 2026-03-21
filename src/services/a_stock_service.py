@@ -1,7 +1,7 @@
 from typing import List, Optional
 import time
 from src.models.stock import Stock
-from src.models.quarterly_financial import QuarterlyFinancialReport
+from src.models.financial import FinancialReport
 from src.services.base_stock_service import BaseStockService
 from src.services.financial_data_service import FinancialDataService
 
@@ -211,7 +211,7 @@ class AStockService(BaseStockService):
             print(f"更新股票 {code} 季度财务数据失败: {e}")
             return False
     
-    def _save_quarterly_financial_data(self, reports: List[QuarterlyFinancialReport]) -> bool:
+    def _save_quarterly_financial_data(self, reports: List[FinancialReport]) -> bool:
         """
         保存季度财务数据到数据库
         :param reports: 季度财务报告列表

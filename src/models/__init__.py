@@ -1,9 +1,9 @@
 from .stock import Stock
-from .quarterly_financial import (
-    QuarterlyFinancialReport
+from .financial import (
+    FinancialReport
 )
 
 __all__ = [
     'Stock',
-    'QuarterlyFinancialReport'
+    'FinancialReport'
 ]
