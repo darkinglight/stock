@@ -45,6 +45,15 @@ class FinancialThsService:
             elif metric_name == 'calc_per_net_assets':
                 # 每股净资产
                 financial_data[report_date].net_asset_per_share = value
+            elif metric_name == 'basic_eps':
+                # 每股收益
+                financial_data[report_date].basic_eps = value
+            elif metric_name == 'index_per_operating_cash_flow_net':
+                # 每股经营现金流
+                financial_data[report_date].operating_cash_flow_per_share = value
+            elif metric_name == 'assets_debt_ratio':
+                # 资产负债率
+                financial_data[report_date].assets_debt_ratio = value
         
         # 转换为列表
         financial_list = list(financial_data.values())

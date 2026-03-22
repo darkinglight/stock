@@ -263,10 +263,10 @@ class AStockService(BaseStockService):
             
             # 保存新数据
             for report in reports:
-                # 插入数据，包括roe和net_asset_per_share，并设置updated_at
+                # 插入数据，包括roe、quarterly_roe、net_asset_per_share、basic_eps、operating_cash_flow_per_share、assets_debt_ratio，并设置updated_at
                 cursor.execute(
-                    'INSERT INTO quarterly_financial (code, report_period, roe, quarterly_roe, net_asset_per_share, updated_at) VALUES (?, ?, ?, ?, ?, ?)',
-                    (report.code, report.report_period, report.roe, report.quarterly_roe, report.net_asset_per_share, current_time)
+                    'INSERT INTO quarterly_financial (code, report_period, roe, quarterly_roe, net_asset_per_share, basic_eps, operating_cash_flow_per_share, assets_debt_ratio, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                    (report.code, report.report_period, report.roe, report.quarterly_roe, report.net_asset_per_share, report.basic_eps, report.operating_cash_flow_per_share, report.assets_debt_ratio, current_time)
                 )
             
             conn.commit()
