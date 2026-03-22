@@ -1,7 +1,7 @@
 """测试财务数据服务"""
 
 import pytest
-from src.services.financial_data_service import FinancialDataService
+from services.financial_data_service import FinancialDataService
 
 
 class TestFinancialDataService:
@@ -20,6 +20,6 @@ class TestFinancialDataService:
         
         # 验证数据按日期逆序排序（最近的日期在前）
         for i in range(len(roe_list) - 1):
-            current_date = roe_list[i][0]
-            next_date = roe_list[i + 1][0]
+            current_date = roe_list[i].report_period
+            next_date = roe_list[i + 1].report_period
             assert current_date > next_date, f"日期应该按逆序排序，当前日期 {current_date} 应该大于下一个日期 {next_date}"

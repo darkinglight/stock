@@ -1,7 +1,7 @@
 from typing import List, Optional
 import time
-from src.models.stock import Stock
-from src.database.connection import DatabaseConnectionManager
+from models.stock import Stock
+from database.connection import DatabaseConnectionManager
 
 
 class BaseStockService:

@@ -1,6 +1,6 @@
 from typing import List, Optional
-from src.models.stock import Stock
-from src.services.base_stock_service import BaseStockService
+from models.stock import Stock
+from services.base_stock_service import BaseStockService
 
 
 class HStockService(BaseStockService):

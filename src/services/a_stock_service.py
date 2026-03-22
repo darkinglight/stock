@@ -1,9 +1,9 @@
 from typing import List, Optional
 import time
-from src.models.stock import Stock
-from src.models.financial import FinancialReport
-from src.services.base_stock_service import BaseStockService
-from src.services.financial_data_service import FinancialDataService
+from models.stock import Stock
+from models.financial import FinancialReport
+from services.base_stock_service import BaseStockService
+from services.financial_data_service import FinancialDataService
 
 
 class AStockService(BaseStockService):
