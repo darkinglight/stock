@@ -104,5 +104,5 @@ class FinancialDataService:
 
 if __name__ == "__main__":
     service = FinancialDataService()
-    reports = service.get_quarterly_financial_data('600987')
+    reports = service.get_quarterly_financial_data('920510')
     print(reports)
