@@ -1,9 +1,9 @@
 from .stock import Stock
 from .financial import (
-    FinancialReport
+    Financial
 )
 
 __all__ = [
     'Stock',
-    'FinancialReport'
+    'Financial'
 ]

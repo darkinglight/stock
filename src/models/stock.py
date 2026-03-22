@@ -5,16 +5,16 @@ from typing import Optional
 @dataclass
 class Stock:
     """股票模型"""
-    code: str
-    name: str
-    price: float
-    market: str  # 'a' for A股, 'h' for H股
-    pe: Optional[float] = None
-    pb: Optional[float] = None
-    bonus_rate: Optional[float] = None
-    market_cap: Optional[float] = None
-    created_at: Optional[str] = None
-    updated_at: Optional[str] = None
+    code: str  # 股票代码
+    name: str  # 股票名称
+    price: float  # 股票价格
+    market: str  # 市场类型，'a' for A股, 'h' for H股
+    pe: Optional[float] = None  # 市盈率
+    pb: Optional[float] = None  # 市净率
+    bonus_rate: Optional[float] = None  # 分红率
+    market_cap: Optional[float] = None  # 市值
+    created_at: Optional[str] = None  # 创建时间
+    updated_at: Optional[str] = None  # 更新时间
     
     def validate(self) -> bool:
         """验证模型数据"""

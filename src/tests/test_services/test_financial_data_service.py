@@ -14,7 +14,7 @@ class TestFinancialDataService:
     
     def test_get_roe_data_sorted_by_date(self):
         """测试_get_roe_data方法返回值是否按日期逆序排序"""
-        roe_list = self.service._get_roe_data(self.stock_code)
+        roe_list = self.service._get_financial_data(self.stock_code)
         assert isinstance(roe_list, list), "ROE数据应该是一个列表"
         assert len(roe_list) > 0, "ROE数据列表长度应该大于0"
         

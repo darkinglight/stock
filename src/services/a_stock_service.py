@@ -1,7 +1,7 @@
 from typing import List, Optional
 import time
 from models.stock import Stock
-from models.financial import FinancialReport
+from models.financial import Financial
 from services.base_stock_service import BaseStockService
 from services.financial_data_service import FinancialDataService
 
@@ -211,7 +211,7 @@ class AStockService(BaseStockService):
             print(f"更新股票 {code} 季度财务数据失败: {e}")
             return False
     
-    def _save_quarterly_financial_data(self, reports: List[FinancialReport]) -> bool:
+    def _save_quarterly_financial_data(self, reports: List[Financial]) -> bool:
         """
         保存季度财务数据到数据库
         :param reports: 季度财务报告列表
@@ -232,8 +232,8 @@ class AStockService(BaseStockService):
             for report in reports:
                 # 插入数据
                 cursor.execute(
-                    'INSERT INTO quarterly_financial (code, report_period, quarterly_roe, annualized_roe) VALUES (?, ?, ?, ?)',
-                    (report.code, report.report_period, report.quarterly_roe, report.annualized_roe)
+                    'INSERT INTO quarterly_financial (code, report_period, quarterly_roe) VALUES (?, ?, ?)',
+                    (report.code, report.report_period, report.quarterly_roe)
                 )
             
             conn.commit()
