@@ -1,5 +1,39 @@
 # 项目规则
 
+## 虚拟环境使用规则
+
+执行 Python 命令时，必须使用项目根目录下的 `.venv` 虚拟环境中的 Python 解释器：
+
+### 激活虚拟环境
+
+在 Windows PowerShell 中：
+```powershell
+.venv\Scripts\Activate.ps1
+```
+
+在 Windows Command Prompt 中：
+```cmd
+.venv\Scripts\activate.bat
+```
+
+在 Unix/Linux/macOS 中：
+```bash
+source .venv/bin/activate
+```
+
+### 执行 Python 命令
+
+激活虚拟环境后，直接使用 `python` 命令：
+```bash
+python script.py
+```
+
+或者使用完整路径：
+```bash
+.venv\Scripts\python.exe script.py  # Windows
+.venv/bin/python script.py          # Unix/Linux/macOS
+```
+
 ## 测试文件组织规则
 
 所有测试文件必须按照模块结构放置在 `tests/` 目录对应的子目录中：
