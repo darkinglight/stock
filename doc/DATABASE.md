@@ -83,7 +83,7 @@ CREATE TABLE IF NOT EXISTS stock (
     pe REAL,                         -- 市盈率
     pb REAL,                         -- 市净率
     bonus_rate REAL,                 -- 分红率
-    market_cap REAL,                 -- 市值
+    net_asset_per_share REAL,        -- 每股净资产
     created_at TEXT DEFAULT CURRENT_TIMESTAMP,
     updated_at TEXT DEFAULT CURRENT_TIMESTAMP
 );

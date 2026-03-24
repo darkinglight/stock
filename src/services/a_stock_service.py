@@ -27,7 +27,7 @@ class AStockService(BaseStockService):
             conn = self.db_manager.get_connection()
             cursor = conn.cursor()
             
-            cursor.execute('SELECT code, name, market, price, pe, pb, bonus_rate, market_cap, created_at, updated_at FROM stock WHERE market IN (?, ?, ?)', ('sh', 'sz', 'bj'))
+            cursor.execute('SELECT code, name, market, price, pe, pb, bonus_rate, net_asset_per_share, basic_eps, assets_debt_ratio, created_at, updated_at FROM stock WHERE market IN (?, ?, ?)', ('sh', 'sz', 'bj'))
             rows = cursor.fetchall()
             
             stocks = []
@@ -40,9 +40,11 @@ class AStockService(BaseStockService):
                     pe=row[4],
                     pb=row[5],
                     bonus_rate=row[6],
-                    market_cap=row[7],
-                    created_at=row[8],
-                    updated_at=row[9]
+                    net_asset_per_share=row[7],
+                    basic_eps=row[8],
+                    assets_debt_ratio=row[9],
+                    created_at=row[10],
+                    updated_at=row[11]
                 )
                 stocks.append(stock)
             
@@ -61,7 +63,7 @@ class AStockService(BaseStockService):
             conn = self.db_manager.get_connection()
             cursor = conn.cursor()
             
-            cursor.execute('SELECT code, name, market, price, pe, pb, bonus_rate, market_cap, created_at, updated_at FROM stock WHERE code = ? AND market IN (?, ?, ?)', (code, 'sh', 'sz', 'bj'))
+            cursor.execute('SELECT code, name, market, price, pe, pb, bonus_rate, net_asset_per_share, basic_eps, assets_debt_ratio, created_at, updated_at FROM stock WHERE code = ? AND market IN (?, ?, ?)', (code, 'sh', 'sz', 'bj'))
             row = cursor.fetchone()
             
             if row:
@@ -73,9 +75,11 @@ class AStockService(BaseStockService):
                     pe=row[4],
                     pb=row[5],
                     bonus_rate=row[6],
-                    market_cap=row[7],
-                    created_at=row[8],
-                    updated_at=row[9]
+                    net_asset_per_share=row[7],
+                    basic_eps=row[8],
+                    assets_debt_ratio=row[9],
+                    created_at=row[10],
+                    updated_at=row[11]
                 )
                 return stock
             return None

@@ -1,5 +1,5 @@
 import akshare as ak
-from typing import Optional, Dict
+from typing import Optional
 import datetime
 import re
 
@@ -95,7 +95,7 @@ if __name__ == "__main__":
     a_stock_bonus_service = AStockBonusService()
     
     # 测试获取平均分红率
-    stock_code = "002867"
+    stock_code = "600987"
     print(f"正在测试股票代码: {stock_code}")
     average_bonus_rate = a_stock_bonus_service.get_bonus_rate(stock_code)
     if average_bonus_rate is not None:

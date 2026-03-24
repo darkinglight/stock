@@ -31,11 +31,11 @@ def test_a_stock_service_save_stock(a_stock_service):
         code="600000",
         name="浦发银行",
         price=10.5,
-        market="a",
+        market="sh",
         pe=5.2,
         pb=0.8,
         bonus_rate=0.05,
-        market_cap=300000000000
+        net_asset_per_share=10.5
     )
     
     # 保存股票
@@ -51,7 +51,7 @@ def test_a_stock_service_save_stock(a_stock_service):
     assert saved_stock.pe == 5.2
     assert saved_stock.pb == 0.8
     assert saved_stock.bonus_rate == 0.05
-    assert saved_stock.market_cap == 300000000000
+    assert saved_stock.net_asset_per_share == 10.5
 
 
 def test_h_stock_service_save_stock(h_stock_service):
@@ -83,9 +83,9 @@ def test_a_stock_service_get_all_stocks(a_stock_service):
     """测试获取所有A股"""
     # 保存多个股票
     stocks = [
-        Stock(code="600000", name="浦发银行", price=10.5, market="a"),
-        Stock(code="600036", name="招商银行", price=35.2, market="a"),
-        Stock(code="000001", name="平安银行", price=12.8, market="a")
+        Stock(code="600000", name="浦发银行", price=10.5, market="sh"),
+        Stock(code="600036", name="招商银行", price=35.2, market="sh"),
+        Stock(code="000001", name="平安银行", price=12.8, market="sh")
     ]
     
     for stock in stocks:
@@ -123,9 +123,9 @@ def test_a_stock_service_filter_by_pe(a_stock_service):
     """测试根据市盈率筛选A股"""
     # 保存多个股票
     stocks = [
-        Stock(code="600000", name="浦发银行", price=10.5, market="a", pe=5.2),
-        Stock(code="600036", name="招商银行", price=35.2, market="a", pe=8.5),
-        Stock(code="000001", name="平安银行", price=12.8, market="a", pe=4.8)
+        Stock(code="600000", name="浦发银行", price=10.5, market="sh", pe=5.2),
+        Stock(code="600036", name="招商银行", price=35.2, market="sh", pe=8.5),
+        Stock(code="000001", name="平安银行", price=12.8, market="sh", pe=4.8)
     ]
     
     for stock in stocks:
@@ -146,7 +146,7 @@ def test_a_stock_service_get_stock_detail(a_stock_service):
         code="600000",
         name="浦发银行",
         price=10.5,
-        market="a",
+        market="sh",
         pe=5.2,
         pb=0.8,
         bonus_rate=0.05

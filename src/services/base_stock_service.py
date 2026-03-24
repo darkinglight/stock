@@ -32,7 +32,9 @@ class BaseStockService:
             pe REAL,                         -- 市盈率
             pb REAL,                         -- 市净率
             bonus_rate REAL,                 -- 分红率
-            market_cap REAL,                 -- 市值
+            net_asset_per_share REAL,        -- 每股净资产
+            basic_eps REAL,                  -- 每股收益
+            assets_debt_ratio REAL,          -- 资产负债率
             created_at TEXT DEFAULT CURRENT_TIMESTAMP,
             updated_at TEXT DEFAULT CURRENT_TIMESTAMP
         )
@@ -210,8 +212,8 @@ class BaseStockService:
             
             # 使用 UPSERT 语法
             cursor.execute('''
-            INSERT INTO stock (code, name, market, price, pe, pb, bonus_rate, market_cap)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO stock (code, name, market, price, pe, pb, bonus_rate, net_asset_per_share, basic_eps, assets_debt_ratio)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(code) DO UPDATE SET
                 name=excluded.name,
                 market=excluded.market,
@@ -219,11 +221,14 @@ class BaseStockService:
                 pe=excluded.pe,
                 pb=excluded.pb,
                 bonus_rate=excluded.bonus_rate,
-                market_cap=excluded.market_cap,
+                net_asset_per_share=excluded.net_asset_per_share,
+                basic_eps=excluded.basic_eps,
+                assets_debt_ratio=excluded.assets_debt_ratio,
                 updated_at=CURRENT_TIMESTAMP
             ''', (
                 stock.code, stock.name, stock.market, stock.price,
-                stock.pe, stock.pb, stock.bonus_rate, stock.market_cap
+                stock.pe, stock.pb, stock.bonus_rate, stock.net_asset_per_share,
+                stock.basic_eps, stock.assets_debt_ratio
             ))
             
             conn.commit()
