@@ -47,14 +47,14 @@ class AStockBonusService:
                 except:
                     continue
                 
-                # 提取税前分红率
-                pre_tax_dividend_rate = row.get('税前分红率', '')
-                if not pre_tax_dividend_rate:
+                # 提取股利支付率
+                dividend_payout_rate = row.get('股利支付率', '')
+                if not dividend_payout_rate:
                     continue
                 
                 try:
                     # 去除百分号并转换为浮点数
-                    rate = float(pre_tax_dividend_rate.replace('%', ''))
+                    rate = float(dividend_payout_rate.replace('%', ''))
                     if year not in year_rates:
                         year_rates[year] = []
                     year_rates[year].append(rate)
@@ -64,20 +64,23 @@ class AStockBonusService:
             if not year_rates:
                 return None
             
-            # 计算每年的累计分红率
-            yearly_totals = {}
-            for year, rates in year_rates.items():
-                yearly_totals[year] = sum(rates)
-            
-            # 计算近3年的平均分红率（基于每年的累计分红率）
-            recent_three_years = [year for year in yearly_totals if year >= three_years_ago]
+            # 收集近三年的所有记录
+            recent_three_years = [year for year in year_rates if year >= three_years_ago]
             
             if not recent_three_years:
                 # 没有近3年数据，返回 None
                 return 0
             
-            # 使用近3年数据计算平均值
-            target_rates = [yearly_totals[year] for year in recent_three_years]
+            # 收集近三年的所有记录
+            target_rates = []
+            for year in recent_three_years:
+                target_rates.extend(year_rates[year])
+            
+            if not target_rates:
+                # 没有近3年数据，返回 None
+                return 0
+            
+            # 计算近3年所有记录的平均值
             average_rate = sum(target_rates) / len(target_rates)
             
             return average_rate
@@ -93,5 +96,9 @@ if __name__ == "__main__":
     
     # 测试获取平均分红率
     stock_code = "002867"
+    print(f"正在测试股票代码: {stock_code}")
     average_bonus_rate = a_stock_bonus_service.get_bonus_rate(stock_code)
-    print(f"A股 {stock_code} 的平均分红率: {average_bonus_rate:.2f}%")
+    if average_bonus_rate is not None:
+        print(f"A股 {stock_code} 的平均分红率: {average_bonus_rate:.2f}%")
+    else:
+        print(f"A股 {stock_code} 没有找到分红数据")
