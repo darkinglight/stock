@@ -1,7 +1,5 @@
 import akshare as ak
-from typing import List, Dict, Any
-import sys
-import os
+from typing import List
 from models.financial import Financial
 
 class FinancialThsService:

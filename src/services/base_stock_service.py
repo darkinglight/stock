@@ -1,6 +1,5 @@
 from typing import List, Optional
 import time
-import sys
 from models.stock import Stock
 from database.connection import DatabaseConnectionManager
 

@@ -4,7 +4,7 @@ import akshare as ak
 
 
 class FinancialDataService:
-    """财务数据服务 - 处理财务数据的获取和处理"""
+    """财务数据服务 - 处理财务数据的获取和处理   备用"""
     
     def __init__(self):
         """

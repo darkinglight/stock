@@ -1,11 +1,102 @@
 import akshare as ak
-from typing import Optional
+from typing import Optional, List, Dict, Any
 import datetime
-import re
+from database.connection import DatabaseConnectionManager
 
 
 class AStockBonusService:
     """A股分红服务 - 处理A股分红率相关数据"""
+    
+    def __init__(self):
+        """初始化服务"""
+        self.db_manager = DatabaseConnectionManager()
+        self._create_bonus_table()
+    
+    def _create_bonus_table(self):
+        """创建分红记录表"""
+        sql = """
+        CREATE TABLE IF NOT EXISTS a_stock_bonus (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            stock_code TEXT NOT NULL,
+            report_period TEXT NOT NULL,
+            bonus_description TEXT,
+            bonus_amount REAL,
+            dividend_payout_rate REAL,
+            pre_tax_dividend_rate REAL,
+            update_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+        """
+        try:
+            conn = self.db_manager.get_connection()
+            cursor = conn.cursor()
+            cursor.execute(sql)
+            conn.commit()
+        except Exception as e:
+            print(f"创建表失败: {e}")
+    
+    def _get_last_update_time(self, code: str) -> Optional[datetime.datetime]:
+        """获取上次更新时间"""
+        sql = """
+        SELECT MAX(update_time) FROM a_stock_bonus 
+        WHERE stock_code = ?
+        """
+        try:
+            conn = self.db_manager.get_connection()
+            cursor = conn.cursor()
+            cursor.execute(sql, (code,))
+            result = cursor.fetchone()
+            if result and result[0]:
+                return datetime.datetime.fromisoformat(result[0])
+        except Exception as e:
+            print(f"获取上次更新时间失败: {e}")
+        return None
+    
+    def _should_update(self, code: str) -> bool:
+        """检查是否需要更新数据（上次更新时间超过1周）"""
+        last_update = self._get_last_update_time(code)
+        if not last_update:
+            return True
+        
+        days_since_update = (datetime.datetime.now() - last_update).days
+        return days_since_update >= 7
+    
+    def _save_bonus_records(self, code: str, records: List[Dict[str, Any]]):
+        """保存分红记录"""
+        try:
+            conn = self.db_manager.get_connection()
+            cursor = conn.cursor()
+            
+            # 先删除旧记录
+            delete_sql = "DELETE FROM a_stock_bonus WHERE stock_code = ?"
+            cursor.execute(delete_sql, (code,))
+            
+            # 插入新记录
+            insert_sql = """
+            INSERT INTO a_stock_bonus 
+            (stock_code, report_period, bonus_description, bonus_amount, dividend_payout_rate, pre_tax_dividend_rate)
+            VALUES (?, ?, ?, ?, ?, ?)
+            """
+            data = []
+            for record in records:
+                data.append((
+                    code,
+                    record.get('报告期', ''),
+                    record.get('分红方案说明', ''),
+                    record.get('分红总额', 0),
+                    record.get('股利支付率', 0),
+                    record.get('税前分红率', 0)
+                ))
+            
+            if data:
+                cursor.executemany(insert_sql, data)
+            
+            conn.commit()
+        except Exception as e:
+            print(f"保存分红记录失败: {e}")
+            try:
+                conn.rollback()
+            except:
+                pass
     
     def get_bonus_rate(self, code: str) -> Optional[float]:
         """
@@ -18,70 +109,63 @@ class AStockBonusService:
             Optional[float]: 近3年的平均分红率，如果没有近3年数据返回 None
         """
         try:
-            # 从同花顺获取分红配送数据
-            df = ak.stock_fhps_detail_ths(symbol=code)
+            # 检查是否需要更新数据
+            if self._should_update(code):
+                # 从同花顺获取分红配送数据
+                df = ak.stock_fhps_detail_ths(symbol=code)
+                
+                if not df.empty:
+                    # 转换数据为字典列表
+                    records = []
+                    for _, row in df.iterrows():
+                        record = {
+                            '报告期': row.get('报告期', ''),
+                            '分红方案说明': row.get('分红方案说明', ''),
+                            '分红总额': row.get('分红总额', 0),
+                            '股利支付率': row.get('股利支付率', 0),
+                            '税前分红率': row.get('税前分红率', 0)
+                        }
+                        # 处理百分比字段
+                        for key in ['股利支付率', '税前分红率']:
+                            if isinstance(record[key], str) and '%' in record[key]:
+                                try:
+                                    record[key] = float(record[key].replace('%', ''))
+                                except:
+                                    record[key] = 0
+                        records.append(record)
+                    
+                    # 保存记录到数据库
+                    self._save_bonus_records(code, records)
             
-            if df.empty:
-                return None
-            
-            # 处理数据 - 按年份分组
-            year_rates = {}
+            # 从数据库获取近3年数据
             current_year = datetime.datetime.now().year
             three_years_ago = current_year - 3
             
-            for _, row in df.iterrows():
-                # 提取报告期年份
-                report_period = row.get('报告期', '')
-                if not report_period:
-                    continue
-                
-                try:
-                    # 尝试从不同格式的日期中提取年份
-                    # 格式1: 2023-12-31
-                    # 格式2: 2023/12/31
-                    # 格式3: 2023年12月31日
-                    year_match = re.search(r'\d{4}', report_period)
-                    if not year_match:
-                        continue
-                    year = int(year_match.group())
-                except:
-                    continue
-                
-                # 提取股利支付率
-                dividend_payout_rate = row.get('股利支付率', '')
-                if not dividend_payout_rate:
-                    continue
-                
-                try:
-                    # 去除百分号并转换为浮点数
-                    rate = float(dividend_payout_rate.replace('%', ''))
-                    if year not in year_rates:
-                        year_rates[year] = []
-                    year_rates[year].append(rate)
-                except:
-                    continue
+            sql = """
+            SELECT dividend_payout_rate FROM a_stock_bonus 
+            WHERE stock_code = ? AND report_period LIKE ?
+            """
             
-            if not year_rates:
+            rates = []
+            try:
+                conn = self.db_manager.get_connection()
+                cursor = conn.cursor()
+                
+                for year in range(three_years_ago, current_year + 1):
+                    year_pattern = f"{year}%"
+                    cursor.execute(sql, (code, year_pattern))
+                    results = cursor.fetchall()
+                    for result in results:
+                        if result[0]:
+                            rates.append(result[0])
+            except Exception as e:
+                print(f"查询分红数据失败: {e}")
+            
+            if not rates:
                 return None
             
-            # 收集近三年的所有记录
-            recent_three_years = [year for year in year_rates if year >= three_years_ago]
-            
-            if not recent_three_years:
-                # 没有近3年数据，返回 None
-                return 0
-            
-            # 收集近三年的所有记录
-            target_rates = []
-            for year in recent_three_years:
-                target_rates.extend(year_rates[year])
-            
-            if not target_rates:
-                # 没有近3年数据，返回 None
-                return 0
-            
             # 计算近3年所有记录的平均值
-            average_rate = sum(target_rates) / len(target_rates)
+            average_rate = sum(rates) / len(rates)
             
             return average_rate
             
