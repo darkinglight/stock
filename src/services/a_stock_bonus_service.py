@@ -1,7 +1,8 @@
 import akshare as ak
-from typing import Optional, List, Dict, Any
+from typing import Optional, List
 import datetime
 from database.connection import DatabaseConnectionManager
+from models import Bonus
 
 
 class AStockBonusService:
@@ -23,6 +24,7 @@ class AStockBonusService:
             bonus_amount REAL,
             dividend_payout_rate REAL,
             pre_tax_dividend_rate REAL,
+            year INTEGER,
             update_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
         """
@@ -60,7 +62,7 @@ class AStockBonusService:
         days_since_update = (datetime.datetime.now() - last_update).days
         return days_since_update >= 7
     
-    def _save_bonus_records(self, code: str, records: List[Dict[str, Any]]):
+    def _save_bonus_records(self, code: str, records: List[Bonus]):
         """保存分红记录"""
         try:
             conn = self.db_manager.get_connection()
@@ -73,18 +75,19 @@ class AStockBonusService:
             # 插入新记录
             insert_sql = """
             INSERT INTO a_stock_bonus 
-            (stock_code, report_period, bonus_description, bonus_amount, dividend_payout_rate, pre_tax_dividend_rate)
-            VALUES (?, ?, ?, ?, ?, ?)
+            (stock_code, report_period, bonus_description, bonus_amount, dividend_payout_rate, pre_tax_dividend_rate, year)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
             """
             data = []
             for record in records:
                 data.append((
                     code,
-                    record.get('报告期', ''),
-                    record.get('分红方案说明', ''),
-                    record.get('分红总额', 0),
-                    record.get('股利支付率', 0),
-                    record.get('税前分红率', 0)
+                    record.report_period,
+                    record.bonus_description,
+                    record.bonus_amount,
+                    record.dividend_payout_rate,
+                    record.pre_tax_dividend_rate,
+                    record.year
                 ))
             
             if data:
@@ -115,35 +118,24 @@ class AStockBonusService:
                 df = ak.stock_fhps_detail_ths(symbol=code)
                 
                 if not df.empty:
-                    # 转换数据为字典列表
+                    # 转换数据为Bonus对象列表并过滤近3年数据
+                    current_year = datetime.datetime.now().year
+                    three_years_ago = current_year - 3
+                    
                     records = []
                     for _, row in df.iterrows():
-                        record = {
-                            '报告期': row.get('报告期', ''),
-                            '分红方案说明': row.get('分红方案说明', ''),
-                            '分红总额': row.get('分红总额', 0),
-                            '股利支付率': row.get('股利支付率', 0),
-                            '税前分红率': row.get('税前分红率', 0)
-                        }
-                        # 处理百分比字段
-                        for key in ['股利支付率', '税前分红率']:
-                            if isinstance(record[key], str) and '%' in record[key]:
-                                try:
-                                    record[key] = float(record[key].replace('%', ''))
-                                except:
-                                    record[key] = 0
-                        records.append(record)
+                        bonus = Bonus.from_row(row)
+                        # 只保存近3年的数据
+                        if bonus.year >= three_years_ago and bonus.year <= current_year:
+                            records.append(bonus)
                     
                     # 保存记录到数据库
                     self._save_bonus_records(code, records)
             
-            # 从数据库获取近3年数据
-            current_year = datetime.datetime.now().year
-            three_years_ago = current_year - 3
-            
+            # 从数据库获取所有数据（已过滤）
             sql = """
             SELECT dividend_payout_rate FROM a_stock_bonus 
-            WHERE stock_code = ? AND report_period LIKE ?
+            WHERE stock_code = ?
             """
             
             rates = []
@@ -151,13 +143,11 @@ class AStockBonusService:
                 conn = self.db_manager.get_connection()
                 cursor = conn.cursor()
                 
-                for year in range(three_years_ago, current_year + 1):
-                    year_pattern = f"{year}%"
-                    cursor.execute(sql, (code, year_pattern))
-                    results = cursor.fetchall()
-                    for result in results:
-                        if result[0]:
-                            rates.append(result[0])
+                cursor.execute(sql, (code,))
+                results = cursor.fetchall()
+                for result in results:
+                    if result[0]:
+                        rates.append(result[0])
             except Exception as e:
                 print(f"查询分红数据失败: {e}")
             
