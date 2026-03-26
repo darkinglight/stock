@@ -16,7 +16,7 @@ class ABonusService:
     def _create_bonus_table(self):
         """创建分红记录表"""
         sql = """
-        CREATE TABLE IF NOT EXISTS a_stock_bonus (
+        CREATE TABLE IF NOT EXISTS bonus (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             stock_code TEXT NOT NULL,
             report_period TEXT NOT NULL,
@@ -39,7 +39,7 @@ class ABonusService:
     def _get_last_update_time(self, code: str) -> Optional[datetime.datetime]:
         """获取上次更新时间"""
         sql = """
-        SELECT MAX(update_time) FROM a_stock_bonus 
+        SELECT MAX(update_time) FROM bonus 
         WHERE stock_code = ?
         """
         try:
@@ -69,12 +69,12 @@ class ABonusService:
             cursor = conn.cursor()
             
             # 先删除旧记录
-            delete_sql = "DELETE FROM a_stock_bonus WHERE stock_code = ?"
+            delete_sql = "DELETE FROM bonus WHERE stock_code = ?"
             cursor.execute(delete_sql, (code,))
             
             # 插入新记录
             insert_sql = """
-            INSERT INTO a_stock_bonus 
+            INSERT INTO bonus 
             (stock_code, report_period, bonus_description, bonus_amount, dividend_payout_rate, pre_tax_dividend_rate, year)
             VALUES (?, ?, ?, ?, ?, ?, ?)
             """
@@ -134,7 +134,7 @@ class ABonusService:
             
             # 从数据库获取所有数据（已过滤）
             sql = """
-            SELECT dividend_payout_rate FROM a_stock_bonus 
+            SELECT dividend_payout_rate FROM bonus 
             WHERE stock_code = ?
             """
             

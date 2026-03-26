@@ -14,6 +14,8 @@ class AFinancialService:
         """
         self.db_manager = DatabaseConnectionManager()
         self._init_tables()
+        # 初始化AStockService实例
+        self.stock_service = AStockService()
     
     def _init_tables(self):
         """
@@ -148,12 +150,8 @@ class AFinancialService:
         :return: 更新的股票数量
         """
         try:
-            # 避免循环导入，在方法内部导入
-            from services.a_stock_service import AStockService
-            
             # 获取所有A股股票
-            stock_service = AStockService()
-            stocks = stock_service._get_all_stocks()
+            stocks = self.stock_service._get_all_stocks()
             
             # 一次性获取所有今日已更新的股票代码
             today = datetime.datetime.now().strftime('%Y-%m-%d')
@@ -222,11 +220,10 @@ class AFinancialService:
         :param reports: 财务报告列表
         """
         try:
-            stock_service = AStockService()
-            stock = stock_service._get_stock_by_code(code)
+            stock = self.stock_service._get_stock_by_code(code)
             if stock and reports:
                 stock.net_asset_per_share = reports[0].net_asset_per_share
-                stock_service._save_stock(stock)
+                self.stock_service._save_stock(stock)
         except Exception as e:
             print(f"更新股票 {code} 每股净资产时出错: {e}")
 
