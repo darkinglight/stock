@@ -15,18 +15,48 @@ class AStockService:
         """
         self.db_manager = DatabaseConnectionManager()
         self.config_service = ConfigService()
+        # 在初始化时获取数据库连接
+        self.conn = self.db_manager.get_connection()
+        self.cursor = self.conn.cursor()
         self._init_tables()
         self.refresh_config_key = "a_stock_last_refresh"
+    
+    def __enter__(self):
+        """
+        上下文管理器入口
+        :return: 当前实例
+        """
+        return self
+    
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        """
+        上下文管理器出口，关闭连接
+        :param exc_type: 异常类型
+        :param exc_val: 异常值
+        :param exc_tb: 异常追踪
+        """
+        self.close()
+    
+    def close(self):
+        """
+        关闭数据库连接
+        """
+        try:
+            if hasattr(self, 'cursor') and self.cursor:
+                self.cursor.close()
+                self.cursor = None
+            if hasattr(self, 'conn') and self.conn:
+                self.conn.close()
+                self.conn = None
+        except Exception as e:
+            print(f"关闭数据库连接失败: {e}")
 
     def _init_tables(self):
         """
         初始化数据库表
         """
-        conn = self.db_manager.get_connection()
-        cursor = conn.cursor()
-        
         # 创建股票表
-        cursor.execute('''
+        self.cursor.execute('''
         CREATE TABLE IF NOT EXISTS stock (
             code TEXT PRIMARY KEY,           -- 股票代码
             name TEXT NOT NULL,              -- 股票名称
@@ -44,9 +74,9 @@ class AStockService:
         ''')
         
         # 创建索引
-        cursor.execute('CREATE INDEX IF NOT EXISTS idx_stock_market ON stock(market)')
+        self.cursor.execute('CREATE INDEX IF NOT EXISTS idx_stock_market ON stock(market)')
         
-        conn.commit()
+        self.conn.commit()
     
     def _should_refresh(self, key: str, interval: int) -> bool:
         """
@@ -70,11 +100,8 @@ class AStockService:
         :return: 是否成功
         """
         try:
-            conn = self.db_manager.get_connection()
-            cursor = conn.cursor()
-            
             # 使用 UPSERT 语法
-            cursor.execute('''
+            self.cursor.execute('''
             INSERT INTO stock (code, name, market, price, pe, pb, bonus_rate, net_asset_per_share, basic_eps, assets_debt_ratio)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(code) DO UPDATE SET
@@ -94,7 +121,7 @@ class AStockService:
                 stock.basic_eps, stock.assets_debt_ratio
             ))
             
-            conn.commit()
+            self.conn.commit()
             return True
         except Exception as e:
             print(f"Failed to save stock: {e}")
@@ -106,11 +133,8 @@ class AStockService:
         :return: 股票列表
         """
         try:
-            conn = self.db_manager.get_connection()
-            cursor = conn.cursor()
-            
-            cursor.execute('SELECT code, name, market, price, pe, pb, bonus_rate, net_asset_per_share, basic_eps, assets_debt_ratio, created_at, updated_at FROM stock WHERE market IN (?, ?, ?)', ('sh', 'sz', 'bj'))
-            rows = cursor.fetchall()
+            self.cursor.execute('SELECT code, name, market, price, pe, pb, bonus_rate, net_asset_per_share, basic_eps, assets_debt_ratio, created_at, updated_at FROM stock WHERE market IN (?, ?, ?)', ('sh', 'sz', 'bj'))
+            rows = self.cursor.fetchall()
             
             stocks = []
             for row in rows:
@@ -142,11 +166,8 @@ class AStockService:
         :return: 股票对象或 None
         """
         try:
-            conn = self.db_manager.get_connection()
-            cursor = conn.cursor()
-            
-            cursor.execute('SELECT code, name, market, price, pe, pb, bonus_rate, net_asset_per_share, basic_eps, assets_debt_ratio, created_at, updated_at FROM stock WHERE code = ? AND market IN (?, ?, ?)', (code, 'sh', 'sz', 'bj'))
-            row = cursor.fetchone()
+            self.cursor.execute('SELECT code, name, market, price, pe, pb, bonus_rate, net_asset_per_share, basic_eps, assets_debt_ratio, created_at, updated_at FROM stock WHERE code = ? AND market IN (?, ?, ?)', (code, 'sh', 'sz', 'bj'))
+            row = self.cursor.fetchone()
             
             if row:
                 stock = Stock(
