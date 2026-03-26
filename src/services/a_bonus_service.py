@@ -5,7 +5,7 @@ from database.connection import DatabaseConnectionManager
 from models import Bonus
 
 
-class AStockBonusService:
+class ABonusService:
     """A股分红服务 - 处理A股分红率相关数据"""
     
     def __init__(self):
@@ -166,12 +166,12 @@ class AStockBonusService:
 
 if __name__ == "__main__":
     # 测试
-    a_stock_bonus_service = AStockBonusService()
+    a_bonus_service = ABonusService()
     
     # 测试获取平均分红率
     stock_code = "600987"
     print(f"正在测试股票代码: {stock_code}")
-    average_bonus_rate = a_stock_bonus_service.get_bonus_rate(stock_code)
+    average_bonus_rate = a_bonus_service.get_bonus_rate(stock_code)
     if average_bonus_rate is not None:
         print(f"A股 {stock_code} 的平均分红率: {average_bonus_rate:.2f}%")
     else:

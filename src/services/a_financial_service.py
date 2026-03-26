@@ -2,7 +2,7 @@ import akshare as ak
 from typing import List
 from models.financial import Financial
 
-class FinancialThsService:
+class AFinancialService:
     """同花顺财务数据服务"""
     
     def get_financial_data(self, symbol: str) -> List[Financial]:
@@ -66,6 +66,6 @@ class FinancialThsService:
 
 if __name__ == "__main__":
     # 测试
-    financial_ths_service = FinancialThsService()
-    financial_data = financial_ths_service.get_financial_data("000063")
+    financial_service = AFinancialService()
+    financial_data = financial_service.get_financial_data("000063")
     print(financial_data)
