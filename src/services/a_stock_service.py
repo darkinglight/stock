@@ -3,6 +3,7 @@ import time
 from models.stock import Stock
 from database.connection import DatabaseConnectionManager
 from services.config_service import ConfigService
+import akshare as ak
 
 
 class AStockService:
@@ -205,8 +206,6 @@ class AStockService:
         使用 akshare 的 stock_zh_a_spot 功能
         :return: 股票列表
         """
-        import akshare as ak
-        
         stocks = []
         
         try:
@@ -258,4 +257,3 @@ class AStockService:
 if __name__ == "__main__":
     service = AStockService()
     service.refresh_stocks()
-    service.refresh_quarterly_financial_data()
