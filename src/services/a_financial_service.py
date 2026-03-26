@@ -8,46 +8,91 @@ from services.a_stock_service import AStockService
 class AFinancialService:
     """同花顺财务数据服务"""
     
+    # SQL语句常量
+    SQL_CREATE_FINANCIAL_TABLE = '''
+    CREATE TABLE IF NOT EXISTS financial (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        code TEXT NOT NULL,              -- 股票代码
+        report_period TEXT NOT NULL,     -- 报告期，格式：YYYY-MM-DD
+        roe REAL,                        -- 净资产收益率（当期）
+        quarterly_roe REAL,              -- 季度ROE
+        annualized_roe REAL,             -- 年化ROE
+        net_asset_per_share REAL,        -- 每股净资产
+        basic_eps REAL,                  -- 每股收益
+        operating_cash_flow_per_share REAL, -- 每股经营现金流
+        assets_debt_ratio REAL,          -- 资产负债率
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(code, report_period)
+    )
+    '''
+    
+    SQL_CREATE_FINANCIAL_INDEX_CODE = 'CREATE INDEX IF NOT EXISTS idx_financial_code ON financial(code)'
+    SQL_CREATE_FINANCIAL_INDEX_PERIOD = 'CREATE INDEX IF NOT EXISTS idx_financial_period ON financial(report_period)'
+    SQL_DELETE_FINANCIAL_DATA = 'DELETE FROM financial WHERE code = ?'
+    SQL_INSERT_FINANCIAL_DATA = '''
+    INSERT INTO financial (code, report_period, roe, quarterly_roe, net_asset_per_share, basic_eps, operating_cash_flow_per_share, assets_debt_ratio, updated_at) 
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    '''
+    SQL_GET_UPDATED_CODES = 'SELECT DISTINCT code FROM financial WHERE updated_at LIKE ?'
+    
     def __init__(self):
         """
         初始化财务服务
         """
         self.db_manager = DatabaseConnectionManager()
+        # 在初始化时获取数据库连接
+        self.conn = self.db_manager.get_connection()
+        self.cursor = self.conn.cursor()
         self._init_tables()
         # 初始化AStockService实例
         self.stock_service = AStockService()
+    
+    def __enter__(self):
+        """
+        上下文管理器入口
+        :return: 当前实例
+        """
+        return self
+    
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        """
+        上下文管理器出口，关闭连接
+        :param exc_type: 异常类型
+        :param exc_val: 异常值
+        :param exc_tb: 异常追踪
+        """
+        self.close()
+    
+    def close(self):
+        """
+        关闭数据库连接
+        """
+        try:
+            if hasattr(self, 'cursor') and self.cursor:
+                self.cursor.close()
+                self.cursor = None
+            if hasattr(self, 'conn') and self.conn:
+                self.conn.close()
+                self.conn = None
+            if hasattr(self, 'stock_service') and self.stock_service:
+                self.stock_service.close()
+                self.stock_service = None
+        except Exception as e:
+            print(f"关闭数据库连接失败: {e}")
     
     def _init_tables(self):
         """
         初始化财务数据表
         """
-        conn = self.db_manager.get_connection()
-        cursor = conn.cursor()
-        
         # 创建财务数据表
-        cursor.execute('''
-        CREATE TABLE IF NOT EXISTS financial (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            code TEXT NOT NULL,              -- 股票代码
-            report_period TEXT NOT NULL,     -- 报告期，格式：YYYY-MM-DD
-            roe REAL,                        -- 净资产收益率（当期）
-            quarterly_roe REAL,              -- 季度ROE
-            annualized_roe REAL,             -- 年化ROE
-            net_asset_per_share REAL,        -- 每股净资产
-            basic_eps REAL,                  -- 每股收益
-            operating_cash_flow_per_share REAL, -- 每股经营现金流
-            assets_debt_ratio REAL,          -- 资产负债率
-            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-            updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
-            UNIQUE(code, report_period)
-        )
-        ''')
+        self.cursor.execute(self.SQL_CREATE_FINANCIAL_TABLE)
         
         # 创建索引
-        cursor.execute('CREATE INDEX IF NOT EXISTS idx_financial_code ON financial(code)')
-        cursor.execute('CREATE INDEX IF NOT EXISTS idx_financial_period ON financial(report_period)')
+        self.cursor.execute(self.SQL_CREATE_FINANCIAL_INDEX_CODE)
+        self.cursor.execute(self.SQL_CREATE_FINANCIAL_INDEX_PERIOD)
         
-        conn.commit()
+        self.conn.commit()
     
     def get_financial_data(self, symbol: str) -> List[Financial]:
         """
@@ -118,12 +163,9 @@ class AFinancialService:
             if not reports:
                 return False
             
-            conn = self.db_manager.get_connection()
-            cursor = conn.cursor()
-            
             # 清空该股票的现有财务数据
             code = reports[0].code
-            cursor.execute('DELETE FROM financial WHERE code = ?', (code,))
+            self.cursor.execute(self.SQL_DELETE_FINANCIAL_DATA, (code,))
             
             # 获取当前时间
             current_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
@@ -131,12 +173,12 @@ class AFinancialService:
             # 保存新数据
             for report in reports:
                 # 插入数据，包括roe、quarterly_roe、net_asset_per_share、basic_eps、operating_cash_flow_per_share、assets_debt_ratio，并设置updated_at
-                cursor.execute(
-                    'INSERT INTO financial (code, report_period, roe, quarterly_roe, net_asset_per_share, basic_eps, operating_cash_flow_per_share, assets_debt_ratio, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                self.cursor.execute(
+                    self.SQL_INSERT_FINANCIAL_DATA,
                     (report.code, report.report_period, report.roe, report.quarterly_roe, report.net_asset_per_share, report.basic_eps, report.operating_cash_flow_per_share, report.assets_debt_ratio, current_time)
                 )
             
-            conn.commit()
+            self.conn.commit()
             return True
             
         except Exception as e:
@@ -155,12 +197,10 @@ class AFinancialService:
             
             # 一次性获取所有今日已更新的股票代码
             today = datetime.datetime.now().strftime('%Y-%m-%d')
-            conn = self.db_manager.get_connection()
-            cursor = conn.cursor()
             
             # 查询今天更新过的股票代码，使用DISTINCT去重
-            cursor.execute('SELECT DISTINCT code FROM financial WHERE updated_at LIKE ?', (today + '%',))
-            updated_codes = {row[0] for row in cursor.fetchall()}
+            self.cursor.execute(self.SQL_GET_UPDATED_CODES, (today + '%',))
+            updated_codes = {row[0] for row in self.cursor.fetchall()}
             
             # 过滤出需要更新的股票
             stocks_to_update = [stock for stock in stocks if stock.code not in updated_codes]

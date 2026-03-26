@@ -9,6 +9,48 @@ import akshare as ak
 class AStockService:
     """A股服务 - 处理A股数据"""
     
+
+    
+    # SQL语句常量
+    SQL_CREATE_STOCK_TABLE = '''
+    CREATE TABLE IF NOT EXISTS stock (
+        code TEXT PRIMARY KEY,           -- 股票代码
+        name TEXT NOT NULL,              -- 股票名称
+        market TEXT NOT NULL,            -- 市场类型 ('sh' for 沪市, 'sz' for 深市, 'bj' for 京市, 'h' for H股)
+        price REAL,                      -- 当前价格
+        pe REAL,                         -- 市盈率
+        pb REAL,                         -- 市净率
+        bonus_rate REAL,                 -- 分红率
+        net_asset_per_share REAL,        -- 每股净资产
+        basic_eps REAL,                  -- 每股收益
+        assets_debt_ratio REAL,          -- 资产负债率
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+    )
+    '''
+    
+    SQL_CREATE_STOCK_INDEX = 'CREATE INDEX IF NOT EXISTS idx_stock_market ON stock(market)'
+    
+    SQL_SAVE_STOCK = '''
+    INSERT INTO stock (code, name, market, price, pe, pb, bonus_rate, net_asset_per_share, basic_eps, assets_debt_ratio)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ON CONFLICT(code) DO UPDATE SET
+        name=excluded.name,
+        market=excluded.market,
+        price=excluded.price,
+        pe=excluded.pe,
+        pb=excluded.pb,
+        bonus_rate=excluded.bonus_rate,
+        net_asset_per_share=excluded.net_asset_per_share,
+        basic_eps=excluded.basic_eps,
+        assets_debt_ratio=excluded.assets_debt_ratio,
+        updated_at=CURRENT_TIMESTAMP
+    '''
+    
+    SQL_GET_ALL_STOCKS = 'SELECT code, name, market, price, pe, pb, bonus_rate, net_asset_per_share, basic_eps, assets_debt_ratio, created_at, updated_at FROM stock WHERE market IN (?, ?, ?)'
+    
+    SQL_GET_STOCK_BY_CODE = 'SELECT code, name, market, price, pe, pb, bonus_rate, net_asset_per_share, basic_eps, assets_debt_ratio, created_at, updated_at FROM stock WHERE code = ? AND market IN (?, ?, ?)'
+    
     def __init__(self):
         """
         初始化A股服务
@@ -56,25 +98,10 @@ class AStockService:
         初始化数据库表
         """
         # 创建股票表
-        self.cursor.execute('''
-        CREATE TABLE IF NOT EXISTS stock (
-            code TEXT PRIMARY KEY,           -- 股票代码
-            name TEXT NOT NULL,              -- 股票名称
-            market TEXT NOT NULL,            -- 市场类型 ('sh' for 沪市, 'sz' for 深市, 'bj' for 京市, 'h' for H股)
-            price REAL,                      -- 当前价格
-            pe REAL,                         -- 市盈率
-            pb REAL,                         -- 市净率
-            bonus_rate REAL,                 -- 分红率
-            net_asset_per_share REAL,        -- 每股净资产
-            basic_eps REAL,                  -- 每股收益
-            assets_debt_ratio REAL,          -- 资产负债率
-            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-            updated_at TEXT DEFAULT CURRENT_TIMESTAMP
-        )
-        ''')
+        self.cursor.execute(self.SQL_CREATE_STOCK_TABLE)
         
         # 创建索引
-        self.cursor.execute('CREATE INDEX IF NOT EXISTS idx_stock_market ON stock(market)')
+        self.cursor.execute(self.SQL_CREATE_STOCK_INDEX)
         
         self.conn.commit()
     
@@ -101,21 +128,7 @@ class AStockService:
         """
         try:
             # 使用 UPSERT 语法
-            self.cursor.execute('''
-            INSERT INTO stock (code, name, market, price, pe, pb, bonus_rate, net_asset_per_share, basic_eps, assets_debt_ratio)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ON CONFLICT(code) DO UPDATE SET
-                name=excluded.name,
-                market=excluded.market,
-                price=excluded.price,
-                pe=excluded.pe,
-                pb=excluded.pb,
-                bonus_rate=excluded.bonus_rate,
-                net_asset_per_share=excluded.net_asset_per_share,
-                basic_eps=excluded.basic_eps,
-                assets_debt_ratio=excluded.assets_debt_ratio,
-                updated_at=CURRENT_TIMESTAMP
-            ''', (
+            self.cursor.execute(self.SQL_SAVE_STOCK, (
                 stock.code, stock.name, stock.market, stock.price,
                 stock.pe, stock.pb, stock.bonus_rate, stock.net_asset_per_share,
                 stock.basic_eps, stock.assets_debt_ratio
@@ -133,7 +146,7 @@ class AStockService:
         :return: 股票列表
         """
         try:
-            self.cursor.execute('SELECT code, name, market, price, pe, pb, bonus_rate, net_asset_per_share, basic_eps, assets_debt_ratio, created_at, updated_at FROM stock WHERE market IN (?, ?, ?)', ('sh', 'sz', 'bj'))
+            self.cursor.execute(self.SQL_GET_ALL_STOCKS, ('sh', 'sz', 'bj'))
             rows = self.cursor.fetchall()
             
             stocks = []
@@ -166,7 +179,7 @@ class AStockService:
         :return: 股票对象或 None
         """
         try:
-            self.cursor.execute('SELECT code, name, market, price, pe, pb, bonus_rate, net_asset_per_share, basic_eps, assets_debt_ratio, created_at, updated_at FROM stock WHERE code = ? AND market IN (?, ?, ?)', (code, 'sh', 'sz', 'bj'))
+            self.cursor.execute(self.SQL_GET_STOCK_BY_CODE, (code, 'sh', 'sz', 'bj'))
             row = self.cursor.fetchone()
             
             if row:
