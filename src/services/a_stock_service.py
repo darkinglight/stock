@@ -5,6 +5,7 @@ from models.stock import Stock
 from models.financial import Financial
 from database.connection import DatabaseConnectionManager
 from services.a_financial_service import AFinancialService
+from services.config_service import ConfigService
 
 
 class AStockService:
@@ -15,6 +16,7 @@ class AStockService:
         初始化A股服务
         """
         self.db_manager = DatabaseConnectionManager()
+        self.config_service = ConfigService()
         self._init_tables()
         self.refresh_config_key = "a_stock_last_refresh"
         self.financial_service = AFinancialService()
@@ -47,15 +49,6 @@ class AStockService:
         # 创建索引
         cursor.execute('CREATE INDEX IF NOT EXISTS idx_stock_market ON stock(market)')
         
-        # 创建配置表，用于记录刷新时间
-        cursor.execute('''
-        CREATE TABLE IF NOT EXISTS config (
-            key TEXT PRIMARY KEY,            -- 配置键
-            value TEXT NOT NULL,             -- 配置值
-            updated_at TEXT DEFAULT CURRENT_TIMESTAMP
-        )
-        ''')
-        
         # 创建季度财务数据表
         cursor.execute('''
         CREATE TABLE IF NOT EXISTS quarterly_financial (
@@ -77,63 +70,6 @@ class AStockService:
         
         conn.commit()
     
-    def _set_config(self, key: str, value: str):
-        """
-        设置配置
-        :param key: 配置键
-        :param value: 配置值
-        """
-        try:
-            conn = self.db_manager.get_connection()
-            cursor = conn.cursor()
-            
-            cursor.execute('''
-            INSERT INTO config (key, value)
-            VALUES (?, ?)
-            ON CONFLICT(key) DO UPDATE SET
-                value=excluded.value,
-                updated_at=CURRENT_TIMESTAMP
-            ''', (key, value))
-            
-            conn.commit()
-        except Exception as e:
-            print(f"设置配置失败: {e}")
-    
-    def _get_config(self, key: str) -> Optional[str]:
-        """
-        获取配置
-        :param key: 配置键
-        :return: 配置值，不存在返回None
-        """
-        try:
-            conn = self.db_manager.get_connection()
-            cursor = conn.cursor()
-            
-            cursor.execute('SELECT value FROM config WHERE key = ?', (key,))
-            result = cursor.fetchone()
-            
-            if result and result[0]:
-                return result[0]
-            return None
-        except Exception as e:
-            print(f"获取配置失败: {e}")
-            return None
-    
-    def _get_last_refresh_time(self, key: str) -> Optional[float]:
-        """
-        获取上次刷新时间
-        :param key: 配置键
-        :return: 上次刷新时间的时间戳，None表示未刷新过
-        """
-        try:
-            value = self._get_config(key)
-            if value:
-                return float(value)
-            return None
-        except Exception as e:
-            print(f"获取上次刷新时间失败: {e}")
-            return None
-    
     def _should_refresh(self, key: str, interval: int) -> bool:
         """
         检查是否需要刷新
@@ -141,7 +77,7 @@ class AStockService:
         :param interval: 刷新间隔（秒）
         :return: 是否需要刷新
         """
-        last_refresh_time = self._get_last_refresh_time(key)
+        last_refresh_time = self.config_service.get_last_refresh_time(key)
         current_time = time.time()
         
         # 如果没有刷新过或间隔超过指定时间，则需要刷新
@@ -278,7 +214,7 @@ class AStockService:
                         updated_count += 1
             
             # 更新刷新时间
-            self._set_config(self.refresh_config_key, str(int(time.time())))
+            self.config_service.set_config(self.refresh_config_key, str(int(time.time())))
             print(f"A股数据刷新完成，共更新 {updated_count} 只股票")
             return updated_count
             
