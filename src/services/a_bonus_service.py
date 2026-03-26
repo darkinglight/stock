@@ -3,6 +3,7 @@ from typing import Optional, List
 import datetime
 from database.connection import DatabaseConnectionManager
 from models import Bonus
+from services.config_service import ConfigService
 
 
 class ABonusService:
@@ -140,9 +141,9 @@ class ABonusService:
             except:
                 pass
     
-    def get_bonus_rate(self, code: str) -> Optional[float]:
+    def update_bonus_rate(self, code: str):
         """
-        获取A股的平均分红率（基于近3年数据）
+        更新A股的平均分红率（基于近3年数据）
         
         Args:
             code: A股代码
@@ -170,31 +171,52 @@ class ABonusService:
                     
                     # 保存记录到数据库
                     self._save_bonus_records(code, records)
+                    
+                    # 直接使用records计算平均分红率
+                    rates = [record.dividend_payout_rate for record in records if record.dividend_payout_rate]
+                    
+                    if not rates:
+                        return None
+                    
+                    # 计算近3年所有记录的平均值
+                    average_rate = sum(rates) / len(rates)
+                    
+                    # 更新到stock表
+                    update_sql = '''
+                    INSERT INTO stock (code, bonus_rate) 
+                    VALUES (?, ?)
+                    ON CONFLICT(code) DO UPDATE SET bonus_rate=excluded.bonus_rate
+                    '''
+                    try:
+                        self.cursor.execute(update_sql, (code, average_rate))
+                        self.conn.commit()
+                    except Exception as e:
+                        print(f"更新stock表分红率失败: {e}")
+                        try:
+                            self.conn.rollback()
+                        except:
+                            pass
+                    
+                    return average_rate
             
-            # 从数据库获取所有数据（已过滤）
-            sql = self.SQL_GET_DIVIDEND_RATES
-            
-            rates = []
-            try:
-                self.cursor.execute(sql, (code,))
-                results = self.cursor.fetchall()
-                for result in results:
-                    if result[0]:
-                        rates.append(result[0])
-            except Exception as e:
-                print(f"查询分红数据失败: {e}")
-            
-            if not rates:
-                return None
-            
-            # 计算近3年所有记录的平均值
-            average_rate = sum(rates) / len(rates)
-            
-            return average_rate
+            # 如果不需要更新则不做处理
+            return None
             
         except Exception as e:
-            print(f"获取A股分红率失败: {e}")
+            print(f"更新A股分红率失败: {e}")
             return None
+
+    def get_bonus_rate(self, code: str):
+        """
+        获取A股的平均分红率
+        
+        Args:
+            code: A股代码
+            
+        Returns:
+            Optional[float]: 近3年的平均分红率，如果没有近3年数据返回 None
+        """
+        return self.update_bonus_rate(code)
 
 
 if __name__ == "__main__":
