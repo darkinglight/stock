@@ -1,9 +1,51 @@
 import akshare as ak
 from typing import List
 from models.financial import Financial
+from database.connection import DatabaseConnectionManager
+import datetime
+from services.a_stock_service import AStockService
 
 class AFinancialService:
     """同花顺财务数据服务"""
+    
+    def __init__(self):
+        """
+        初始化财务服务
+        """
+        self.db_manager = DatabaseConnectionManager()
+        self._init_tables()
+    
+    def _init_tables(self):
+        """
+        初始化财务数据表
+        """
+        conn = self.db_manager.get_connection()
+        cursor = conn.cursor()
+        
+        # 创建财务数据表
+        cursor.execute('''
+        CREATE TABLE IF NOT EXISTS financial (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            code TEXT NOT NULL,              -- 股票代码
+            report_period TEXT NOT NULL,     -- 报告期，格式：YYYY-MM-DD
+            roe REAL,                        -- 净资产收益率（当期）
+            quarterly_roe REAL,              -- 季度ROE
+            annualized_roe REAL,             -- 年化ROE
+            net_asset_per_share REAL,        -- 每股净资产
+            basic_eps REAL,                  -- 每股收益
+            operating_cash_flow_per_share REAL, -- 每股经营现金流
+            assets_debt_ratio REAL,          -- 资产负债率
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(code, report_period)
+        )
+        ''')
+        
+        # 创建索引
+        cursor.execute('CREATE INDEX IF NOT EXISTS idx_financial_code ON financial(code)')
+        cursor.execute('CREATE INDEX IF NOT EXISTS idx_financial_period ON financial(report_period)')
+        
+        conn.commit()
     
     def get_financial_data(self, symbol: str) -> List[Financial]:
         """
@@ -63,9 +105,134 @@ class AFinancialService:
         financial_list = financial_list[:12]
         
         return financial_list
+    
+    def save_financial_data(self, reports: List[Financial]) -> bool:
+        """
+        保存财务数据到数据库
+        :param reports: 财务报告列表
+        :return: 是否保存成功
+        """
+        try:
+            if not reports:
+                return False
+            
+            conn = self.db_manager.get_connection()
+            cursor = conn.cursor()
+            
+            # 清空该股票的现有财务数据
+            code = reports[0].code
+            cursor.execute('DELETE FROM financial WHERE code = ?', (code,))
+            
+            # 获取当前时间
+            current_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            
+            # 保存新数据
+            for report in reports:
+                # 插入数据，包括roe、quarterly_roe、net_asset_per_share、basic_eps、operating_cash_flow_per_share、assets_debt_ratio，并设置updated_at
+                cursor.execute(
+                    'INSERT INTO financial (code, report_period, roe, quarterly_roe, net_asset_per_share, basic_eps, operating_cash_flow_per_share, assets_debt_ratio, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                    (report.code, report.report_period, report.roe, report.quarterly_roe, report.net_asset_per_share, report.basic_eps, report.operating_cash_flow_per_share, report.assets_debt_ratio, current_time)
+                )
+            
+            conn.commit()
+            return True
+            
+        except Exception as e:
+            print(f"保存财务数据失败: {e}")
+            return False
+    
+    def refresh_financial_data(self) -> int:
+        """
+        刷新财务数据，包括ROE、季度ROE和每股净资产
+        支持中断续更，剔除今天已经更新过的股票
+        :return: 更新的股票数量
+        """
+        try:
+            # 避免循环导入，在方法内部导入
+            from services.a_stock_service import AStockService
+            
+            # 获取所有A股股票
+            stock_service = AStockService()
+            stocks = stock_service._get_all_stocks()
+            
+            # 一次性获取所有今日已更新的股票代码
+            today = datetime.datetime.now().strftime('%Y-%m-%d')
+            conn = self.db_manager.get_connection()
+            cursor = conn.cursor()
+            
+            # 查询今天更新过的股票代码，使用DISTINCT去重
+            cursor.execute('SELECT DISTINCT code FROM financial WHERE updated_at LIKE ?', (today + '%',))
+            updated_codes = {row[0] for row in cursor.fetchall()}
+            
+            # 过滤出需要更新的股票
+            stocks_to_update = [stock for stock in stocks if stock.code not in updated_codes]
+            
+            total_stocks = len(stocks_to_update)
+            updated_count = 0
+            
+            print(f"共需要更新 {total_stocks} 只股票的财务数据")
+            
+            for i, stock in enumerate(stocks_to_update):
+                try:
+                    if self.update_financial_data(stock.code):
+                        updated_count += 1
+                except Exception as e:
+                    print(f"更新股票 {stock.code} 财务数据时出错: {e}")
+                
+                # 输出进度百分比
+                progress = (i + 1) / total_stocks * 100
+                print(f"进度: {progress:.2f}% ({i + 1}/{total_stocks})")
+            
+            print(f"财务数据刷新完成，共更新 {updated_count} 只股票")
+            return updated_count
+            
+        except Exception as e:
+            print(f"刷新财务数据失败: {e}")
+            return 0
+    
+    def update_financial_data(self, code: str) -> bool:
+        """
+        更新单个股票的财务数据
+        :param code: 股票代码
+        :return: 是否更新成功
+        """
+        try:
+            # 获取财务数据
+            reports = self.get_financial_data(code)
+            
+            if not reports:
+                print(f"股票 {code} 无法获取财务数据，跳过")
+                return False
+            
+            # 保存到数据库
+            success = self.save_financial_data(reports)
+            
+            # 更新股票的每股净资产
+            self._update_stock_net_asset(code, reports)
+            
+            return success
+        except Exception as e:
+            print(f"更新股票 {code} 财务数据失败: {e}")
+            return False
+    
+    def _update_stock_net_asset(self, code: str, reports: List[Financial]):
+        """
+        更新股票的每股净资产
+        :param code: 股票代码
+        :param reports: 财务报告列表
+        """
+        try:
+            stock_service = AStockService()
+            stock = stock_service._get_stock_by_code(code)
+            if stock and reports:
+                stock.net_asset_per_share = reports[0].net_asset_per_share
+                stock_service._save_stock(stock)
+        except Exception as e:
+            print(f"更新股票 {code} 每股净资产时出错: {e}")
 
 if __name__ == "__main__":
     # 测试
     financial_service = AFinancialService()
     financial_data = financial_service.get_financial_data("000063")
     print(financial_data)
+    financial_service.save_financial_data(financial_data)

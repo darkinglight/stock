@@ -1,10 +1,7 @@
 from typing import List, Optional
 import time
-import datetime
 from models.stock import Stock
-from models.financial import Financial
 from database.connection import DatabaseConnectionManager
-from services.a_financial_service import AFinancialService
 from services.config_service import ConfigService
 
 
@@ -19,7 +16,6 @@ class AStockService:
         self.config_service = ConfigService()
         self._init_tables()
         self.refresh_config_key = "a_stock_last_refresh"
-        self.financial_service = AFinancialService()
 
     def _init_tables(self):
         """
@@ -48,25 +44,6 @@ class AStockService:
         
         # 创建索引
         cursor.execute('CREATE INDEX IF NOT EXISTS idx_stock_market ON stock(market)')
-        
-        # 创建季度财务数据表
-        cursor.execute('''
-        CREATE TABLE IF NOT EXISTS quarterly_financial (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            code TEXT NOT NULL,              -- 股票代码
-            report_period TEXT NOT NULL,     -- 报告期，格式：YYYY-MM-DD
-            roe REAL,                        -- 净资产收益率（当期）
-            quarterly_roe REAL,              -- 季度ROE
-            annualized_roe REAL,             -- 年化ROE
-            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-            updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
-            UNIQUE(code, report_period)
-        )
-        ''')
-        
-        # 创建索引
-        cursor.execute('CREATE INDEX IF NOT EXISTS idx_quarterly_financial_code ON quarterly_financial(code)')
-        cursor.execute('CREATE INDEX IF NOT EXISTS idx_quarterly_financial_period ON quarterly_financial(report_period)')
         
         conn.commit()
     
@@ -277,112 +254,6 @@ class AStockService:
         except Exception as e:
             print(f"获取A股数据失败: {e}")
             return []
-    
-    def refresh_quarterly_financial_data(self) -> int:
-        """
-        刷新季度财务数据，包括ROE、季度ROE和每股净资产
-        支持中断续更，剔除今天已经更新过的股票
-        :return: 更新的股票数量
-        """
-        try:
-            # 获取所有A股股票
-            stocks = self._get_all_stocks()
-            
-            # 一次性获取所有今日已更新的股票代码
-            today = datetime.datetime.now().strftime('%Y-%m-%d')
-            conn = self.db_manager.get_connection()
-            cursor = conn.cursor()
-            
-            # 查询今天更新过的股票代码，使用DISTINCT去重
-            cursor.execute('SELECT DISTINCT code FROM quarterly_financial WHERE updated_at LIKE ?', (today + '%',))
-            updated_codes = {row[0] for row in cursor.fetchall()}
-            
-            # 过滤出需要更新的股票
-            stocks_to_update = [stock for stock in stocks if stock.code not in updated_codes]
-            
-            total_stocks = len(stocks_to_update)
-            updated_count = 0
-            
-            print(f"共需要更新 {total_stocks} 只股票的财务数据")
-            
-            for i, stock in enumerate(stocks_to_update):
-                try:
-                    if self._update_quarterly_financial_data(stock.code):
-                        updated_count += 1
-                except Exception as e:
-                    print(f"更新股票 {stock.code} 财务数据时出错: {e}")
-                
-                # 输出进度百分比
-                progress = (i + 1) / total_stocks * 100
-                print(f"进度: {progress:.2f}% ({i + 1}/{total_stocks})")
-            
-            print(f"季度财务数据刷新完成，共更新 {updated_count} 只股票")
-            return updated_count
-            
-        except Exception as e:
-            print(f"刷新季度财务数据失败: {e}")
-            return 0
-    
-    def _update_quarterly_financial_data(self, code: str) -> bool:
-        """
-        更新单个股票的季度财务数据
-        :param code: 股票代码
-        :return: 是否更新成功
-        """
-        try:
-            # 使用FinancialThsService获取季度财务数据
-            reports = self.financial_service.get_financial_data(code)
-            
-            if not reports:
-                print(f"股票 {code} 无法获取季度财务数据，跳过")
-                return False
-            
-            # 保存到数据库
-            return self._save_quarterly_financial_data(reports)
-            # 更新最新的每股净资产到stock对象
-            stock = self._get_stock_by_code(code)
-            if stock:
-                stock.net_asset_per_share = reports[0].net_asset_per_share
-                self._save_stock(stock)
-            
-        except Exception as e:
-            print(f"更新股票 {code} 季度财务数据失败: {e}")
-            return False
-    
-    def _save_quarterly_financial_data(self, reports: List[Financial]) -> bool:
-        """
-        保存季度财务数据到数据库
-        :param reports: 季度财务报告列表
-        :return: 是否保存成功
-        """
-        try:
-            if not reports:
-                return False
-            
-            conn = self.db_manager.get_connection()
-            cursor = conn.cursor()
-            
-            # 清空该股票的现有季度财务数据
-            code = reports[0].code
-            cursor.execute('DELETE FROM quarterly_financial WHERE code = ?', (code,))
-            
-            # 获取当前时间
-            current_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-            
-            # 保存新数据
-            for report in reports:
-                # 插入数据，包括roe、quarterly_roe、net_asset_per_share、basic_eps、operating_cash_flow_per_share、assets_debt_ratio，并设置updated_at
-                cursor.execute(
-                    'INSERT INTO quarterly_financial (code, report_period, roe, quarterly_roe, net_asset_per_share, basic_eps, operating_cash_flow_per_share, assets_debt_ratio, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-                    (report.code, report.report_period, report.roe, report.quarterly_roe, report.net_asset_per_share, report.basic_eps, report.operating_cash_flow_per_share, report.assets_debt_ratio, current_time)
-                )
-            
-            conn.commit()
-            return True
-            
-        except Exception as e:
-            print(f"保存季度财务数据失败: {e}")
-            return False
     
 if __name__ == "__main__":
     service = AStockService()
