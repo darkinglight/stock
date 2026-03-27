@@ -18,14 +18,6 @@ class Stock:
     created_at: Optional[str] = None  # 创建时间
     updated_at: Optional[str] = None  # 更新时间
     
-    def validate(self) -> bool:
-        """验证模型数据"""
-        if not self.code or not self.name:
-            return False
-        if self.price <= 0:
-            return False
-        return True
-    
     @classmethod
     def from_dict(cls, data: dict) -> 'Stock':
         """从字典创建模型"""

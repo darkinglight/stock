@@ -26,11 +26,6 @@ class ABonusService:
     )
     '''
     
-    SQL_GET_LAST_UPDATE_TIME = '''
-    SELECT MAX(update_time) FROM bonus 
-    WHERE stock_code = ?
-    '''
-    
     SQL_DELETE_BONUS_RECORDS = "DELETE FROM bonus WHERE stock_code = ?"
     
     SQL_INSERT_BONUS_RECORDS = '''
@@ -147,8 +142,7 @@ class ABonusService:
                 records = []
                 for _, row in df.iterrows():
                     bonus = Bonus.from_row(row)
-                    # 只保存近3年的数据
-                    if bonus.year >= three_years_ago and bonus.year <= current_year:
+                    if three_years_ago <= bonus.year <= current_year:
                         records.append(bonus)
                 
                 # 保存记录到数据库

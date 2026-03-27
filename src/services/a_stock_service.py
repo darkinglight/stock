@@ -241,9 +241,25 @@ class AStockService:
             
             updated_count = 0
             for stock in stocks:
-                if stock.validate():
-                    if self._save_stock(stock):
-                        updated_count += 1
+                # 查询数据库中已有的记录
+                existing_stock = self._get_stock_by_code(stock.code)
+                if existing_stock:
+                    # 更新价格
+                    stock.price = stock.price
+                    # 如果每股净资产 > 0，则更新 pb
+                    if existing_stock.net_asset_per_share and existing_stock.net_asset_per_share > 0:
+                        stock.pb = stock.price / existing_stock.net_asset_per_share
+                    # 如果每股盈利 > 0，则更新 pe
+                    if existing_stock.basic_eps and existing_stock.basic_eps > 0:
+                        stock.pe = stock.price / existing_stock.basic_eps
+                    # 保留原有数据
+                    stock.net_asset_per_share = existing_stock.net_asset_per_share
+                    stock.basic_eps = existing_stock.basic_eps
+                    stock.bonus_rate = existing_stock.bonus_rate
+                    stock.assets_debt_ratio = existing_stock.assets_debt_ratio
+                
+                if self._save_stock(stock):
+                    updated_count += 1
             
             # 更新刷新时间
             self.config_service.set_config(self.refresh_config_key, str(int(time.time())))
