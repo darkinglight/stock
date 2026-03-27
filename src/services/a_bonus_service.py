@@ -41,6 +41,8 @@ class ABonusService:
     
     SQL_GET_UPDATED_CODES = 'SELECT DISTINCT stock_code FROM bonus WHERE update_time LIKE ?'
     
+    SQL_GET_BONUS_RECORDS_BY_CODE = 'SELECT id, stock_code, report_period, bonus_description, bonus_amount, dividend_payout_rate, pre_tax_dividend_rate, year, update_time FROM bonus WHERE stock_code = ? ORDER BY year DESC'
+    
     def __init__(self):
         """初始化服务"""
         self.db_manager = DatabaseConnectionManager()
@@ -172,6 +174,38 @@ class ABonusService:
             print(f"更新A股分红率失败: {e}")
             return None
     
+    def get_bonus_records(self, stock_code: str) -> List[Bonus]:
+        """
+        根据股票代码查询所有分红记录
+        
+        Args:
+            stock_code: 股票代码
+            
+        Returns:
+            List[Bonus]: 分红记录列表，按年份降序排列
+        """
+        try:
+            self.cursor.execute(self.SQL_GET_BONUS_RECORDS_BY_CODE, (stock_code,))
+            rows = self.cursor.fetchall()
+            
+            records = []
+            for row in rows:
+                bonus = Bonus(
+                    report_period=row[2],
+                    bonus_description=row[3],
+                    bonus_amount=row[4],
+                    dividend_payout_rate=row[5],
+                    pre_tax_dividend_rate=row[6],
+                    year=row[7]
+                )
+                records.append(bonus)
+            
+            return records
+            
+        except Exception as e:
+            print(f"查询分红记录失败: {e}")
+            return []
+    
     def refresh_all(self) -> int:
         """
         批量更新所有A股的分红率
@@ -229,3 +263,13 @@ if __name__ == "__main__":
         print(f"A股 {stock_code} 的平均分红率: {average_bonus_rate:.2f}%")
     else:
         print(f"A股 {stock_code} 没有找到分红数据")
+    
+    # 测试查询所有分红记录
+    print("\n测试查询所有分红记录:")
+    bonus_records = a_bonus_service.get_bonus_records(stock_code)
+    print(f"共找到 {len(bonus_records)} 条分红记录")
+    for i, record in enumerate(bonus_records):
+        print(f"记录 {i+1}: 年份={record.year}, 报告期={record.report_period}, 分红方案={record.bonus_description}, 分红率={record.dividend_payout_rate}%")
+    
+    # 关闭服务
+    a_bonus_service.close()
