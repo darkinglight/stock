@@ -4,6 +4,7 @@ import datetime
 from database.connection import DatabaseConnectionManager
 from models import Bonus
 from services.config_service import ConfigService
+from services.a_stock_service import AStockService
 
 
 class ABonusService:
@@ -47,6 +48,8 @@ class ABonusService:
         """初始化服务"""
         self.db_manager = DatabaseConnectionManager()
         self.config_service = ConfigService()
+        # 初始化AStockService实例
+        self.stock_service = AStockService()
         # 在初始化时获取数据库连接
         self.conn = self.db_manager.get_connection()
         self.cursor = self.conn.cursor()
@@ -133,8 +136,6 @@ class ABonusService:
                 self.cursor.executemany(self.SQL_INSERT_BONUS_RECORDS, data)
             
             self.conn.commit()
-            # 更新配置中的最后更新时间
-            self.config_service.set_config(f"bonus_{code}", str(int(datetime.datetime.now().timestamp())))
         except Exception as e:
             print(f"保存分红记录失败: {e}")
             try:
@@ -183,20 +184,7 @@ class ABonusService:
                     average_rate = sum(rates) / len(rates)
                     
                     # 更新到stock表
-                    update_sql = '''
-                    INSERT INTO stock (code, bonus_rate) 
-                    VALUES (?, ?)
-                    ON CONFLICT(code) DO UPDATE SET bonus_rate=excluded.bonus_rate
-                    '''
-                    try:
-                        self.cursor.execute(update_sql, (code, average_rate))
-                        self.conn.commit()
-                    except Exception as e:
-                        print(f"更新stock表分红率失败: {e}")
-                        try:
-                            self.conn.rollback()
-                        except:
-                            pass
+                    self.stock_service.update_bonus_rate(code, average_rate)
                     
                     return average_rate
             
@@ -207,18 +195,6 @@ class ABonusService:
             print(f"更新A股分红率失败: {e}")
             return None
 
-    def get_bonus_rate(self, code: str):
-        """
-        获取A股的平均分红率
-        
-        Args:
-            code: A股代码
-            
-        Returns:
-            Optional[float]: 近3年的平均分红率，如果没有近3年数据返回 None
-        """
-        return self.update_bonus_rate(code)
-
 
 if __name__ == "__main__":
     # 测试
@@ -227,7 +203,7 @@ if __name__ == "__main__":
     # 测试获取平均分红率
     stock_code = "600987"
     print(f"正在测试股票代码: {stock_code}")
-    average_bonus_rate = a_bonus_service.get_bonus_rate(stock_code)
+    average_bonus_rate = a_bonus_service.update_bonus_rate(stock_code)
     if average_bonus_rate is not None:
         print(f"A股 {stock_code} 的平均分红率: {average_bonus_rate:.2f}%")
     else:

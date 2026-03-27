@@ -199,6 +199,30 @@ class AStockService:
             print(f"Failed to get stock by code: {e}")
             return None
     
+    def update_bonus_rate(self, code: str, bonus_rate: float) -> bool:
+        """
+        更新股票的分红率
+        :param code: 股票代码
+        :param bonus_rate: 分红率
+        :return: 是否更新成功
+        """
+        try:
+            update_sql = '''
+            INSERT INTO stock (code, bonus_rate) 
+            VALUES (?, ?)
+            ON CONFLICT(code) DO UPDATE SET bonus_rate=excluded.bonus_rate
+            '''
+            self.cursor.execute(update_sql, (code, bonus_rate))
+            self.conn.commit()
+            return True
+        except Exception as e:
+            print(f"更新stock表分红率失败: {e}")
+            try:
+                self.conn.rollback()
+            except:
+                pass
+            return False
+    
     def refresh_stocks(self) -> int:
         """
         刷新A股股票数据（代码、名称、最新价）
