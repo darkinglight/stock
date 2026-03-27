@@ -1,3 +1,9 @@
+import sys
+import os
+
+# 添加src目录到Python路径
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 import akshare as ak
 from typing import Optional, List
 import datetime
@@ -21,8 +27,7 @@ class ABonusService:
         dividend_payout_rate REAL,
         pre_tax_dividend_rate REAL,
         year INTEGER,
-        update_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        INDEX idx_stock_code (stock_code)
+        update_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
     '''
     
@@ -86,6 +91,10 @@ class ABonusService:
         """创建分红记录表"""
         try:
             self.cursor.execute(self.SQL_CREATE_BONUS_TABLE)
+            
+            # 创建stock_code列的索引
+            self.cursor.execute("CREATE INDEX IF NOT EXISTS idx_stock_code ON bonus (stock_code)")
+            
             self.conn.commit()
         except Exception as e:
             print(f"创建表失败: {e}")

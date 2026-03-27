@@ -1,3 +1,9 @@
+import sys
+import os
+
+# 添加src目录到Python路径
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 import akshare as ak
 from typing import List
 from models.financial import Financial
@@ -23,9 +29,7 @@ class AFinancialService:
         assets_debt_ratio REAL,          -- 资产负债率
         created_at TEXT DEFAULT CURRENT_TIMESTAMP,
         updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
-        UNIQUE(code, report_period),
-        INDEX idx_financial_code (code),
-        INDEX idx_financial_period (report_period)
+        UNIQUE(code, report_period)
     )
     '''
     SQL_DELETE_FINANCIAL_DATA = 'DELETE FROM financial WHERE code = ?'
@@ -84,8 +88,17 @@ class AFinancialService:
         """
         初始化财务数据表
         """
-        # 创建财务数据表（包含索引）
+        # 创建财务数据表
         self.cursor.execute(self.SQL_CREATE_FINANCIAL_TABLE)
+        
+        # 创建索引
+        try:
+            # 创建code列的索引
+            self.cursor.execute("CREATE INDEX IF NOT EXISTS idx_financial_code ON financial (code)")
+            # 创建report_period列的索引
+            self.cursor.execute("CREATE INDEX IF NOT EXISTS idx_financial_period ON financial (report_period)")
+        except Exception as e:
+            print(f"创建索引失败: {e}")
         
         self.conn.commit()
     
