@@ -240,27 +240,47 @@ class AFinancialService:
             # 保存到数据库
             success = self.save_financial_data(reports)
             
-            # 更新股票的每股净资产
-            self._update_stock_net_asset(code, reports)
+            # 更新股票数据
+            self._update_stock_data(code, reports)
             
             return success
         except Exception as e:
             print(f"更新股票 {code} 财务数据失败: {e}")
             return False
     
-    def _update_stock_net_asset(self, code: str, reports: List[Financial]):
+    def _update_stock_data(self, code: str, reports: List[Financial]):
         """
-        更新股票的每股净资产
+        更新股票数据
+        1. roe = sum(季度roe) / length * 4
+        2. 每股净资产
+        3. 每股收益
+        4. 资产负债率
         :param code: 股票代码
         :param reports: 财务报告列表
         """
         try:
             stock = self.stock_service._get_stock_by_code(code)
             if stock and reports:
+                # 计算ROE = sum(季度roe) / length * 4
+                quarterly_roes = [r.quarterly_roe for r in reports if r.quarterly_roe]
+                if quarterly_roes:
+                    avg_roe = sum(quarterly_roes) / len(quarterly_roes) * 4
+                    # 这里ROE暂时存储在bonus_rate字段，后续可根据需要调整
+                    stock.bonus_rate = avg_roe
+                
+                # 更新每股净资产
                 stock.net_asset_per_share = reports[0].net_asset_per_share
+                
+                # 更新每股收益
+                stock.basic_eps = reports[0].basic_eps
+                
+                # 更新资产负债率
+                stock.assets_debt_ratio = reports[0].assets_debt_ratio
+                
+                # 保存更新
                 self.stock_service._save_stock(stock)
         except Exception as e:
-            print(f"更新股票 {code} 每股净资产时出错: {e}")
+            print(f"更新股票 {code} 数据时出错: {e}")
 
 if __name__ == "__main__":
     # 测试

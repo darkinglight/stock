@@ -123,11 +123,40 @@ class AStockService:
         :return: 是否成功
         """
         try:
+            # 查询数据库中已有的记录
+            existing_stock = self._get_stock_by_code(stock.code)
+            
+            if existing_stock:
+                # 先更新基础字段，如果有值则更新到已有记录上
+                if stock.name:
+                    existing_stock.name = stock.name
+                if stock.market:
+                    existing_stock.market = stock.market
+                if stock.price:
+                    existing_stock.price = stock.price
+                if stock.net_asset_per_share:
+                    existing_stock.net_asset_per_share = stock.net_asset_per_share
+                if stock.basic_eps:
+                    existing_stock.basic_eps = stock.basic_eps
+                if stock.bonus_rate:
+                    existing_stock.bonus_rate = stock.bonus_rate
+                if stock.assets_debt_ratio:
+                    existing_stock.assets_debt_ratio = stock.assets_debt_ratio
+            else:
+                # 如果不存在该 stock 记录，直接使用新 stock
+                existing_stock = stock
+            
+            # 再更新需要计算的字段
+            if existing_stock.net_asset_per_share and existing_stock.net_asset_per_share > 0:
+                existing_stock.pb = existing_stock.price / existing_stock.net_asset_per_share
+            if existing_stock.basic_eps and existing_stock.basic_eps > 0:
+                existing_stock.pe = existing_stock.price / existing_stock.basic_eps
+            
             # 使用 UPSERT 语法
             self.cursor.execute(self.SQL_SAVE_STOCK, (
-                stock.code, stock.name, stock.market, stock.price,
-                stock.pe, stock.pb, stock.bonus_rate, stock.net_asset_per_share,
-                stock.basic_eps, stock.assets_debt_ratio
+                existing_stock.code, existing_stock.name, existing_stock.market, existing_stock.price,
+                existing_stock.pe, existing_stock.pb, existing_stock.bonus_rate, existing_stock.net_asset_per_share,
+                existing_stock.basic_eps, existing_stock.assets_debt_ratio
             ))
             
             self.conn.commit()
@@ -241,23 +270,6 @@ class AStockService:
             
             updated_count = 0
             for stock in stocks:
-                # 查询数据库中已有的记录
-                existing_stock = self._get_stock_by_code(stock.code)
-                if existing_stock:
-                    # 更新价格
-                    stock.price = stock.price
-                    # 如果每股净资产 > 0，则更新 pb
-                    if existing_stock.net_asset_per_share and existing_stock.net_asset_per_share > 0:
-                        stock.pb = stock.price / existing_stock.net_asset_per_share
-                    # 如果每股盈利 > 0，则更新 pe
-                    if existing_stock.basic_eps and existing_stock.basic_eps > 0:
-                        stock.pe = stock.price / existing_stock.basic_eps
-                    # 保留原有数据
-                    stock.net_asset_per_share = existing_stock.net_asset_per_share
-                    stock.basic_eps = existing_stock.basic_eps
-                    stock.bonus_rate = existing_stock.bonus_rate
-                    stock.assets_debt_ratio = existing_stock.assets_debt_ratio
-                
                 if self._save_stock(stock):
                     updated_count += 1
             
