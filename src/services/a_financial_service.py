@@ -23,12 +23,11 @@ class AFinancialService:
         assets_debt_ratio REAL,          -- 资产负债率
         created_at TEXT DEFAULT CURRENT_TIMESTAMP,
         updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
-        UNIQUE(code, report_period)
+        UNIQUE(code, report_period),
+        INDEX idx_financial_code (code),
+        INDEX idx_financial_period (report_period)
     )
     '''
-    
-    SQL_CREATE_FINANCIAL_INDEX_CODE = 'CREATE INDEX IF NOT EXISTS idx_financial_code ON financial(code)'
-    SQL_CREATE_FINANCIAL_INDEX_PERIOD = 'CREATE INDEX IF NOT EXISTS idx_financial_period ON financial(report_period)'
     SQL_DELETE_FINANCIAL_DATA = 'DELETE FROM financial WHERE code = ?'
     SQL_INSERT_FINANCIAL_DATA = '''
     INSERT INTO financial (code, report_period, roe, quarterly_roe, net_asset_per_share, basic_eps, operating_cash_flow_per_share, assets_debt_ratio, updated_at) 
@@ -85,12 +84,8 @@ class AFinancialService:
         """
         初始化财务数据表
         """
-        # 创建财务数据表
+        # 创建财务数据表（包含索引）
         self.cursor.execute(self.SQL_CREATE_FINANCIAL_TABLE)
-        
-        # 创建索引
-        self.cursor.execute(self.SQL_CREATE_FINANCIAL_INDEX_CODE)
-        self.cursor.execute(self.SQL_CREATE_FINANCIAL_INDEX_PERIOD)
         
         self.conn.commit()
     

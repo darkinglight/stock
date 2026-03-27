@@ -20,7 +20,8 @@ class ABonusService:
         dividend_payout_rate REAL,
         pre_tax_dividend_rate REAL,
         year INTEGER,
-        update_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        update_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_stock_code (stock_code)
     )
     '''
     

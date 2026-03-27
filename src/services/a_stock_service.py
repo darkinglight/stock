@@ -25,11 +25,10 @@ class AStockService:
         basic_eps REAL,                  -- 每股收益
         assets_debt_ratio REAL,          -- 资产负债率
         created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-        updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+        updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_stock_market (market)
     )
     '''
-    
-    SQL_CREATE_STOCK_INDEX = 'CREATE INDEX IF NOT EXISTS idx_stock_market ON stock(market)'
     
     SQL_SAVE_STOCK = '''
     INSERT INTO stock (code, name, market, price, pe, pb, bonus_rate, net_asset_per_share, basic_eps, assets_debt_ratio)
@@ -97,11 +96,8 @@ class AStockService:
         """
         初始化数据库表
         """
-        # 创建股票表
+        # 创建股票表（包含索引）
         self.cursor.execute(self.SQL_CREATE_STOCK_TABLE)
-        
-        # 创建索引
-        self.cursor.execute(self.SQL_CREATE_STOCK_INDEX)
         
         self.conn.commit()
     
