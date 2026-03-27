@@ -1,3 +1,9 @@
+import sys
+import os
+
+# 添加src目录到Python路径
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from typing import List, Optional
 import time
 from models.stock import Stock
@@ -25,8 +31,7 @@ class AStockService:
         roe REAL,                        -- 净资产收益率
         growth REAL,                     -- 内在增长率
         created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-        updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
-        INDEX idx_stock_market (market)
+        updated_at TEXT DEFAULT CURRENT_TIMESTAMP
     )
     '''
     
@@ -102,7 +107,7 @@ class AStockService:
         """
         初始化数据库表
         """
-        # 创建股票表（包含索引）
+        # 创建股票表
         self.cursor.execute(self.SQL_CREATE_STOCK_TABLE)
         
         self.conn.commit()
@@ -428,7 +433,8 @@ if __name__ == "__main__":
     print(f"当前页: {result_growth['current_page']}")
     print("前10只股票（按 growth 降序）:")
     for i, stock in enumerate(result_growth['stocks'], 1):
-        print(f"{i}. {stock.code} - {stock.name} - growth: {stock.growth:.4f}")
+        growth_value = stock.growth if stock.growth is not None else 0
+        print(f"{i}. {stock.code} - {stock.name} - growth: {growth_value:.4f}")
     
     # 测试分页查询 - 按 pe 升序
     print("\n测试分页查询 - 按 pe 升序:")
@@ -438,7 +444,8 @@ if __name__ == "__main__":
     print(f"当前页: {result_pe['current_page']}")
     print("前10只股票（按 pe 升序）:")
     for i, stock in enumerate(result_pe['stocks'], 1):
-        print(f"{i}. {stock.code} - {stock.name} - pe: {stock.pe:.4f}")
+        pe_value = stock.pe if stock.pe is not None else 0
+        print(f"{i}. {stock.code} - {stock.name} - pe: {pe_value:.4f}")
     
     # 关闭连接
     service.close()
