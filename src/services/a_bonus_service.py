@@ -5,7 +5,7 @@ from database.connection import DatabaseConnectionManager
 from models import Bonus
 from services.config_service import ConfigService
 from services.a_stock_service import AStockService
-
+from models.stock import Stock
 
 class ABonusService:
     """A股分红服务 - 处理A股分红率相关数据"""
@@ -158,7 +158,8 @@ class ABonusService:
                 average_rate = sum(rates) / len(rates)
                 
                 # 更新到stock表
-                self.stock_service.update_bonus_rate(code, average_rate)
+                stock = Stock(code=code, bonus_rate=average_rate)
+                self.stock_service._save_stock(stock)
                 
                 return average_rate
             
