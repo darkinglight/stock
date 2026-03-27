@@ -259,23 +259,22 @@ class AFinancialService:
         :param reports: 财务报告列表
         """
         try:
-            stock = self.stock_service._get_stock_by_code(code)
-            if stock and reports:
+            if reports:
+                from models.stock import Stock
                 # 计算ROE = sum(季度roe) / length * 4
                 quarterly_roes = [r.quarterly_roe for r in reports if r.quarterly_roe]
+                avg_roe = None
                 if quarterly_roes:
                     avg_roe = sum(quarterly_roes) / len(quarterly_roes) * 4
-                    # 这里ROE暂时存储在bonus_rate字段，后续可根据需要调整
-                    stock.bonus_rate = avg_roe
                 
-                # 更新每股净资产
-                stock.net_asset_per_share = reports[0].net_asset_per_share
-                
-                # 更新每股收益
-                stock.basic_eps = reports[0].basic_eps
-                
-                # 更新资产负债率
-                stock.assets_debt_ratio = reports[0].assets_debt_ratio
+                # 直接构造Stock对象
+                stock = Stock(
+                    code=code,
+                    roe=avg_roe,
+                    net_asset_per_share=reports[0].net_asset_per_share,
+                    basic_eps=reports[0].basic_eps,
+                    assets_debt_ratio=reports[0].assets_debt_ratio
+                )
                 
                 # 保存更新
                 self.stock_service._save_stock(stock)
