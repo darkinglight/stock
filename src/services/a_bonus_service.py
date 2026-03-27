@@ -178,22 +178,51 @@ class ABonusService:
                     rates = [record.dividend_payout_rate for record in records if record.dividend_payout_rate]
                     
                     if not rates:
-                        return None
+                        return
                     
                     # 计算近3年所有记录的平均值
                     average_rate = sum(rates) / len(rates)
                     
                     # 更新到stock表
                     self.stock_service.update_bonus_rate(code, average_rate)
-                    
-                    return average_rate
-            
-            # 如果不需要更新则不做处理
-            return None
             
         except Exception as e:
             print(f"更新A股分红率失败: {e}")
-            return None
+    
+    def refresh_all(self) -> int:
+        """
+        批量更新所有A股的分红率
+        
+        Returns:
+            int: 更新的股票数量
+        """
+        try:
+            # 获取所有A股股票
+            stocks = self.stock_service._get_all_stocks()
+            
+            total_stocks = len(stocks)
+            updated_count = 0
+            
+            print(f"共需要更新 {total_stocks} 只股票的分红率")
+            
+            for i, stock in enumerate(stocks):
+                try:
+                    if self.update_bonus_rate(stock.code):
+                        updated_count += 1
+                except Exception as e:
+                    print(f"更新股票 {stock.code} 分红率时出错: {e}")
+                
+                # 输出进度百分比
+                progress = (i + 1) / total_stocks * 100
+                print(f"进度: {progress:.2f}% ({i + 1}/{total_stocks})")
+            
+            print(f"分红率刷新完成，共更新 {updated_count} 只股票")
+            return updated_count
+            
+        except Exception as e:
+            print(f"刷新分红率失败: {e}")
+            return 0
+
 
 
 if __name__ == "__main__":
