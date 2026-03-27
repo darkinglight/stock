@@ -39,10 +39,7 @@ class ABonusService:
     VALUES (?, ?, ?, ?, ?, ?, ?)
     '''
     
-    SQL_GET_DIVIDEND_RATES = '''
-    SELECT dividend_payout_rate FROM bonus 
-    WHERE stock_code = ?
-    '''
+    SQL_GET_UPDATED_CODES = 'SELECT DISTINCT stock_code FROM bonus WHERE update_time LIKE ?'
     
     def __init__(self):
         """初始化服务"""
@@ -82,6 +79,9 @@ class ABonusService:
             if hasattr(self, 'conn') and self.conn:
                 self.conn.close()
                 self.conn = None
+            if hasattr(self, 'stock_service') and self.stock_service:
+                self.stock_service.close()
+                self.stock_service = None
         except Exception as e:
             print(f"关闭数据库连接失败: {e}")
 
@@ -92,26 +92,6 @@ class ABonusService:
             self.conn.commit()
         except Exception as e:
             print(f"创建表失败: {e}")
-    
-    def _get_last_update_time(self, code: str) -> Optional[datetime.datetime]:
-        """获取上次更新时间"""
-        try:
-            self.cursor.execute(self.SQL_GET_LAST_UPDATE_TIME, (code,))
-            result = self.cursor.fetchone()
-            if result and result[0]:
-                return datetime.datetime.fromisoformat(result[0])
-        except Exception as e:
-            print(f"获取上次更新时间失败: {e}")
-        return None
-    
-    def _should_update(self, code: str) -> bool:
-        """检查是否需要更新数据（上次更新时间超过1周）"""
-        last_update = self._get_last_update_time(code)
-        if not last_update:
-            return True
-        
-        days_since_update = (datetime.datetime.now() - last_update).days
-        return days_since_update >= 7
     
     def _save_bonus_records(self, code: str, records: List[Bonus]):
         """保存分红记录"""
@@ -154,44 +134,48 @@ class ABonusService:
             Optional[float]: 近3年的平均分红率，如果没有近3年数据返回 None
         """
         try:
-            # 检查是否需要更新数据
-            if self._should_update(code):
-                # 从同花顺获取分红配送数据
-                df = ak.stock_fhps_detail_ths(symbol=code)
+            # 从同花顺获取分红配送数据
+            df = ak.stock_fhps_detail_ths(symbol=code)
+            
+            if not df.empty:
+                # 转换数据为Bonus对象列表并过滤近3年数据
+                current_year = datetime.datetime.now().year
+                three_years_ago = current_year - 3
                 
-                if not df.empty:
-                    # 转换数据为Bonus对象列表并过滤近3年数据
-                    current_year = datetime.datetime.now().year
-                    three_years_ago = current_year - 3
-                    
-                    records = []
-                    for _, row in df.iterrows():
-                        bonus = Bonus.from_row(row)
-                        # 只保存近3年的数据
-                        if bonus.year >= three_years_ago and bonus.year <= current_year:
-                            records.append(bonus)
-                    
-                    # 保存记录到数据库
-                    self._save_bonus_records(code, records)
-                    
-                    # 直接使用records计算平均分红率
-                    rates = [record.dividend_payout_rate for record in records if record.dividend_payout_rate]
-                    
-                    if not rates:
-                        return
-                    
-                    # 计算近3年所有记录的平均值
-                    average_rate = sum(rates) / len(rates)
-                    
-                    # 更新到stock表
-                    self.stock_service.update_bonus_rate(code, average_rate)
+                records = []
+                for _, row in df.iterrows():
+                    bonus = Bonus.from_row(row)
+                    # 只保存近3年的数据
+                    if bonus.year >= three_years_ago and bonus.year <= current_year:
+                        records.append(bonus)
+                
+                # 保存记录到数据库
+                self._save_bonus_records(code, records)
+                
+                # 直接使用records计算平均分红率
+                rates = [record.dividend_payout_rate for record in records if record.dividend_payout_rate]
+                
+                if not rates:
+                    return None
+                
+                # 计算近3年所有记录的平均值
+                average_rate = sum(rates) / len(rates)
+                
+                # 更新到stock表
+                self.stock_service.update_bonus_rate(code, average_rate)
+                
+                return average_rate
+            
+            return None
             
         except Exception as e:
             print(f"更新A股分红率失败: {e}")
+            return None
     
     def refresh_all(self) -> int:
         """
         批量更新所有A股的分红率
+        支持中断续更，跳过今天已经更新过的股票
         
         Returns:
             int: 更新的股票数量
@@ -200,12 +184,20 @@ class ABonusService:
             # 获取所有A股股票
             stocks = self.stock_service._get_all_stocks()
             
-            total_stocks = len(stocks)
+            # 一次性获取所有今日已更新的股票代码
+            today = datetime.datetime.now().strftime('%Y-%m-%d')
+            self.cursor.execute(self.SQL_GET_UPDATED_CODES, (today + '%',))
+            updated_codes = {row[0] for row in self.cursor.fetchall()}
+            
+            # 过滤出需要更新的股票
+            stocks_to_update = [stock for stock in stocks if stock.code not in updated_codes]
+            
+            total_stocks = len(stocks_to_update)
             updated_count = 0
             
-            print(f"共需要更新 {total_stocks} 只股票的分红率")
+            print(f"共需要更新 {total_stocks} 只股票的分红率（已跳过 {len(updated_codes)} 只今日已更新）")
             
-            for i, stock in enumerate(stocks):
+            for i, stock in enumerate(stocks_to_update):
                 try:
                     if self.update_bonus_rate(stock.code):
                         updated_count += 1
