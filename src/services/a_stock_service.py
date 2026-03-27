@@ -9,8 +9,6 @@ import akshare as ak
 class AStockService:
     """A股服务 - 处理A股数据"""
     
-
-    
     # SQL语句常量
     SQL_CREATE_STOCK_TABLE = '''
     CREATE TABLE IF NOT EXISTS stock (
@@ -24,6 +22,8 @@ class AStockService:
         net_asset_per_share REAL,        -- 每股净资产
         basic_eps REAL,                  -- 每股收益
         assets_debt_ratio REAL,          -- 资产负债率
+        roe REAL,                        -- 净资产收益率
+        growth REAL,                     -- 内在增长率
         created_at TEXT DEFAULT CURRENT_TIMESTAMP,
         updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
         INDEX idx_stock_market (market)
@@ -31,8 +31,8 @@ class AStockService:
     '''
     
     SQL_SAVE_STOCK = '''
-    INSERT INTO stock (code, name, market, price, pe, pb, bonus_rate, net_asset_per_share, basic_eps, assets_debt_ratio)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO stock (code, name, market, price, pe, pb, bonus_rate, net_asset_per_share, basic_eps, assets_debt_ratio, roe, growth)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(code) DO UPDATE SET
         name=excluded.name,
         market=excluded.market,
@@ -43,12 +43,14 @@ class AStockService:
         net_asset_per_share=excluded.net_asset_per_share,
         basic_eps=excluded.basic_eps,
         assets_debt_ratio=excluded.assets_debt_ratio,
+        roe=excluded.roe,
+        growth=excluded.growth,
         updated_at=CURRENT_TIMESTAMP
     '''
     
-    SQL_GET_ALL_STOCKS = 'SELECT code, name, market, price, pe, pb, bonus_rate, net_asset_per_share, basic_eps, assets_debt_ratio, created_at, updated_at FROM stock WHERE market IN (?, ?, ?)'
+    SQL_GET_ALL_STOCKS = 'SELECT code, name, market, price, pe, pb, bonus_rate, net_asset_per_share, basic_eps, assets_debt_ratio, roe, growth, created_at, updated_at FROM stock WHERE market IN (?, ?, ?)'
     
-    SQL_GET_STOCK_BY_CODE = 'SELECT code, name, market, price, pe, pb, bonus_rate, net_asset_per_share, basic_eps, assets_debt_ratio, created_at, updated_at FROM stock WHERE code = ? AND market IN (?, ?, ?)'
+    SQL_GET_STOCK_BY_CODE = 'SELECT code, name, market, price, pe, pb, bonus_rate, net_asset_per_share, basic_eps, assets_debt_ratio, roe, growth, created_at, updated_at FROM stock WHERE code = ? AND market IN (?, ?, ?)'
     
     def __init__(self):
         """
@@ -142,6 +144,8 @@ class AStockService:
                     existing_stock.bonus_rate = stock.bonus_rate
                 if stock.assets_debt_ratio:
                     existing_stock.assets_debt_ratio = stock.assets_debt_ratio
+                if stock.roe:
+                    existing_stock.roe = stock.roe
             else:
                 # 如果不存在该 stock 记录，直接使用新 stock
                 existing_stock = stock
@@ -151,12 +155,17 @@ class AStockService:
                 existing_stock.pb = existing_stock.price / existing_stock.net_asset_per_share
             if existing_stock.basic_eps and existing_stock.basic_eps > 0:
                 existing_stock.pe = existing_stock.price / existing_stock.basic_eps
+            # 计算内在增长率
+            if (existing_stock.roe and existing_stock.roe > 0 and 
+                existing_stock.bonus_rate is not None and 
+                existing_stock.pb and existing_stock.pb > 0):
+                existing_stock.growth = existing_stock.roe * (1 - existing_stock.bonus_rate) + existing_stock.roe * existing_stock.bonus_rate / existing_stock.pb
             
             # 使用 UPSERT 语法
             self.cursor.execute(self.SQL_SAVE_STOCK, (
                 existing_stock.code, existing_stock.name, existing_stock.market, existing_stock.price,
                 existing_stock.pe, existing_stock.pb, existing_stock.bonus_rate, existing_stock.net_asset_per_share,
-                existing_stock.basic_eps, existing_stock.assets_debt_ratio
+                existing_stock.basic_eps, existing_stock.assets_debt_ratio, existing_stock.roe, existing_stock.growth
             ))
             
             self.conn.commit()
@@ -187,8 +196,10 @@ class AStockService:
                     net_asset_per_share=row[7],
                     basic_eps=row[8],
                     assets_debt_ratio=row[9],
-                    created_at=row[10],
-                    updated_at=row[11]
+                    roe=row[10],
+                    growth=row[11],
+                    created_at=row[12],
+                    updated_at=row[13]
                 )
                 stocks.append(stock)
             
@@ -219,8 +230,10 @@ class AStockService:
                     net_asset_per_share=row[7],
                     basic_eps=row[8],
                     assets_debt_ratio=row[9],
-                    created_at=row[10],
-                    updated_at=row[11]
+                    roe=row[10],
+                    growth=row[11],
+                    created_at=row[12],
+                    updated_at=row[13]
                 )
                 return stock
             return None
