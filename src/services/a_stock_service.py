@@ -250,14 +250,14 @@ class AStockService:
             print(f"Failed to get stock by code: {e}")
             return None
     
-    def get_stocks_paginated(self, page: int = 1, page_size: int = 10, sort_by: str = 'growth', sort_order: str = 'desc') -> dict:
+    def get_stocks_paginated(self, page: int = 1, page_size: int = 10, sort_by: str = 'growth', sort_order: str = 'desc') -> List[Stock]:
         """
         分页查询A股股票列表，支持按 growth 或 pe 排序
         :param page: 页码，默认1
         :param page_size: 每页数量，默认10
         :param sort_by: 排序字段，支持 'growth' 或 'pe'，默认 'growth'
         :param sort_order: 排序顺序，支持 'asc' 或 'desc'，默认 'desc'
-        :return: 包含股票列表和总记录数的字典
+        :return: 股票列表
         """
         try:
             # 验证页码和每页数量
@@ -265,27 +265,27 @@ class AStockService:
                 page = 1
             if not isinstance(page_size, int) or page_size < 1 or page_size > 100:
                 page_size = 10
-            
+
             # 验证排序字段（防止SQL注入）
             valid_sort_fields = ['growth', 'pe']
             if sort_by not in valid_sort_fields:
                 sort_by = 'growth'
-            
+
             # 验证排序顺序（防止SQL注入）
             valid_sort_orders = ['asc', 'desc']
             if sort_order not in valid_sort_orders:
                 sort_order = 'desc'
-            
+
             # 计算偏移量
             offset = (page - 1) * page_size
-            
+
             # 构建排序SQL
             order_by_sql = self.SQL_GET_STOCKS_PAGINATED.format(order_by=sort_by, order_dir=sort_order)
-            
+
             # 查询分页数据
             self.cursor.execute(order_by_sql, ('sh', 'sz', 'bj', page_size, offset))
             rows = self.cursor.fetchall()
-            
+
             # 构建股票列表
             stocks = []
             for row in rows:
@@ -306,35 +306,11 @@ class AStockService:
                     updated_at=row[13]
                 )
                 stocks.append(stock)
-            
-            # 查询总记录数
-            self.cursor.execute(self.SQL_GET_STOCKS_COUNT, ('sh', 'sz', 'bj'))
-            total_count = self.cursor.fetchone()[0]
-            
-            # 计算总页数
-            total_pages = (total_count + page_size - 1) // page_size
-            
-            # 返回结果
-            return {
-                'stocks': stocks,
-                'total_count': total_count,
-                'total_pages': total_pages,
-                'current_page': page,
-                'page_size': page_size,
-                'sort_by': sort_by,
-                'sort_order': sort_order
-            }
+
+            return stocks
         except Exception as e:
             print(f"Failed to get stocks paginated: {e}")
-            return {
-                'stocks': [],
-                'total_count': 0,
-                'total_pages': 0,
-                'current_page': page,
-                'page_size': page_size,
-                'sort_by': sort_by,
-                'sort_order': sort_order
-            }
+            return []
     
     def refresh_stocks(self) -> int:
         """
@@ -424,28 +400,6 @@ if __name__ == "__main__":
     service = AStockService()
     # 刷新股票数据
     service.refresh_stocks()
-    
-    # 测试分页查询 - 按 growth 降序
-    print("\n测试分页查询 - 按 growth 降序:")
-    result_growth = service.get_stocks_paginated(page=1, page_size=10, sort_by='growth', sort_order='desc')
-    print(f"总记录数: {result_growth['total_count']}")
-    print(f"总页数: {result_growth['total_pages']}")
-    print(f"当前页: {result_growth['current_page']}")
-    print("前10只股票（按 growth 降序）:")
-    for i, stock in enumerate(result_growth['stocks'], 1):
-        growth_value = stock.growth if stock.growth is not None else 0
-        print(f"{i}. {stock.code} - {stock.name} - growth: {growth_value:.4f}")
-    
-    # 测试分页查询 - 按 pe 升序
-    print("\n测试分页查询 - 按 pe 升序:")
-    result_pe = service.get_stocks_paginated(page=1, page_size=10, sort_by='pe', sort_order='asc')
-    print(f"总记录数: {result_pe['total_count']}")
-    print(f"总页数: {result_pe['total_pages']}")
-    print(f"当前页: {result_pe['current_page']}")
-    print("前10只股票（按 pe 升序）:")
-    for i, stock in enumerate(result_pe['stocks'], 1):
-        pe_value = stock.pe if stock.pe is not None else 0
-        print(f"{i}. {stock.code} - {stock.name} - pe: {pe_value:.4f}")
     
     # 关闭连接
     service.close()
