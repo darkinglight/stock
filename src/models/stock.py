@@ -8,7 +8,7 @@ class Stock:
     code: str  # 股票代码
     name: str  # 股票名称
     price: float  # 股票价格
-    market: str  # 市场类型，'sh' for 沪市, 'sz' for 深市, 'bj' for 京市, 'h' for H股
+    market: Optional[str] = None  # 市场类型，'sh' for 沪市, 'sz' for 深市, 'bj' for 京市, 'h' for H股
     pe: Optional[float] = None  # 市盈率
     pb: Optional[float] = None  # 市净率
     bonus_rate: Optional[float] = None  # 分红率

@@ -326,7 +326,7 @@ class AStockService:
         
         try:
             # 从API获取全量股票数据
-            stocks = self._refresh_from_api()
+            stocks = self.get_data_from_api()
             
             updated_count = 0
             for stock in stocks:
@@ -342,7 +342,18 @@ class AStockService:
             print(f"刷新A股数据失败: {e}")
             return 0
     
-    def _refresh_from_api(self) -> List[Stock]:
+    def get_data_from_api(self) -> List[Stock]:
+        """
+        先从sina接口获取获取实时A股数据，如果异常则从东财接口获取
+        :return: 股票列表
+        """
+        stocks = self.get_data_from_sina_api()
+        if stocks:
+            return stocks
+        stocks = self.get_data_from_em_api()
+        return stocks
+
+    def get_data_from_sina_api(self) -> List[Stock]:
         """
         从外部 API 获取全量A股数据（股票代码、名称、最新价）
         使用 akshare 的 stock_zh_a_spot 功能
@@ -389,17 +400,57 @@ class AStockService:
                     )
                     stocks.append(stock)
             
-            print(f"从 akshare API 获取了 {len(stocks)} 只A股数据")
+            print(f"从 sina API 获取了 {len(stocks)} 只A股数据")
             return stocks
             
         except Exception as e:
-            print(f"获取A股数据失败: {e}")
+            print(f"sina接口获取A股数据失败: {e}")
             return []
     
+    def get_data_from_em_api(self) -> List[Stock]:
+        """
+        使用东财接口获取实时A股数据
+        :return: 股票列表
+        """
+        stocks = []
+        
+        try:
+            # 从 akshare 东财接口获取全量A股实时数据
+            stock_zh_a_spot_em_df = ak.stock_zh_a_spot_em()
+            
+            # 处理查询结果
+            for index, row in stock_zh_a_spot_em_df.iterrows():
+                stock_code = row['代码']  # 股票代码，格式如 sh600000
+                name = row['名称']  # 股票名称
+                price = row['最新价']  # 最新价
+                
+                if price is not None and not isinstance(price, float):
+                    try:
+                        price = float(price)
+                    except:
+                        continue
+                
+                if price is not None:
+                    # 创建股票对象
+                    stock = Stock(
+                        code=stock_code,
+                        name=name,
+                        price=price
+                    )
+                    stocks.append(stock)
+            
+            print(f"从东财接口获取了 {len(stocks)} 只A股实时数据")
+            return stocks
+            
+        except Exception as e:
+            print(f"获取实时数据失败: {e}")
+            return []
+
 if __name__ == "__main__":
     service = AStockService()
     # 刷新股票数据
-    service.refresh_stocks()
+    data = service.refresh_stocks()
+    print(data)
     
     # 关闭连接
     service.close()

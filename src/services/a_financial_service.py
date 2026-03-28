@@ -297,6 +297,4 @@ class AFinancialService:
 if __name__ == "__main__":
     # 测试
     financial_service = AFinancialService()
-    financial_data = financial_service.get_financial_data("000063")
-    print(financial_data)
-    financial_service.save_financial_data(financial_data)
+    financial_service.refresh_financial_data()
