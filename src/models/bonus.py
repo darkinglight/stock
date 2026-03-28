@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from typing import Optional
 import re
 
 
@@ -8,7 +7,7 @@ class Bonus:
     """分红模型"""
     report_period: str  # 报告期
     bonus_description: str  # 分红方案说明
-    bonus_amount: float  # 分红总额
+    bonus_amount: str  # 分红总额
     dividend_payout_rate: float  # 股利支付率
     pre_tax_dividend_rate: float  # 税前分红率
     year: int  # 年份
@@ -37,13 +36,7 @@ class Bonus:
         bonus_description = row.get('分红方案说明', '')
         
         # 处理分红总额
-        bonus_amount = 0.0
-        bonus_amount_val = row.get('分红总额', 0)
-        if bonus_amount_val:
-            try:
-                bonus_amount = float(bonus_amount_val)
-            except:
-                pass
+        bonus_amount = row.get('分红总额', '')
         
         # 处理股利支付率
         dividend_payout_rate = 0.0
