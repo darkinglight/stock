@@ -125,6 +125,16 @@ class AFinancialService:
             report_date = row['report_date']
             metric_name = row['metric_name']
             value = row['value']
+            if metric_name not in ['index_weighted_avg_roe', 'calc_per_net_assets', 'basic_eps', 'index_per_operating_cash_flow_net', 'assets_debt_ratio']:
+                continue
+            # 尝试将 value 转换为浮点数
+            try:
+                if value is not None and value != '':
+                    value = float(value)
+                else:
+                    value = None
+            except (ValueError, TypeError):
+                value = None
             
             # 初始化该报告期的 Financial 对象
             if report_date not in financial_data:
