@@ -6,8 +6,8 @@ from typing import Optional
 class Stock:
     """股票模型"""
     code: str  # 股票代码
-    name: str  # 股票名称
-    price: float  # 股票价格
+    name: Optional[str] = None  # 股票名称
+    price: Optional[float] = None  # 股票价格
     market: Optional[str] = None  # 市场类型，'sh' for 沪市, 'sz' for 深市, 'bj' for 京市, 'h' for H股
     pe: Optional[float] = None  # 市盈率
     pb: Optional[float] = None  # 市净率

@@ -258,22 +258,6 @@ class ABonusService:
 if __name__ == "__main__":
     # 测试
     a_bonus_service = ABonusService()
-    
-    # 测试获取平均分红率
-    stock_code = "600987"
-    print(f"正在测试股票代码: {stock_code}")
-    average_bonus_rate = a_bonus_service.update_bonus_rate(stock_code)
-    if average_bonus_rate is not None:
-        print(f"A股 {stock_code} 的平均分红率: {average_bonus_rate:.2f}%")
-    else:
-        print(f"A股 {stock_code} 没有找到分红数据")
-    
-    # 测试查询所有分红记录
-    print("\n测试查询所有分红记录:")
-    bonus_records = a_bonus_service.get_bonus_records(stock_code)
-    print(f"共找到 {len(bonus_records)} 条分红记录")
-    for i, record in enumerate(bonus_records):
-        print(f"记录 {i+1}: 年份={record.year}, 报告期={record.report_period}, 分红方案={record.bonus_description}, 分红率={record.dividend_payout_rate}%")
-    
+    a_bonus_service.refresh_all()
     # 关闭服务
     a_bonus_service.close()
