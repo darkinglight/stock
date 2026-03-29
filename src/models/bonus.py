@@ -11,6 +11,7 @@ class Bonus:
     dividend_payout_rate: float  # 股利支付率
     pre_tax_dividend_rate: float  # 税前分红率
     year: int  # 年份
+    quarter: str  # 季度
     
     @classmethod
     def from_row(cls, row) -> 'Bonus':
@@ -23,12 +24,25 @@ class Bonus:
         if report_period:
             try:
                 # 尝试从不同格式的日期中提取年份
-                # 格式1: 2023-12-31
-                # 格式2: 2023/12/31
-                # 格式3: 2023年12月31日
+                # 格式: 2023一季度 2023中报 2023三季度 2023年报
                 year_match = re.search(r'\d{4}', report_period)
                 if year_match:
                     year = int(year_match.group())
+            except:
+                pass
+        
+        # 提取季度
+        quarter = ''
+        if report_period:
+            try:
+                if '一季度' in report_period:
+                    quarter = 'Q1'
+                elif '中报' in report_period:
+                    quarter = 'Q2'
+                elif '三季度' in report_period:
+                    quarter = 'Q3'
+                elif '年报' in report_period:
+                    quarter = 'Q4'
             except:
                 pass
         
@@ -68,5 +82,6 @@ class Bonus:
             bonus_amount=bonus_amount,
             dividend_payout_rate=dividend_payout_rate,
             pre_tax_dividend_rate=pre_tax_dividend_rate,
-            year=year
+            year=year,
+            quarter=quarter
         )

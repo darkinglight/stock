@@ -27,6 +27,7 @@ class ABonusService:
         dividend_payout_rate REAL,
         pre_tax_dividend_rate REAL,
         year INTEGER,
+        quarter TEXT,
         update_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
     '''
@@ -35,13 +36,13 @@ class ABonusService:
     
     SQL_INSERT_BONUS_RECORDS = '''
     INSERT INTO bonus 
-    (stock_code, report_period, bonus_description, bonus_amount, dividend_payout_rate, pre_tax_dividend_rate, year)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
+    (stock_code, report_period, bonus_description, bonus_amount, dividend_payout_rate, pre_tax_dividend_rate, year, quarter)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     '''
     
     SQL_GET_UPDATED_CODES = 'SELECT DISTINCT stock_code FROM bonus WHERE update_time LIKE ?'
     
-    SQL_GET_BONUS_RECORDS_BY_CODE = 'SELECT id, stock_code, report_period, bonus_description, bonus_amount, dividend_payout_rate, pre_tax_dividend_rate, year, update_time FROM bonus WHERE stock_code = ? ORDER BY year DESC'
+    SQL_GET_BONUS_RECORDS_BY_CODE = 'SELECT id, stock_code, report_period, bonus_description, bonus_amount, dividend_payout_rate, pre_tax_dividend_rate, year, quarter, update_time FROM bonus WHERE stock_code = ? ORDER BY year DESC'
     
     def __init__(self):
         """初始化服务"""
@@ -86,6 +87,21 @@ class ABonusService:
                 self.stock_service = None
         except Exception as e:
             print(f"关闭数据库连接失败: {e}")
+    
+    def drop_bonus_table(self):
+        """
+        删除bonus表
+        """
+        try:
+            self.cursor.execute("DROP TABLE IF EXISTS bonus")
+            self.conn.commit()
+            print("bonus表删除成功")
+        except Exception as e:
+            print(f"删除bonus表失败: {e}")
+            try:
+                self.conn.rollback()
+            except:
+                pass
 
     def _create_bonus_table(self):
         """创建分红记录表"""
@@ -115,7 +131,8 @@ class ABonusService:
                     record.bonus_amount,
                     record.dividend_payout_rate,
                     record.pre_tax_dividend_rate,
-                    record.year
+                    record.year,
+                    record.quarter
                 ))
             
             if data:
@@ -200,7 +217,8 @@ class ABonusService:
                     bonus_amount=row[4],
                     dividend_payout_rate=row[5],
                     pre_tax_dividend_rate=row[6],
-                    year=row[7]
+                    year=row[7],
+                    quarter=row[8]
                 )
                 records.append(bonus)
             
@@ -259,5 +277,3 @@ if __name__ == "__main__":
     # 测试
     a_bonus_service = ABonusService()
     a_bonus_service.refresh_all()
-    # 关闭服务
-    a_bonus_service.close()
