@@ -123,7 +123,7 @@ class ABonusService:
             
             self.conn.commit()
         except Exception as e:
-            print(f"保存分红记录失败: {e}")
+            print(f"保存分红记录失败 (股票代码: {code}): {e}")
             try:
                 self.conn.rollback()
             except:
@@ -175,7 +175,7 @@ class ABonusService:
             return None
             
         except Exception as e:
-            print(f"更新A股分红率失败: {e}")
+            print(f"更新A股分红率失败 (股票代码: {code}): {e}")
             return None
     
     def get_bonus_records(self, stock_code: str) -> List[Bonus]:
