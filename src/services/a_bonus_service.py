@@ -175,7 +175,23 @@ class ABonusService:
                 self._save_bonus_records(code, records)
                 
                 # 直接使用records计算平均分红率
-                rates = [record.dividend_payout_rate for record in records if record.dividend_payout_rate]
+                rates = []
+                for record in records:
+                    if record.dividend_payout_rate:
+                        # 根据季度调整分红率
+                        if record.quarter == 'Q1':
+                            # 一季度/4
+                            adjusted_rate = record.dividend_payout_rate / 4
+                        elif record.quarter == 'Q2':
+                            # 中报/2
+                            adjusted_rate = record.dividend_payout_rate / 2
+                        elif record.quarter == 'Q3':
+                            # 三季度*4/3
+                            adjusted_rate = record.dividend_payout_rate * 3 / 4
+                        else:  # Q4 年报
+                            # 年报用原值
+                            adjusted_rate = record.dividend_payout_rate
+                        rates.append(adjusted_rate)
                 
                 if not rates:
                     return None
