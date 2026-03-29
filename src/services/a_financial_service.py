@@ -22,9 +22,9 @@ class AFinancialService:
         report_period TEXT NOT NULL,     -- 报告期，格式：YYYY-MM-DD
         roe REAL,                        -- 净资产收益率（当期）
         quarterly_roe REAL,              -- 季度ROE
-        annualized_roe REAL,             -- 年化ROE
         net_asset_per_share REAL,        -- 每股净资产
         basic_eps REAL,                  -- 每股收益
+        quarterly_eps REAL,              -- 季度每股收益
         operating_cash_flow_per_share REAL, -- 每股经营现金流
         assets_debt_ratio REAL,          -- 资产负债率
         created_at TEXT DEFAULT CURRENT_TIMESTAMP,
@@ -34,8 +34,8 @@ class AFinancialService:
     '''
     SQL_DELETE_FINANCIAL_DATA = 'DELETE FROM financial WHERE code = ?'
     SQL_INSERT_FINANCIAL_DATA = '''
-    INSERT INTO financial (code, report_period, roe, quarterly_roe, net_asset_per_share, basic_eps, operating_cash_flow_per_share, assets_debt_ratio, updated_at) 
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO financial (code, report_period, roe, quarterly_roe, net_asset_per_share, basic_eps, quarterly_eps, operating_cash_flow_per_share, assets_debt_ratio, updated_at) 
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     '''
     SQL_GET_UPDATED_CODES = 'SELECT DISTINCT code FROM financial WHERE updated_at LIKE ?'
     
@@ -95,8 +95,6 @@ class AFinancialService:
         try:
             # 创建code列的索引
             self.cursor.execute("CREATE INDEX IF NOT EXISTS idx_financial_code ON financial (code)")
-            # 创建report_period列的索引
-            self.cursor.execute("CREATE INDEX IF NOT EXISTS idx_financial_period ON financial (report_period)")
         except Exception as e:
             print(f"创建索引失败: {e}")
         
@@ -166,6 +164,26 @@ class AFinancialService:
         # 按报告期降序排序
         financial_list.sort(key=lambda x: x.report_period, reverse=True)
         
+        # 计算quarterly_eps：根据报告期月份计算
+        for i, financial in enumerate(financial_list):
+            # 获取报告期月份
+            month = int(financial.report_period.split('-')[1])
+            
+            if month == 3:
+                # 3月报告期，quarterly_eps = basic_eps
+                financial.quarterly_eps = financial.basic_eps
+            elif month in [6, 9, 12]:
+                # 6、9、12月报告期，quarterly_eps = 当期basic_eps - 上期basic_eps
+                if i + 1 < len(financial_list):
+                    prev_financial = financial_list[i + 1]
+                    if financial.basic_eps is not None and prev_financial.basic_eps is not None:
+                        financial.quarterly_eps = financial.basic_eps - prev_financial.basic_eps
+                    else:
+                        financial.quarterly_eps = None
+                else:
+                    # 没有上期数据，无法计算
+                    financial.quarterly_eps = None
+        
         # 只保留最近12个季度的数据
         financial_list = financial_list[:12]
         
@@ -190,10 +208,10 @@ class AFinancialService:
             
             # 保存新数据
             for report in reports:
-                # 插入数据，包括roe、quarterly_roe、net_asset_per_share、basic_eps、operating_cash_flow_per_share、assets_debt_ratio，并设置updated_at
+                # 插入数据，包括roe、quarterly_roe、net_asset_per_share、basic_eps、quarterly_eps、operating_cash_flow_per_share、assets_debt_ratio，并设置updated_at
                 self.cursor.execute(
                     self.SQL_INSERT_FINANCIAL_DATA,
-                    (report.code, report.report_period, report.roe, report.quarterly_roe, report.net_asset_per_share, report.basic_eps, report.operating_cash_flow_per_share, report.assets_debt_ratio, current_time)
+                    (report.code, report.report_period, report.roe, report.quarterly_roe, report.net_asset_per_share, report.basic_eps, report.quarterly_eps, report.operating_cash_flow_per_share, report.assets_debt_ratio, current_time)
                 )
             
             self.conn.commit()
@@ -276,7 +294,7 @@ class AFinancialService:
         更新股票数据
         1. roe = sum(季度roe) / length * 4
         2. 每股净资产
-        3. 每股收益
+        3. 每股收益 = 近4季度每股收益和 
         4. 资产负债率
         :param code: 股票代码
         :param reports: 财务报告列表
@@ -290,12 +308,18 @@ class AFinancialService:
                 if quarterly_roes:
                     avg_roe = sum(quarterly_roes) / len(quarterly_roes) * 4
                 
+                # 计算季度EPS，逻辑同ROE
+                quarterly_eps_list = [r.quarterly_eps for r in reports if r.quarterly_eps]
+                annualized_eps = None
+                if quarterly_eps_list:
+                    annualized_eps = sum(quarterly_eps_list) / len(quarterly_eps_list) * 4
+                
                 # 直接构造Stock对象
                 stock = Stock(
                     code=code,
                     roe=avg_roe,
                     net_asset_per_share=reports[0].net_asset_per_share,
-                    basic_eps=reports[0].basic_eps,
+                    basic_eps=annualized_eps,
                     assets_debt_ratio=reports[0].assets_debt_ratio
                 )
                 
