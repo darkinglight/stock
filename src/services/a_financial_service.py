@@ -38,6 +38,7 @@ class AFinancialService:
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     '''
     SQL_GET_UPDATED_CODES = 'SELECT DISTINCT code FROM financial WHERE updated_at LIKE ?'
+    SQL_DROP_FINANCIAL_TABLE = 'DROP TABLE IF EXISTS financial'
     
     def __init__(self):
         """
@@ -83,6 +84,20 @@ class AFinancialService:
                 self.stock_service = None
         except Exception as e:
             print(f"关闭数据库连接失败: {e}")
+    
+    def drop_financial_table(self):
+        """
+        删除financial表
+        :return: 是否删除成功
+        """
+        try:
+            self.cursor.execute(self.SQL_DROP_FINANCIAL_TABLE)
+            self.conn.commit()
+            print("financial表删除成功")
+            return True
+        except Exception as e:
+            print(f"删除financial表失败: {e}")
+            return False
     
     def _init_tables(self):
         """
@@ -331,4 +346,7 @@ class AFinancialService:
 if __name__ == "__main__":
     # 测试
     financial_service = AFinancialService()
+    # 测试删除financial表
+    # financial_service.drop_financial_table()
+    # 测试刷新财务数据（会重新创建表）
     financial_service.refresh_financial_data()

@@ -57,9 +57,9 @@ class AStockService:
     
     SQL_GET_STOCK_BY_CODE = 'SELECT code, name, market, price, pe, pb, bonus_rate, net_asset_per_share, basic_eps, assets_debt_ratio, roe, growth, created_at, updated_at FROM stock WHERE code = ? AND market IN (?, ?, ?)'
     
-    SQL_GET_STOCKS_PAGINATED = 'SELECT code, name, market, price, pe, pb, bonus_rate, net_asset_per_share, basic_eps, assets_debt_ratio, roe, growth, created_at, updated_at FROM stock WHERE market IN (?, ?, ?) ORDER BY {order_by} {order_dir} LIMIT ? OFFSET ?'
+    SQL_GET_STOCKS_PAGINATED = 'SELECT code, name, market, price, pe, pb, bonus_rate, net_asset_per_share, basic_eps, assets_debt_ratio, roe, growth, created_at, updated_at FROM stock WHERE market IN (?, ?, ?) AND assets_debt_ratio <= ? ORDER BY {order_by} {order_dir} LIMIT ? OFFSET ?'
     
-    SQL_GET_STOCKS_COUNT = 'SELECT COUNT(*) FROM stock WHERE market IN (?, ?, ?)'
+    SQL_GET_STOCKS_COUNT = 'SELECT COUNT(*) FROM stock WHERE market IN (?, ?, ?) AND assets_debt_ratio <= ?'
     
     def __init__(self):
         """
@@ -250,13 +250,14 @@ class AStockService:
             print(f"Failed to get stock by code: {e}")
             return None
     
-    def get_stocks_paginated(self, page: int = 1, page_size: int = 10, sort_by: str = 'growth', sort_order: str = 'desc') -> List[Stock]:
+    def get_stocks_paginated(self, page: int = 1, page_size: int = 10, sort_by: str = 'growth', sort_order: str = 'desc', max_debt_ratio: float = 30.0) -> List[Stock]:
         """
         分页查询A股股票列表，支持按单个字段或两个字段计算结果排序
         :param page: 页码，默认1
         :param page_size: 每页数量，默认10
         :param sort_by: 排序字段，支持单个字段（如 'growth', 'pe'）或计算表达式（如 '(growth + roe)'），默认 'growth'
         :param sort_order: 排序顺序，支持 'asc' 或 'desc'，默认 'desc'
+        :param max_debt_ratio: 最大负债率，默认100.0
         :return: 股票列表
         """
         try:
@@ -273,7 +274,7 @@ class AStockService:
             order_by_sql = self.SQL_GET_STOCKS_PAGINATED.format(order_by=sort_by, order_dir=sort_order)
 
             # 查询分页数据
-            self.cursor.execute(order_by_sql, ('sh', 'sz', 'bj', page_size, offset))
+            self.cursor.execute(order_by_sql, ('sh', 'sz', 'bj', max_debt_ratio, page_size, offset))
             rows = self.cursor.fetchall()
 
             # 构建股票列表
@@ -439,8 +440,8 @@ class AStockService:
 if __name__ == "__main__":
     service = AStockService()
     # 刷新股票数据
-    data = service.refresh_stocks()
-    print(data)
+    # data = service.refresh_stocks()
+    # print(data)
     stocks = service.get_stocks_paginated(page=1, page_size=10, sort_by='growth / pb', sort_order='desc')
     print(stocks)
     # 关闭连接
