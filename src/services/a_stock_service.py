@@ -439,9 +439,9 @@ class AStockService:
 if __name__ == "__main__":
     service = AStockService()
     # 刷新股票数据
-    # data = service.refresh_stocks()
-    # print(data)
-    stocks = service.get_stocks_paginated(page=1, page_size=10)
+    data = service.refresh_stocks()
+    print(data)
+    stocks = service.get_stocks_paginated(page=1, page_size=10, sort_by='growth / pb', sort_order='desc')
     print(stocks)
     # 关闭连接
     service.close()
