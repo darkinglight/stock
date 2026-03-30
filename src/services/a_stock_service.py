@@ -252,10 +252,10 @@ class AStockService:
     
     def get_stocks_paginated(self, page: int = 1, page_size: int = 10, sort_by: str = 'growth', sort_order: str = 'desc') -> List[Stock]:
         """
-        分页查询A股股票列表，支持按 growth 或 pe 排序
+        分页查询A股股票列表，支持按单个字段或两个字段计算结果排序
         :param page: 页码，默认1
         :param page_size: 每页数量，默认10
-        :param sort_by: 排序字段，支持 'growth' 或 'pe'，默认 'growth'
+        :param sort_by: 排序字段，支持单个字段（如 'growth', 'pe'）或计算表达式（如 '(growth + roe)'），默认 'growth'
         :param sort_order: 排序顺序，支持 'asc' 或 'desc'，默认 'desc'
         :return: 股票列表
         """
@@ -265,16 +265,6 @@ class AStockService:
                 page = 1
             if not isinstance(page_size, int) or page_size < 1 or page_size > 100:
                 page_size = 10
-
-            # 验证排序字段（防止SQL注入）
-            valid_sort_fields = ['growth', 'pe']
-            if sort_by not in valid_sort_fields:
-                sort_by = 'growth'
-
-            # 验证排序顺序（防止SQL注入）
-            valid_sort_orders = ['asc', 'desc']
-            if sort_order not in valid_sort_orders:
-                sort_order = 'desc'
 
             # 计算偏移量
             offset = (page - 1) * page_size
@@ -449,8 +439,9 @@ class AStockService:
 if __name__ == "__main__":
     service = AStockService()
     # 刷新股票数据
-    data = service.refresh_stocks()
-    print(data)
-    
+    # data = service.refresh_stocks()
+    # print(data)
+    stocks = service.get_stocks_paginated(page=1, page_size=10)
+    print(stocks)
     # 关闭连接
     service.close()
