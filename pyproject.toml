@@ -1,32 +1,16 @@
-# This project was generated with 0.3.20 using template: https://github.com/beeware/briefcase-template@v0.3.20
-[project]
-name = "stock"
-version = "0.0.1"
-description = "stock filter application"
-authors = [
-    { name = "light", email = "light@example.com" },
-]
-license = { file = "LICENSE" }
-requires-python = ">=3.10"
-dependencies = [
-    "akshare",
-    "baostock>=0.8.9",
-    "briefcase>=0.4.1",
-    "pytest>=9.0.2",
-]
-
+# This project was generated with 0.4.1 using template: https://github.com/beeware/briefcase-template @ v0.4.1
 [tool.briefcase]
-project_name = "stock"
+project_name = "stocks"
 bundle = "com.example"
 version = "0.0.1"
 url = "https://example.com/stocks"
 license.file = "LICENSE"
-author = "light"
-author_email = "light@example.com"
+author = "chenyuejun"
+author_email = "dummy"
 
 [tool.briefcase.app.stocks]
-formal_name = "stock"
-description = "stock filter application"
+formal_name = "stocks"
+description = "stock select application"
 long_description = """More details about the app should go here.
 """
 sources = [
@@ -37,7 +21,6 @@ test_sources = [
 ]
 
 requires = [
-    "akshare",
 ]
 test_requires = [
     "pytest",
@@ -46,31 +29,42 @@ test_requires = [
 [tool.briefcase.app.stocks.macOS]
 universal_build = true
 requires = [
-    "toga-cocoa~=0.4.7",
+    "toga-cocoa~=0.5.0",
     "std-nslog~=1.0.3",
 ]
 
 [tool.briefcase.app.stocks.linux]
 requires = [
-    "toga-gtk~=0.4.7",
+    "toga-gtk~=0.5.0",
+    # PyGObject 3.52.1 enforces a requirement on libgirepository-2.0-dev. This library
+    # isn't available on Debian 12/Ubuntu 22.04. If you don't need to support those (or
+    # older) releases, you can remove this version pin. See beeware/toga#3143.
+    "pygobject < 3.52.1",
 ]
 
 [tool.briefcase.app.stocks.linux.system.debian]
 system_requires = [
     # Needed to compile pycairo wheel
     "libcairo2-dev",
-    # Needed to compile PyGObject wheel
+    # One of the following two packages are needed to compile PyGObject wheel. If you
+    # remove the pygobject pin in the requires list, you should also change to the
+    # version 2.0 of the girepository library. See beeware/toga#3143.
     "libgirepository1.0-dev",
+    # "libgirepository-2.0-dev",
 ]
 
 system_runtime_requires = [
     # Needed to provide GTK and its GI bindings
     "gir1.2-gtk-3.0",
+    # One of the following two packages are needed to use PyGObject at runtime. If you
+    # remove the pygobject pin in the requires list, you should also change to the
+    # version 2.0 of the girepository library. See beeware/toga#3143.
     "libgirepository-1.0-1",
+    # "libgirepository-2.0-0",
     # Dependencies that GTK looks for at runtime
     "libcanberra-gtk3-module",
     # Needed to provide WebKit2 at runtime
-    # Note: Debian 11 and Ubuntu 20.04 require gir1.2-webkit2-4.0 instead
+    # Note: Debian 11 requires gir1.2-webkit2-4.0 instead
     # "gir1.2-webkit2-4.1",
 ]
 
@@ -162,41 +156,47 @@ linuxdeploy_plugins = [
 
 [tool.briefcase.app.stocks.linux.flatpak]
 flatpak_runtime = "org.gnome.Platform"
-flatpak_runtime_version = "47"
+flatpak_runtime_version = "48"
 flatpak_sdk = "org.gnome.Sdk"
 
 [tool.briefcase.app.stocks.windows]
 requires = [
-    "toga-winforms",
+    "toga-winforms~=0.5.0",
     "pythonnet==3.1.0rc0",
 ]
 
 # Mobile deployments
 [tool.briefcase.app.stocks.iOS]
 requires = [
-    "toga-iOS~=0.4.7",
+    "toga-iOS~=0.5.0",
     "std-nslog~=1.0.3",
 ]
 
 [tool.briefcase.app.stocks.android]
 requires = [
-    "toga-android~=0.4.7",
+    "toga-android~=0.5.0",
 ]
 
 base_theme = "Theme.MaterialComponents.Light.DarkActionBar"
 
 build_gradle_dependencies = [
-    "com.google.android.material:material:1.12.0",
+    "com.google.android.material:material:1.13.0",
     # Needed for DetailedList
     # "androidx.swiperefreshlayout:swiperefreshlayout:1.1.0",
     # Needed for MapView
     # "org.osmdroid:osmdroid-android:6.1.20",
+    # Needed for WebView
+    # "androidx.webkit:webkit:1.15.0",
 ]
+
+# Needed for WebView
+# build_gradle_extra_content="""
+# chaquopy.defaultConfig.staticProxy("toga_android.widgets.internal.webview")
+# """
 
 # Web deployments
 [tool.briefcase.app.stocks.web]
 requires = [
-    "toga-web~=0.4.7",
+    "toga-web~=0.5.0",
 ]
-style_framework = "Shoelace v2.3"
 
