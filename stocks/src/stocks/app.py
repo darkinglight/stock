@@ -13,7 +13,7 @@ from database.connection import DatabaseConnectionManager
 class stocks(toga.App):
     def startup(self):
         db_manager = DatabaseConnectionManager()
-        db_manager.set_default_db_name(r"D:\Site\stock2\stocks\finance.db")
+        db_manager.set_default_db_name(r"D:\Site\stock\stocks\finance.db")
 
         main_box = toga.Box(style=toga.style.Pack(flex=1, direction=COLUMN))
 
