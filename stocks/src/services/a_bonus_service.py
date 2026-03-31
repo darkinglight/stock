@@ -198,6 +198,7 @@ class ABonusService:
                 
                 # 计算近3年所有记录的平均值
                 average_rate = sum(rates) / 3
+                average_rate = max(0.0, min(100.0, average_rate))
                 
                 # 更新到stock表
                 stock = Stock(code=code, bonus_rate=average_rate)
