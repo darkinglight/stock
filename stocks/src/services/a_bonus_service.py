@@ -296,4 +296,5 @@ if __name__ == "__main__":
 
     # a_bonus_service.drop_bonus_table()
 
-    a_bonus_service.refresh_all()
+    # a_bonus_service.refresh_all()
+    a_bonus_service.update_bonus_rate('002553')
