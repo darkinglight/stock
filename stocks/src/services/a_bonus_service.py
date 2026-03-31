@@ -293,4 +293,7 @@ class ABonusService:
 if __name__ == "__main__":
     # 测试
     a_bonus_service = ABonusService()
+
+    # a_bonus_service.drop_bonus_table()
+
     a_bonus_service.refresh_all()
