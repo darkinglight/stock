@@ -44,15 +44,11 @@ class ABonusService:
     
     SQL_GET_ALL_BONUS_RECORDS = 'SELECT stock_code, dividend_payout_rate, year, quarter FROM bonus'
     
-    SQL_GET_BONUS_RECORDS_BY_CODE = 'SELECT id, stock_code, report_period, bonus_description, bonus_amount, dividend_payout_rate, pre_tax_dividend_rate, year, quarter, update_time FROM bonus WHERE stock_code = ? ORDER BY year DESC'
-    
     def __init__(self):
         """初始化服务"""
         self.db_manager = DatabaseConnectionManager()
         self.config_service = ConfigService()
-        # 初始化AStockService实例
         self.stock_service = AStockService()
-        # 在初始化时获取数据库连接
         self.conn = self.db_manager.get_connection()
         self.cursor = self.conn.cursor()
         self._create_bonus_table()
@@ -183,8 +179,8 @@ class ABonusService:
             return 0
     
     def refresh_all(self) -> int:
-        refresh_all_bonus_records()
-        refresh_all_bonus_rates()
+        self.refresh_all_bonus_records()
+        return self.refresh_all_bonus_rates()
     
     def refresh_all_bonus_records(self) -> int:
         """
@@ -296,4 +292,4 @@ class ABonusService:
 
 if __name__ == "__main__":
     a_bonus_service = ABonusService()
-    a_bonus_service.refresh_all()
+    a_bonus_service.refresh_all_bonus_rates()
