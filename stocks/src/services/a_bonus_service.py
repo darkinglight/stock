@@ -42,6 +42,8 @@ class ABonusService:
     
     SQL_GET_UPDATED_CODES = 'SELECT DISTINCT stock_code FROM bonus WHERE update_time LIKE ?'
     
+    SQL_GET_ALL_BONUS_RECORDS = 'SELECT stock_code, dividend_payout_rate, year, quarter FROM bonus'
+    
     SQL_GET_BONUS_RECORDS_BY_CODE = 'SELECT id, stock_code, report_period, bonus_description, bonus_amount, dividend_payout_rate, pre_tax_dividend_rate, year, quarter, update_time FROM bonus WHERE stock_code = ? ORDER BY year DESC'
     
     def __init__(self):
@@ -146,140 +148,142 @@ class ABonusService:
             except:
                 pass
     
-    def update_bonus_rate(self, code: str):
+    def fetch_and_save_bonus_records(self, code: str) -> int:
         """
-        更新A股的平均分红率（基于近3年数据）
+        从API获取近3年分红数据并保存到数据库
         
         Args:
             code: A股代码
             
         Returns:
-            Optional[float]: 近3年的平均分红率，如果没有近3年数据返回 None
+            int: 保存的记录数量
         """
         try:
-            # 从同花顺获取分红配送数据
             df = ak.stock_fhps_detail_ths(symbol=code)
             
-            if not df.empty:
-                # 转换数据为Bonus对象列表并过滤近3年数据
-                current_year = datetime.datetime.now().year
-                three_years_ago = current_year - 3
-                
-                records = []
-                for _, row in df.iterrows():
-                    bonus = Bonus.from_row(row)
-                    if three_years_ago <= bonus.year <= current_year:
-                        records.append(bonus)
-                
-                # 保存记录到数据库
-                self._save_bonus_records(code, records)
-                
-                # 直接使用records计算平均分红率
-                rates = []
-                for record in records:
-                    if record.dividend_payout_rate:
-                        # 根据季度调整分红率
-                        if record.quarter == 'Q1':
-                            # 一季度/4
-                            adjusted_rate = record.dividend_payout_rate / 4
-                        elif record.quarter == 'Q2':
-                            # 中报/2
-                            adjusted_rate = record.dividend_payout_rate / 2
-                        elif record.quarter == 'Q3':
-                            # 三季度*4/3
-                            adjusted_rate = record.dividend_payout_rate * 3 / 4
-                        else:  # Q4 年报
-                            # 年报用原值
-                            adjusted_rate = record.dividend_payout_rate
-                        rates.append(adjusted_rate)
-                
-                if not rates:
-                    return None
-                
-                # 计算近3年所有记录的平均值
-                average_rate = sum(rates) / 3
-                average_rate = max(10.0, min(90.0, average_rate))
-                
-                # 更新到stock表
-                stock = Stock(code=code, bonus_rate=average_rate)
-                self.stock_service._save_stock(stock)
-                
-                return average_rate
+            if df.empty:
+                return 0
             
-            return None
-            
-        except Exception as e:
-            print(f"更新A股分红率失败 (股票代码: {code}): {e}")
-            return None
-    
-    def get_bonus_records(self, stock_code: str) -> List[Bonus]:
-        """
-        根据股票代码查询所有分红记录
-        
-        Args:
-            stock_code: 股票代码
-            
-        Returns:
-            List[Bonus]: 分红记录列表，按年份降序排列
-        """
-        try:
-            self.cursor.execute(self.SQL_GET_BONUS_RECORDS_BY_CODE, (stock_code,))
-            rows = self.cursor.fetchall()
+            current_year = datetime.datetime.now().year
+            three_years_ago = current_year - 3
             
             records = []
-            for row in rows:
-                bonus = Bonus(
-                    report_period=row[2],
-                    bonus_description=row[3],
-                    bonus_amount=row[4],
-                    dividend_payout_rate=row[5],
-                    pre_tax_dividend_rate=row[6],
-                    year=row[7],
-                    quarter=row[8]
-                )
-                records.append(bonus)
+            for _, row in df.iterrows():
+                bonus = Bonus.from_row(row)
+                if three_years_ago <= bonus.year <= current_year:
+                    records.append(bonus)
             
-            return records
+            if records:
+                self._save_bonus_records(code, records)
+            
+            return len(records)
             
         except Exception as e:
-            print(f"查询分红记录失败: {e}")
-            return []
+            print(f"获取并保存分红数据失败 (股票代码: {code}): {e}")
+            return 0
     
     def refresh_all(self) -> int:
+        refresh_all_bonus_records()
+        refresh_all_bonus_rates()
+    
+    def refresh_all_bonus_records(self) -> int:
         """
-        批量更新所有A股的分红率
+        全量保存所有A股的分红详细数据
         支持中断续更，跳过今天已经更新过的股票
         
         Returns:
-            int: 更新的股票数量
+            int: 保存的股票数量
         """
         try:
-            # 获取所有A股股票
             stocks = self.stock_service._get_all_stocks()
             
-            # 一次性获取所有今日已更新的股票代码
             today = datetime.datetime.now().strftime('%Y-%m-%d')
             self.cursor.execute(self.SQL_GET_UPDATED_CODES, (today + '%',))
             updated_codes = {row[0] for row in self.cursor.fetchall()}
             
-            # 过滤出需要更新的股票
             stocks_to_update = [stock for stock in stocks if stock.code not in updated_codes]
             
             total_stocks = len(stocks_to_update)
             updated_count = 0
             
-            print(f"共需要更新 {total_stocks} 只股票的分红率（已跳过 {len(updated_codes)} 只今日已更新）")
+            print(f"共需要保存 {total_stocks} 只股票的分红数据（已跳过 {len(updated_codes)} 只今日已更新）")
             
             for i, stock in enumerate(stocks_to_update):
                 try:
-                    if self.update_bonus_rate(stock.code):
+                    if self.fetch_and_save_bonus_records(stock.code) > 0:
                         updated_count += 1
                 except Exception as e:
-                    print(f"更新股票 {stock.code} 分红率时出错: {e}")
+                    print(f"保存股票 {stock.code} 分红数据时出错: {e}")
                 
-                # 输出进度百分比
                 progress = (i + 1) / total_stocks * 100
                 print(f"进度: {progress:.2f}% ({i + 1}/{total_stocks})")
+            
+            print(f"分红数据保存完成，共保存 {updated_count} 只股票")
+            return updated_count
+            
+        except Exception as e:
+            print(f"保存分红数据失败: {e}")
+            return 0
+    
+    def refresh_all_bonus_rates(self) -> int:
+        """
+        根据数据库中已保存的分红数据，全量刷新所有股票的bonus_rate
+        
+        Returns:
+            int: 更新的股票数量
+        """
+        try:
+            self.cursor.execute(self.SQL_GET_ALL_BONUS_RECORDS)
+            all_records = self.cursor.fetchall()
+            
+            if not all_records:
+                print("没有分红数据")
+                return 0
+            
+            current_year = datetime.datetime.now().year
+            three_years_ago = current_year - 3
+            
+            from collections import defaultdict
+            records_by_code = defaultdict(list)
+            for row in all_records:
+                stock_code = row[0]
+                dividend_payout_rate = row[1]
+                year = row[2]
+                quarter = row[3]
+                if dividend_payout_rate and three_years_ago <= year <= current_year:
+                    records_by_code[stock_code].append((dividend_payout_rate, quarter))
+            
+            total = len(records_by_code)
+            updated_count = 0
+            
+            print(f"共需要刷新 {total} 只股票的分红率")
+            
+            for i, (code, records) in enumerate(records_by_code.items()):
+                try:
+                    rates = []
+                    for dividend_payout_rate, quarter in records:
+                        if quarter == 'Q1':
+                            adjusted_rate = dividend_payout_rate / 4
+                        elif quarter == 'Q2':
+                            adjusted_rate = dividend_payout_rate / 2
+                        elif quarter == 'Q3':
+                            adjusted_rate = dividend_payout_rate * 3 / 4
+                        else:
+                            adjusted_rate = dividend_payout_rate
+                        rates.append(adjusted_rate)
+                    
+                    if rates:
+                        average_rate = sum(rates) / 3
+                        average_rate = max(10.0, min(90.0, average_rate))
+                        
+                        stock = Stock(code=code, bonus_rate=average_rate)
+                        self.stock_service._save_stock(stock)
+                        updated_count += 1
+                except Exception as e:
+                    print(f"刷新股票 {code} 分红率时出错: {e}")
+                
+                progress = (i + 1) / total * 100
+                print(f"进度: {progress:.2f}% ({i + 1}/{total})")
             
             print(f"分红率刷新完成，共更新 {updated_count} 只股票")
             return updated_count
@@ -291,10 +295,5 @@ class ABonusService:
 
 
 if __name__ == "__main__":
-    # 测试
     a_bonus_service = ABonusService()
-
-    # a_bonus_service.drop_bonus_table()
-
-    # a_bonus_service.refresh_all()
-    a_bonus_service.update_bonus_rate('002553')
+    a_bonus_service.refresh_all()
