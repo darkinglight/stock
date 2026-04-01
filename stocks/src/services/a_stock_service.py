@@ -168,7 +168,7 @@ class AStockService:
             if (existing_stock.roe and existing_stock.roe > 0 and 
                 existing_stock.bonus_rate is not None and 
                 existing_stock.pb and existing_stock.pb > 0):
-                existing_stock.growth = existing_stock.roe * (1 - existing_stock.bonus_rate) + existing_stock.roe * existing_stock.bonus_rate / existing_stock.pb
+                existing_stock.growth = existing_stock.roe * (1 - existing_stock.bonus_rate / 100) + existing_stock.roe * existing_stock.bonus_rate / 100 / existing_stock.pb
             
             # 使用 UPSERT 语法
             self.cursor.execute(self.SQL_SAVE_STOCK, (
