@@ -49,9 +49,3 @@ class StockListView(toga.Box):
     def update_data(self, stocks: List[Stock]):
         """更新整个数据集"""
         self.table.data = self._build_data(stocks)
-
-    def append_data(self, stocks: List[Stock]):
-        """追加数据到现有数据集"""
-        current_data = self.table.data
-        new_data = self._build_data(stocks)
-        self.table.data = current_data + new_data
