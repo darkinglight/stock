@@ -48,3 +48,4 @@ g + shift + j
 [beeware论坛](https://github.com/beeware/toga/discussions)  
 [akshare数据源](https://akshare.akfamily.xyz/data/stock/stock.html#id122)  
 [flet](https://flet.dev/docs/getting-started/async-apps)
+[icon](https://www.freepik.com/search?format=search&iconType=standard&last_filter=query&last_value=refresh&query=refresh&type=icon)
