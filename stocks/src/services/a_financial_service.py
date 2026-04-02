@@ -182,6 +182,11 @@ class AFinancialService:
         # 从最近一个季度开始，获取连续的12个季度数据，如果中间不是连续的季度，则终止后续季度获取，只返回之前连续的季度数据
         consecutive_list = []
         for i, financial in enumerate(financial_list):
+            # 检查 quarterly_roe 和 basic_eps 是否为空
+            if financial.quarterly_roe is None or financial.basic_eps is None:
+                # 如果数据为空，终止
+                break
+                
             if i == 0:
                 # 第一个元素直接添加
                 consecutive_list.append(financial)
@@ -212,8 +217,8 @@ class AFinancialService:
                     # 不连续，终止
                     break
                 
-                # 最多保留12个季度
-                if len(consecutive_list) >= 12:
+                # 最多保留13个季度
+                if len(consecutive_list) >= 13:
                     break
         
         # 使用连续的季度数据
@@ -231,13 +236,13 @@ class AFinancialService:
                 # 6、9、12月报告期，quarterly_eps = 当期basic_eps - 上期basic_eps
                 if i + 1 < len(financial_list):
                     prev_financial = financial_list[i + 1]
-                    if financial.basic_eps is not None and prev_financial.basic_eps is not None:
-                        financial.quarterly_eps = financial.basic_eps - prev_financial.basic_eps
-                    else:
-                        financial.quarterly_eps = None
+                    financial.quarterly_eps = financial.basic_eps - prev_financial.basic_eps
                 else:
                     # 没有上期数据，无法计算
                     financial.quarterly_eps = None
+        
+        # 只返回最近12个季度的数据
+        financial_list = financial_list[:12]
         
         return financial_list
     
