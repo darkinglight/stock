@@ -195,21 +195,16 @@ class AFinancialService:
                 current_period = financial.report_period
                 prev_period = consecutive_list[-1].report_period
                 
-                # 解析年和月
-                current_year, current_month = map(int, current_period.split('-'))
-                prev_year, prev_month = map(int, prev_period.split('-'))
+                # 解析年和月 2025-06-30
+                current_date = datetime.datetime.strptime(current_period, '%Y-%m-%d')
+                prev_date = datetime.datetime.strptime(prev_period, '%Y-%m-%d')
                 
                 # 计算是否为连续季度
-                # 连续季度的条件：
-                # 1. 月份差为3，年份相同（如2025-06 → 2025-03）
-                # 2. 或者前一个月份为3，当前月份为12，年份差1（如2025-03 → 2024-12）
-                is_consecutive = False
-                if current_year == prev_year:
-                    if prev_month - current_month == 3:
-                        is_consecutive = True
-                elif current_year == prev_year - 1:
-                    if prev_month == 3 and current_month == 12:
-                        is_consecutive = True
+                # 连续季度的条件：两个日期之间相差3个月
+                # 计算日期差（天数）
+                delta = prev_date - current_date
+                # 检查是否接近3个月（约90天）
+                is_consecutive = abs(delta.days - 90) <= 3
                 
                 if is_consecutive:
                     consecutive_list.append(financial)
