@@ -50,4 +50,7 @@ class StockListView(toga.Box):
 
     def update_data(self, stocks: List[Stock]):
         self._stocks = stocks
-        self.table.data = self._build_data(stocks)
+        # 构建新的数据列表
+        new_data = self._build_data(stocks)
+        # 设置表格数据，Toga 会自动更新视图
+        self.table.data = new_data
