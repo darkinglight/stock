@@ -24,7 +24,7 @@ class AStockController:
         )
         return stocks_data
     
-    def show_config_dialog(self):
+    def show_config_dialog(self, widget=None):
         if self.stock_list_view:
             self.stock_list_view.show_config_dialog()
     
