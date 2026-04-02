@@ -135,7 +135,7 @@ class AStockService:
         """
         try:
             # 查询数据库中已有的记录
-            existing_stock = self._get_stock_by_code(stock.code)
+            existing_stock = self.get_stock_by_code(stock.code)
             
             if existing_stock:
                 # 先更新基础字段，如果有值则更新到已有记录上
@@ -217,7 +217,7 @@ class AStockService:
             print(f"Failed to get all stocks: {e}")
             return []
     
-    def _get_stock_by_code(self, code: str) -> Optional[Stock]:
+    def get_stock_by_code(self, code: str) -> Optional[Stock]:
         """
         根据代码获取A股
         :param code: 股票代码

@@ -494,6 +494,43 @@ class AFinancialService:
                 self.stock_service._save_stock(stock)
         except Exception as e:
             print(f"更新股票 {code} 数据时出错: {e}")
+    
+    def get_financial_reports_by_code(self, code: str) -> List[Financial]:
+        """
+        根据股票代码查询财报列表
+        
+        Args:
+            code: 股票代码
+            
+        Returns:
+            List[Financial]: 财报数据列表
+        """
+        try:
+            # 从数据库获取该股票的财报数据
+            self.cursor.execute(self.SQL_GET_FINANCIAL_DATA_BY_CODE, (code,))
+            rows = self.cursor.fetchall()
+            
+            # 将数据库记录转换为Financial对象列表
+            reports = []
+            for row in rows:
+                financial = Financial(
+                    code=row[0],
+                    report_period=row[1],
+                    roe=row[2],
+                    quarterly_roe=row[3],
+                    net_asset_per_share=row[4],
+                    basic_eps=row[5],
+                    quarterly_eps=row[6],
+                    operating_cash_flow_per_share=row[7],
+                    assets_debt_ratio=row[8]
+                )
+                reports.append(financial)
+            
+            return reports
+            
+        except Exception as e:
+            print(f"获取财报数据失败 (股票代码: {code}): {e}")
+            return []
 
 if __name__ == "__main__":
     # 测试

@@ -287,6 +287,48 @@ class ABonusService:
         except Exception as e:
             print(f"刷新分红率失败: {e}")
             return 0
+    
+    def get_bonus_details_by_code(self, code: str) -> List[Bonus]:
+        """
+        根据股票代码获取分红详情列表
+        
+        Args:
+            code: A股代码
+            
+        Returns:
+            List[Bonus]: 分红详情列表
+        """
+        try:
+            # 查询该股票的所有分红记录
+            query = """
+            SELECT stock_code, report_period, bonus_description, bonus_amount, 
+                   dividend_payout_rate, pre_tax_dividend_rate, year, quarter
+            FROM bonus
+            WHERE stock_code = ?
+            ORDER BY year DESC, quarter DESC
+            """
+            self.cursor.execute(query, (code,))
+            rows = self.cursor.fetchall()
+            
+            # 转换为Bonus对象列表
+            bonus_list = []
+            for row in rows:
+                bonus = Bonus(
+                    report_period=row[1],
+                    bonus_description=row[2],
+                    bonus_amount=row[3],
+                    dividend_payout_rate=row[4],
+                    pre_tax_dividend_rate=row[5],
+                    year=row[6],
+                    quarter=row[7]
+                )
+                bonus_list.append(bonus)
+            
+            return bonus_list
+            
+        except Exception as e:
+            print(f"获取分红详情失败 (股票代码: {code}): {e}")
+            return []
 
 
 
