@@ -20,7 +20,15 @@ class AStockController:
             page_size=config['page_size'],
             sort_by=config['sort_by'],
             sort_order=config['sort_order'],
-            max_debt_ratio=config['max_debt_ratio']
+            max_debt_ratio=config.get('max_debt_ratio'),
+            min_pe=config.get('min_pe'),
+            max_pe=config.get('max_pe'),
+            min_pb=config.get('min_pb'),
+            max_pb=config.get('max_pb'),
+            min_roe=config.get('min_roe'),
+            max_roe=config.get('max_roe'),
+            min_bonus_rate=config.get('min_bonus_rate'),
+            max_bonus_rate=config.get('max_bonus_rate')
         )
         return stocks_data
     
