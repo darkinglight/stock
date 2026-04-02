@@ -538,6 +538,5 @@ if __name__ == "__main__":
     # 测试删除financial表
     # financial_service.drop_financial_table()
     # 测试刷新财务数据（会重新创建表）
-    # financial_service.refresh_financial_data()
-    updated_count = financial_service._process_single_stock('603402')
+    financial_service.refresh_financial_data()
    
