@@ -16,7 +16,7 @@ class StockListView(toga.Box):
         super().__init__(style=Pack(flex=1, direction=COLUMN))
 
         self.table = toga.Table(
-            headings=["代码", "名称", "PE", "PB", "分红率", "资产负债率", "ROE", "增长率"],
+            headings=["ID", "代码", "名称", "PE", "PB", "分红率", "资产负债率", "ROE", "增长率"],
             data=self._build_data(self._stocks),
             on_select=self._on_select,
             style=Pack(flex=1),
@@ -31,8 +31,9 @@ class StockListView(toga.Box):
 
     def _build_data(self, stocks: List[Stock]) -> list:
         rows = []
-        for s in stocks:
+        for i, s in enumerate(stocks, 1):
             rows.append((
+                str(i),
                 s.code,
                 s.name or "",
                 self._fmt(s.pe),
