@@ -35,8 +35,8 @@ class AFinancialService:
     '''
     SQL_DELETE_FINANCIAL_DATA = 'DELETE FROM financial WHERE code = ?'
     SQL_INSERT_FINANCIAL_DATA = '''
-    INSERT INTO financial (code, report_period, roe, quarterly_roe, net_asset_per_share, basic_eps, quarterly_eps, operating_cash_flow_per_share, assets_debt_ratio, updated_at) 
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO financial (code, report_period, roe, quarterly_roe, net_asset_per_share, basic_eps, quarterly_eps, operating_cash_flow_per_share, assets_debt_ratio) 
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     '''
     SQL_GET_UPDATED_CODES = 'SELECT DISTINCT code FROM financial WHERE updated_at LIKE ?'
     SQL_DROP_FINANCIAL_TABLE = 'DROP TABLE IF EXISTS financial'
@@ -265,15 +265,12 @@ class AFinancialService:
             code = reports[0].code
             self.cursor.execute(self.SQL_DELETE_FINANCIAL_DATA, (code,))
             
-            # 获取当前时间
-            current_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-            
             # 保存新数据
             for report in reports:
-                # 插入数据，包括roe、quarterly_roe、net_asset_per_share、basic_eps、quarterly_eps、operating_cash_flow_per_share、assets_debt_ratio，并设置updated_at
+                # 插入数据，包括roe、quarterly_roe、net_asset_per_share、basic_eps、quarterly_eps、operating_cash_flow_per_share、assets_debt_ratio
                 self.cursor.execute(
                     self.SQL_INSERT_FINANCIAL_DATA,
-                    (report.code, report.report_period, report.roe, report.quarterly_roe, report.net_asset_per_share, report.basic_eps, report.quarterly_eps, report.operating_cash_flow_per_share, report.assets_debt_ratio, current_time)
+                    (report.code, report.report_period, report.roe, report.quarterly_roe, report.net_asset_per_share, report.basic_eps, report.quarterly_eps, report.operating_cash_flow_per_share, report.assets_debt_ratio)
                 )
             
             self.conn.commit()
@@ -282,6 +279,26 @@ class AFinancialService:
         except Exception as e:
             print(f"保存财务数据失败: {e}")
             return False
+    
+    def _process_single_stock(self, stock):
+        """
+        处理单个股票的财务数据
+        :param stock: 股票对象
+        :return: (code, reports) 或 None
+        """
+        try:
+            # 获取财务数据
+            reports = self.get_financial_data(stock.code)
+            
+            if reports:
+                # 保存到数据库
+                if self.save_financial_data(reports):
+                    return (stock.code, reports)
+            else:
+                print(f"股票 {stock.code} 无法获取财务数据，跳过")
+        except Exception as e:
+            print(f"保存股票 {stock.code} 财务数据时出错: {e}")
+        return None
     
     def batch_save_financial_data(self, stocks_to_update):
         """
@@ -295,18 +312,9 @@ class AFinancialService:
         print(f"开始批量保存财务数据，共 {total_stocks} 只股票")
         
         for i, stock in enumerate(stocks_to_update):
-            try:
-                # 获取财务数据
-                reports = self.get_financial_data(stock.code)
-                
-                if reports:
-                    # 保存到数据库
-                    if self.save_financial_data(reports):
-                        successful_stocks.append((stock.code, reports))
-                else:
-                    print(f"股票 {stock.code} 无法获取财务数据，跳过")
-            except Exception as e:
-                print(f"保存股票 {stock.code} 财务数据时出错: {e}")
+            result = self._process_single_stock(stock)
+            if result:
+                successful_stocks.append(result)
             
             # 输出进度百分比
             progress = (i + 1) / total_stocks * 100
