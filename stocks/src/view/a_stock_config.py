@@ -5,22 +5,27 @@ from toga.style.pack import COLUMN, ROW
 
 class StockConfigView:
 
-    def __init__(self, on_config_change=None):
+    # 默认配置
+    DEFAULT_CONFIG = {
+        'page_size': 20,
+        'max_debt_ratio': 30.0,
+        'min_pe': None,
+        'max_pe': None,
+        'min_pb': None,
+        'max_pb': None,
+        'min_roe': None,
+        'max_roe': None,
+        'min_bonus_rate': None,
+        'max_bonus_rate': None,
+        'sort_by': 'growth',
+        'sort_order': 'desc'
+    }
+
+    def __init__(self, on_config_change=None, default_config=None):
         self._on_config_change_handler = on_config_change
-        self._config = {
-            'page_size': 20,
-            'max_debt_ratio': 30.0,
-            'min_pe': None,
-            'max_pe': None,
-            'min_pb': None,
-            'max_pb': None,
-            'min_roe': None,
-            'max_roe': None,
-            'min_bonus_rate': None,
-            'max_bonus_rate': None,
-            'sort_by': 'growth',
-            'sort_order': 'desc'
-        }
+        self._config = self.DEFAULT_CONFIG.copy()
+        if default_config:
+            self._config.update(default_config)
 
     def show_config_dialog(self):
         dialog = toga.Window(title="列表配置")

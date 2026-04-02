@@ -1,5 +1,6 @@
 import toga
 from services.a_stock_service import AStockService
+from services.config_service import ConfigService
 from view.a_stock_list import StockListView
 from view.a_stock_config import StockConfigView
 
@@ -9,12 +10,17 @@ class AStockController:
         self.stock_list_view = None
         self.stock_config_view = None
         self.service = AStockService()
-    
+        self.config_service = ConfigService()
+        self._config = self.config_service.load_stock_list_config()
+
     def initialize_stock_list(self):
-        stocks_data = self.service.get_stocks_paginated(page=1, page_size=20, sort_by='growth', sort_order='desc')
-        
+        stocks_data = self.get_stocks_data(self._config)
+
         self.stock_list_view = StockListView(stocks=stocks_data)
-        self.stock_config_view = StockConfigView(on_config_change=self.on_config_change)
+        self.stock_config_view = StockConfigView(
+            on_config_change=self.on_config_change,
+            default_config=self._config
+        )
         return self.stock_list_view
     
     def get_stocks_data(self, config):
@@ -49,6 +55,8 @@ class AStockController:
         return [cmd_config]
     
     def on_config_change(self, config):
+        self._config = config
+        self.config_service.save_stock_list_config(config)
         stocks_data = self.get_stocks_data(config)
         if self.stock_list_view:
             self.stock_list_view.update_data(stocks_data)

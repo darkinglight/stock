@@ -1,10 +1,31 @@
-from typing import Optional
+import json
+import sqlite3
+from typing import Optional, Dict, Any
 from database.connection import DatabaseConnectionManager
 
 
 class ConfigService:
     """配置服务 - 处理配置相关操作"""
-    
+
+    # 股票列表配置键名
+    STOCK_LIST_CONFIG_KEY = 'stock_list_config'
+
+    # 默认配置
+    DEFAULT_STOCK_CONFIG = {
+        'page_size': 20,
+        'max_debt_ratio': 30.0,
+        'min_pe': None,
+        'max_pe': None,
+        'min_pb': None,
+        'max_pb': None,
+        'min_roe': None,
+        'max_roe': None,
+        'min_bonus_rate': None,
+        'max_bonus_rate': None,
+        'sort_by': 'growth',
+        'sort_order': 'desc'
+    }
+
     def __init__(self):
         """
         初始化配置服务
@@ -110,3 +131,32 @@ class ConfigService:
         except Exception as e:
             print(f"获取上次刷新时间失败: {e}")
             return None
+
+    def save_stock_list_config(self, config: Dict[str, Any]):
+        """
+        保存股票列表配置
+        :param config: 配置字典
+        """
+        try:
+            config_json = json.dumps(config, ensure_ascii=False)
+            self.set_config(self.STOCK_LIST_CONFIG_KEY, config_json)
+        except Exception as e:
+            print(f"保存股票列表配置失败: {e}")
+
+    def load_stock_list_config(self) -> Dict[str, Any]:
+        """
+        加载股票列表配置
+        :return: 配置字典，如果不存在返回默认配置
+        """
+        try:
+            config_json = self.get_config(self.STOCK_LIST_CONFIG_KEY)
+            if config_json:
+                config = json.loads(config_json)
+                # 合并默认配置，确保所有字段都存在
+                merged_config = self.DEFAULT_STOCK_CONFIG.copy()
+                merged_config.update(config)
+                return merged_config
+            return self.DEFAULT_STOCK_CONFIG.copy()
+        except Exception as e:
+            print(f"加载股票列表配置失败: {e}")
+            return self.DEFAULT_STOCK_CONFIG.copy()
