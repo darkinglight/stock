@@ -10,6 +10,7 @@ from models.financial import Financial
 from database.connection import DatabaseConnectionManager
 import datetime
 from services.a_stock_service import AStockService
+from models.stock import Stock
 
 class AFinancialService:
     """同花顺财务数据服务"""
@@ -457,7 +458,6 @@ class AFinancialService:
         """
         try:
             if reports:
-                from models.stock import Stock
                 # 计算ROE = sum(季度roe) / length * 4
                 quarterly_roes = [r.quarterly_roe for r in reports if r.quarterly_roe]
                 avg_roe = None
@@ -491,4 +491,5 @@ if __name__ == "__main__":
     # financial_service.drop_financial_table()
     # 测试刷新财务数据（会重新创建表）
     # financial_service.refresh_financial_data()
-    updated_count = financial_service.update_stock_data_from_db()
+    updated_count = financial_service._update_single_stock_from_db('603402')
+   
