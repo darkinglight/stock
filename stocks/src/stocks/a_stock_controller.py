@@ -1,17 +1,20 @@
 import toga
 from services.a_stock_service import AStockService
-from view.stock_list import StockListView
+from view.a_stock_list import StockListView
+from view.a_stock_config import StockConfigView
 
 
 class AStockController:
     def __init__(self):
         self.stock_list_view = None
+        self.stock_config_view = None
         self.service = AStockService()
     
     def initialize_stock_list(self):
         stocks_data = self.service.get_stocks_paginated(page=1, page_size=20, sort_by='growth', sort_order='desc')
         
-        self.stock_list_view = StockListView(stocks=stocks_data, on_config_change=self.on_config_change)
+        self.stock_list_view = StockListView(stocks=stocks_data)
+        self.stock_config_view = StockConfigView(on_config_change=self.on_config_change)
         return self.stock_list_view
     
     def get_stocks_data(self, config):
@@ -33,8 +36,8 @@ class AStockController:
         return stocks_data
     
     def show_config_dialog(self, widget=None):
-        if self.stock_list_view:
-            self.stock_list_view.show_config_dialog()
+        if self.stock_config_view:
+            self.stock_config_view.show_config_dialog()
     
     def get_toolbar_commands(self):
         cmd_config = toga.Command(
