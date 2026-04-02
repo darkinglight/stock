@@ -165,8 +165,8 @@ class AFinancialService:
             
             # 处理不同的指标
             if metric_name == 'index_weighted_avg_roe':
-                # 季度净资产收益率
-                financial_data[report_date].quarterly_roe = value
+                # 当期净资产收益率
+                financial_data[report_date].roe = value
             elif metric_name == 'calc_per_net_assets':
                 # 每股净资产
                 financial_data[report_date].net_asset_per_share = value
@@ -190,7 +190,7 @@ class AFinancialService:
         consecutive_list = []
         for i, financial in enumerate(financial_list):
             # 检查 quarterly_roe 和 basic_eps 是否为空
-            if financial.quarterly_roe is None or financial.basic_eps is None:
+            if financial.roe is None or financial.basic_eps is None:
                 # 如果数据为空，终止
                 break
                 
@@ -226,22 +226,25 @@ class AFinancialService:
         # 使用连续的季度数据
         financial_list = consecutive_list
         
-        # 计算quarterly_eps：根据报告期月份计算
+        # 计算quarterly_eps和quarterly_roe：根据报告期月份计算
         for i, financial in enumerate(financial_list):
             # 获取报告期月份
             month = int(financial.report_period.split('-')[1])
             
             if month == 3:
-                # 3月报告期，quarterly_eps = basic_eps
+                # 3月报告期
                 financial.quarterly_eps = financial.basic_eps
+                financial.quarterly_roe = financial.roe
             elif month in [6, 9, 12]:
-                # 6、9、12月报告期，quarterly_eps = 当期basic_eps - 上期basic_eps
+                # 6、9、12月报告期
                 if i + 1 < len(financial_list):
                     prev_financial = financial_list[i + 1]
                     financial.quarterly_eps = financial.basic_eps - prev_financial.basic_eps
+                    financial.quarterly_roe = financial.roe - prev_financial.roe
                 else:
                     # 没有上期数据，无法计算
                     financial.quarterly_eps = None
+                    financial.quarterly_roe = None
         
         # 只返回最近12个季度的数据
         financial_list = financial_list[:12]
