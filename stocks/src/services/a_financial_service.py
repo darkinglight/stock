@@ -39,6 +39,12 @@ class AFinancialService:
     '''
     SQL_GET_UPDATED_CODES = 'SELECT DISTINCT code FROM financial WHERE updated_at LIKE ?'
     SQL_DROP_FINANCIAL_TABLE = 'DROP TABLE IF EXISTS financial'
+    SQL_GET_FINANCIAL_DATA_BY_CODE = '''
+    SELECT code, report_period, roe, quarterly_roe, net_asset_per_share, basic_eps, quarterly_eps, operating_cash_flow_per_share, assets_debt_ratio
+    FROM financial 
+    WHERE code = ? 
+    ORDER BY report_period DESC
+    '''
     
     def __init__(self):
         """
@@ -273,6 +279,63 @@ class AFinancialService:
             print(f"保存财务数据失败: {e}")
             return False
     
+    def batch_save_financial_data(self, stocks_to_update):
+        """
+        批量保存财务数据
+        :param stocks_to_update: 需要更新的股票列表
+        :return: 成功获取财务数据的股票代码和报告列表
+        """
+        successful_stocks = []
+        total_stocks = len(stocks_to_update)
+        
+        print(f"开始批量保存财务数据，共 {total_stocks} 只股票")
+        
+        for i, stock in enumerate(stocks_to_update):
+            try:
+                # 获取财务数据
+                reports = self.get_financial_data(stock.code)
+                
+                if reports:
+                    # 保存到数据库
+                    if self.save_financial_data(reports):
+                        successful_stocks.append((stock.code, reports))
+                else:
+                    print(f"股票 {stock.code} 无法获取财务数据，跳过")
+            except Exception as e:
+                print(f"保存股票 {stock.code} 财务数据时出错: {e}")
+            
+            # 输出进度百分比
+            progress = (i + 1) / total_stocks * 100
+            print(f"保存财务数据进度: {progress:.2f}% ({i + 1}/{total_stocks})")
+        
+        print(f"财务数据保存完成，共成功保存 {len(successful_stocks)} 只股票")
+        return successful_stocks
+    
+    def batch_update_stock_data(self, successful_stocks):
+        """
+        批量更新股票数据
+        :param successful_stocks: 成功获取财务数据的股票代码和报告列表
+        :return: 更新成功的股票数量
+        """
+        updated_count = 0
+        total_stocks = len(successful_stocks)
+        
+        print(f"开始批量更新股票数据，共 {total_stocks} 只股票")
+        
+        for i, (code, reports) in enumerate(successful_stocks):
+            try:
+                # 更新股票数据
+                self._update_stock_data(code, reports)
+                updated_count += 1
+            except Exception as e:
+                print(f"更新股票 {code} 数据时出错: {e}")
+            
+            # 输出进度百分比
+            progress = (i + 1) / total_stocks * 100
+            print(f"更新股票数据进度: {progress:.2f}% ({i + 1}/{total_stocks})")
+        
+        return updated_count
+    
     def refresh_financial_data(self) -> int:
         """
         刷新财务数据，包括ROE、季度ROE和每股净资产
@@ -294,20 +357,14 @@ class AFinancialService:
             stocks_to_update = [stock for stock in stocks if stock.code not in updated_codes]
             
             total_stocks = len(stocks_to_update)
-            updated_count = 0
             
             print(f"共需要更新 {total_stocks} 只股票的财务数据")
             
-            for i, stock in enumerate(stocks_to_update):
-                try:
-                    if self.update_financial_data(stock.code):
-                        updated_count += 1
-                except Exception as e:
-                    print(f"更新股票 {stock.code} 财务数据时出错: {e}")
-                
-                # 输出进度百分比
-                progress = (i + 1) / total_stocks * 100
-                print(f"进度: {progress:.2f}% ({i + 1}/{total_stocks})")
+            # 第一步：批量保存财务数据
+            successful_stocks = self.batch_save_financial_data(stocks_to_update)
+            
+            # 第二步：批量更新股票数据
+            updated_count = self.batch_update_stock_data(successful_stocks)
             
             print(f"财务数据刷新完成，共更新 {updated_count} 只股票")
             return updated_count
@@ -316,29 +373,76 @@ class AFinancialService:
             print(f"刷新财务数据失败: {e}")
             return 0
     
-    def update_financial_data(self, code: str) -> bool:
+    def update_stock_data_from_db(self) -> int:
         """
-        更新单个股票的财务数据
+        根据数据库中的财报数据更新stock数据
+        :return: 更新成功的股票数量
+        """
+        try:
+            # 获取所有A股股票
+            stocks = self.stock_service._get_all_stocks()
+            
+            updated_count = 0
+            total_stocks = len(stocks)
+            
+            print(f"开始根据数据库财报数据更新股票数据，共 {total_stocks} 只股票")
+            
+            for i, stock in enumerate(stocks):
+                try:
+                    # 调用抽取的方法更新单个股票数据
+                    if self._update_single_stock_from_db(stock.code):
+                        updated_count += 1
+                        
+                except Exception as e:
+                    print(f"更新股票 {stock.code} 数据时出错: {e}")
+                
+                # 输出进度百分比
+                progress = (i + 1) / total_stocks * 100
+                print(f"进度: {progress:.2f}% ({i + 1}/{total_stocks})")
+            
+            print(f"股票数据更新完成，共更新 {updated_count} 只股票")
+            return updated_count
+            
+        except Exception as e:
+            print(f"更新股票数据失败: {e}")
+            return 0
+    
+    def _update_single_stock_from_db(self, code: str) -> bool:
+        """
+        根据数据库中的财报数据更新单个股票数据
         :param code: 股票代码
         :return: 是否更新成功
         """
         try:
-            # 获取财务数据
-            reports = self.get_financial_data(code)
+            # 从数据库获取该股票的财报数据
+            self.cursor.execute(self.SQL_GET_FINANCIAL_DATA_BY_CODE, (code,))
+            rows = self.cursor.fetchall()
             
-            if not reports:
-                print(f"股票 {code} 无法获取财务数据，跳过")
+            if not rows:
                 return False
             
-            # 保存到数据库
-            success = self.save_financial_data(reports)
+            # 将数据库记录转换为Financial对象列表
+            reports = []
+            for row in rows:
+                financial = Financial(
+                    code=row[0],
+                    report_period=row[1],
+                    roe=row[2],
+                    quarterly_roe=row[3],
+                    net_asset_per_share=row[4],
+                    basic_eps=row[5],
+                    quarterly_eps=row[6],
+                    operating_cash_flow_per_share=row[7],
+                    assets_debt_ratio=row[8]
+                )
+                reports.append(financial)
             
             # 更新股票数据
             self._update_stock_data(code, reports)
+            return True
             
-            return success
         except Exception as e:
-            print(f"更新股票 {code} 财务数据失败: {e}")
+            print(f"更新股票 {code} 数据时出错: {e}")
             return False
     
     def _update_stock_data(self, code: str, reports: List[Financial]):
@@ -386,4 +490,5 @@ if __name__ == "__main__":
     # 测试删除financial表
     # financial_service.drop_financial_table()
     # 测试刷新财务数据（会重新创建表）
-    financial_service.refresh_financial_data()
+    # financial_service.refresh_financial_data()
+    updated_count = financial_service.update_stock_data_from_db()

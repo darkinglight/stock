@@ -29,7 +29,7 @@ if you want to update, build, and run in one step, you could use `briefcase run 
 1. briefcase package --adhoc-sign
 
 ## BUILD ANDROID
-1. briefcase create/update android 
+1. briefcase create/update android
 2. briefcase build android 
 3. briefcase run android
 
