@@ -178,6 +178,46 @@ class AFinancialService:
         
         # 按报告期降序排序
         financial_list.sort(key=lambda x: x.report_period, reverse=True)
+
+        # 从最近一个季度开始，获取连续的12个季度数据，如果中间不是连续的季度，则终止后续季度获取，只返回之前连续的季度数据
+        consecutive_list = []
+        for i, financial in enumerate(financial_list):
+            if i == 0:
+                # 第一个元素直接添加
+                consecutive_list.append(financial)
+            else:
+                # 获取当前和前一个报告期
+                current_period = financial.report_period
+                prev_period = consecutive_list[-1].report_period
+                
+                # 解析年和月
+                current_year, current_month = map(int, current_period.split('-'))
+                prev_year, prev_month = map(int, prev_period.split('-'))
+                
+                # 计算是否为连续季度
+                # 连续季度的条件：
+                # 1. 月份差为3，年份相同（如2025-06 → 2025-03）
+                # 2. 或者前一个月份为3，当前月份为12，年份差1（如2025-03 → 2024-12）
+                is_consecutive = False
+                if current_year == prev_year:
+                    if prev_month - current_month == 3:
+                        is_consecutive = True
+                elif current_year == prev_year - 1:
+                    if prev_month == 3 and current_month == 12:
+                        is_consecutive = True
+                
+                if is_consecutive:
+                    consecutive_list.append(financial)
+                else:
+                    # 不连续，终止
+                    break
+                
+                # 最多保留12个季度
+                if len(consecutive_list) >= 12:
+                    break
+        
+        # 使用连续的季度数据
+        financial_list = consecutive_list
         
         # 计算quarterly_eps：根据报告期月份计算
         for i, financial in enumerate(financial_list):
@@ -198,9 +238,6 @@ class AFinancialService:
                 else:
                     # 没有上期数据，无法计算
                     financial.quarterly_eps = None
-        
-        # 只保留最近12个季度的数据
-        financial_list = financial_list[:12]
         
         return financial_list
     
