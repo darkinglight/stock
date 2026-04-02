@@ -59,7 +59,7 @@ class AStockService:
     
     SQL_GET_STOCKS_PAGINATED = 'SELECT code, name, market, price, pe, pb, bonus_rate, net_asset_per_share, basic_eps, assets_debt_ratio, roe, growth, created_at, updated_at FROM stock WHERE market IN (?, ?, ?) AND assets_debt_ratio <= ? ORDER BY {order_by} {order_dir} LIMIT ? OFFSET ?'
     
-    SQL_GET_STOCKS_COUNT = 'SELECT COUNT(*) FROM stock WHERE market IN (?, ?, ?) AND assets_debt_ratio <= ?'
+
     
     def __init__(self):
         """
@@ -250,14 +250,22 @@ class AStockService:
             print(f"Failed to get stock by code: {e}")
             return None
     
-    def get_stocks_paginated(self, page: int = 1, page_size: int = 10, sort_by: str = 'growth', sort_order: str = 'desc', max_debt_ratio: float = 30.0) -> List[Stock]:
+    def get_stocks_paginated(self, page: int = 1, page_size: int = 10, sort_by: str = 'growth', sort_order: str = 'desc', max_debt_ratio: Optional[float] = None, min_pe: Optional[float] = None, max_pe: Optional[float] = None, min_pb: Optional[float] = None, max_pb: Optional[float] = None, min_roe: Optional[float] = None, max_roe: Optional[float] = None, min_bonus_rate: Optional[float] = None, max_bonus_rate: Optional[float] = None) -> List[Stock]:
         """
         分页查询A股股票列表，支持按单个字段或两个字段计算结果排序
         :param page: 页码，默认1
         :param page_size: 每页数量，默认10
         :param sort_by: 排序字段，支持单个字段（如 'growth', 'pe'）或计算表达式（如 '(growth + roe)'），默认 'growth'
         :param sort_order: 排序顺序，支持 'asc' 或 'desc'，默认 'desc'
-        :param max_debt_ratio: 最大负债率，默认100.0
+        :param max_debt_ratio: 最大负债率，默认None
+        :param min_pe: 最小市盈率，默认None
+        :param max_pe: 最大市盈率，默认None
+        :param min_pb: 最小市净率，默认None
+        :param max_pb: 最大市净率，默认None
+        :param min_roe: 最小净资产收益率，默认None
+        :param max_roe: 最大净资产收益率，默认None
+        :param min_bonus_rate: 最小分红率，默认None
+        :param max_bonus_rate: 最大分红率，默认None
         :return: 股票列表
         """
         try:
@@ -270,11 +278,56 @@ class AStockService:
             # 计算偏移量
             offset = (page - 1) * page_size
 
-            # 构建排序SQL
-            order_by_sql = self.SQL_GET_STOCKS_PAGINATED.format(order_by=sort_by, order_dir=sort_order)
+            # 构建WHERE子句和参数
+            where_conditions = ["market IN (?, ?, ?)"]
+            params = ['sh', 'sz', 'bj']
 
-            # 查询分页数据
-            self.cursor.execute(order_by_sql, ('sh', 'sz', 'bj', max_debt_ratio, page_size, offset))
+            # 添加负债率过滤
+            if max_debt_ratio is not None:
+                where_conditions.append("assets_debt_ratio <= ?")
+                params.append(max_debt_ratio)
+
+            # 添加PE过滤
+            if min_pe is not None:
+                where_conditions.append("pe >= ?")
+                params.append(min_pe)
+            if max_pe is not None:
+                where_conditions.append("pe <= ?")
+                params.append(max_pe)
+
+            # 添加PB过滤
+            if min_pb is not None:
+                where_conditions.append("pb >= ?")
+                params.append(min_pb)
+            if max_pb is not None:
+                where_conditions.append("pb <= ?")
+                params.append(max_pb)
+
+            # 添加ROE过滤
+            if min_roe is not None:
+                where_conditions.append("roe >= ?")
+                params.append(min_roe)
+            if max_roe is not None:
+                where_conditions.append("roe <= ?")
+                params.append(max_roe)
+
+            # 添加分红率过滤
+            if min_bonus_rate is not None:
+                where_conditions.append("bonus_rate >= ?")
+                params.append(min_bonus_rate)
+            if max_bonus_rate is not None:
+                where_conditions.append("bonus_rate <= ?")
+                params.append(max_bonus_rate)
+
+            # 构建SQL语句
+            where_clause = " WHERE " + " AND ".join(where_conditions)
+            sql = f"SELECT code, name, market, price, pe, pb, bonus_rate, net_asset_per_share, basic_eps, assets_debt_ratio, roe, growth, created_at, updated_at FROM stock{where_clause} ORDER BY {sort_by} {sort_order} LIMIT ? OFFSET ?"
+
+            # 添加分页参数
+            params.extend([page_size, offset])
+
+            # 执行查询
+            self.cursor.execute(sql, params)
             rows = self.cursor.fetchall()
 
             # 构建股票列表
