@@ -280,39 +280,39 @@ class AFinancialService:
             print(f"保存财务数据失败: {e}")
             return False
     
-    def _process_single_stock(self, stock):
+    def _process_single_stock(self, code):
         """
         处理单个股票的财务数据
-        :param stock: 股票对象
+        :param code: 股票代码
         :return: (code, reports) 或 None
         """
         try:
             # 获取财务数据
-            reports = self.get_financial_data(stock.code)
+            reports = self.get_financial_data(code)
             
             if reports:
                 # 保存到数据库
                 if self.save_financial_data(reports):
-                    return (stock.code, reports)
+                    return (code, reports)
             else:
-                print(f"股票 {stock.code} 无法获取财务数据，跳过")
+                print(f"股票 {code} 无法获取财务数据，跳过")
         except Exception as e:
-            print(f"保存股票 {stock.code} 财务数据时出错: {e}")
+            print(f"保存股票 {code} 财务数据时出错: {e}")
         return None
     
-    def batch_save_financial_data(self, stocks_to_update):
+    def batch_save_financial_data(self, stock_codes_to_update):
         """
         批量保存财务数据
-        :param stocks_to_update: 需要更新的股票列表
+        :param stock_codes_to_update: 需要更新的股票代码列表
         :return: 成功获取财务数据的股票代码和报告列表
         """
         successful_stocks = []
-        total_stocks = len(stocks_to_update)
+        total_stocks = len(stock_codes_to_update)
         
         print(f"开始批量保存财务数据，共 {total_stocks} 只股票")
         
-        for i, stock in enumerate(stocks_to_update):
-            result = self._process_single_stock(stock)
+        for i, code in enumerate(stock_codes_to_update):
+            result = self._process_single_stock(code)
             if result:
                 successful_stocks.append(result)
             
@@ -365,15 +365,15 @@ class AFinancialService:
             self.cursor.execute(self.SQL_GET_UPDATED_CODES, (today + '%',))
             updated_codes = {row[0] for row in self.cursor.fetchall()}
             
-            # 过滤出需要更新的股票
-            stocks_to_update = [stock for stock in stocks if stock.code not in updated_codes]
+            # 过滤出需要更新的股票代码
+            stock_codes_to_update = [stock.code for stock in stocks if stock.code not in updated_codes]
             
-            total_stocks = len(stocks_to_update)
+            total_stocks = len(stock_codes_to_update)
             
             print(f"共需要更新 {total_stocks} 只股票的财务数据")
             
             # 第一步：批量保存财务数据
-            successful_stocks = self.batch_save_financial_data(stocks_to_update)
+            successful_stocks = self.batch_save_financial_data(stock_codes_to_update)
             
             # 第二步：批量更新股票数据
             updated_count = self.batch_update_stock_data(successful_stocks)
@@ -502,5 +502,5 @@ if __name__ == "__main__":
     # financial_service.drop_financial_table()
     # 测试刷新财务数据（会重新创建表）
     # financial_service.refresh_financial_data()
-    updated_count = financial_service._update_single_stock_from_db('603402')
+    updated_count = financial_service._process_single_stock('603402')
    
