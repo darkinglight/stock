@@ -45,9 +45,23 @@ class StockListView(toga.Box):
             ))
         return rows
 
-    def _on_select(self, widget, row, **kwargs):
+    def _on_select(self, widget, **kwargs):
+        row = widget.selection
         if self._on_select_handler and row is not None:
-            self._on_select_handler(row)
+            # 将Row对象转换为元组，以便通过索引访问
+            # accessors顺序与headings一致: id, code, name, pe, pb, bonus_rate, assets_debt_ratio, roe, growth
+            row_data = (
+                getattr(row, 'id', ''),
+                getattr(row, 'code', ''),
+                getattr(row, 'name', ''),
+                getattr(row, 'pe', ''),
+                getattr(row, 'pb', ''),
+                getattr(row, 'bonus_rate', ''),
+                getattr(row, 'assets_debt_ratio', ''),
+                getattr(row, 'roe', ''),
+                getattr(row, 'growth', '')
+            )
+            self._on_select_handler(row_data)
 
     def update_data(self, stocks: List[Stock]):
         self._stocks = stocks
