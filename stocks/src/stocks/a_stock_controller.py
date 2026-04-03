@@ -13,6 +13,7 @@ class AStockController:
         self.stock_list_view = None
         self.stock_config_view = None
         self.stock_detail_view = None
+        self.detail_window = None
         self.service = AStockService()
         self.bonus_service = ABonusService()
         self.financial_service = AFinancialService()
@@ -144,12 +145,22 @@ class AStockController:
         # 更新详情视图数据
         self.stock_detail_view.update_data(stock_data, financial_data, bonus_data)
         
-        # 显示详情视图（这里需要根据实际的UI框架来实现，暂时假设使用对话框）
-        # 注意：实际实现需要根据Toga框架的具体API来调整
-        detail_dialog = toga.Dialog(
-            title="股票详情",
-            content=self.stock_detail_view,
-            on_close=None
-        )
-        detail_dialog.show()
+        # 使用复用的窗口显示详情页面
+        if not self.detail_window:
+            self.detail_window = toga.Window(
+                title=f"{stock_data['name']} 详情",
+                size=(800, 600),
+                resizable=True,
+                content=self.stock_detail_view,
+                on_resize=None,
+                on_gain_focus=None,
+                on_lose_focus=None,
+                on_show=None,
+                on_hide=None
+            )
+        else:
+            self.detail_window.title = f"{stock_data['name']} 详情"
+            self.detail_window.content = self.stock_detail_view
+        
+        self.detail_window.show()
 

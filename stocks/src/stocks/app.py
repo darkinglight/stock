@@ -15,12 +15,14 @@ class stocks(toga.App):
         db_manager = DatabaseConnectionManager()
         db_manager.set_default_db_name(r"D:\Site\stock\finance.db")
 
+        # 初始化控制器
         self.controller = AStockController()
 
+        # 初始化股票列表页面
+        stock_list_view = self.controller.initialize_stock_list()
+        
         main_box = toga.Box(style=toga.style.Pack(flex=1, direction=COLUMN))
-
-        self.stock_list_view = self.controller.initialize_stock_list()
-        main_box.add(self.stock_list_view)
+        main_box.add(stock_list_view)
 
         self.main_window = toga.MainWindow(title=self.formal_name)
         self.main_window.content = main_box
