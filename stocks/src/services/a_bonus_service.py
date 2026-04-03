@@ -334,4 +334,4 @@ class ABonusService:
 
 if __name__ == "__main__":
     a_bonus_service = ABonusService()
-    a_bonus_service.refresh_all_bonus_rates()
+    a_bonus_service.refresh_all()
