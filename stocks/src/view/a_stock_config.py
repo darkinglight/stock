@@ -64,7 +64,7 @@ class StockConfigView:
         
         sort_by_label = toga.Label("排序字段:", style=Pack(margin_bottom=5))
         sort_by_selection = toga.Selection(
-            items=['growth', 'pe', 'pb', 'roe', 'bonus_rate', 'assets_debt_ratio'],
+            items=['growth', 'pe', 'pb', 'roe', 'bonus_rate', 'assets_debt_ratio', 'growth / pb', 'growth / pe'],
             value=self._config['sort_by'],
             style=Pack(margin_bottom=15)
         )
