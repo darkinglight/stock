@@ -103,6 +103,29 @@ class AStockService:
         except Exception as e:
             print(f"关闭数据库连接失败: {e}")
 
+    def _create_stock_from_row(self, row):
+        """
+        从数据库行创建Stock对象
+        :param row: 数据库查询结果行
+        :return: Stock对象
+        """
+        return Stock(
+            code=row[0],
+            name=row[1],
+            market=row[2],
+            price=row[3],
+            pe=row[4],
+            pb=row[5],
+            bonus_rate=row[6],
+            net_asset_per_share=row[7],
+            basic_eps=row[8],
+            assets_debt_ratio=row[9],
+            roe=row[10],
+            growth=row[11],
+            created_at=row[12],
+            updated_at=row[13]
+        )
+
     def _init_tables(self):
         """
         初始化数据库表
@@ -138,23 +161,12 @@ class AStockService:
             existing_stock = self.get_stock_by_code(stock.code)
             
             if existing_stock:
-                # 先更新基础字段，如果有值则更新到已有记录上
-                if stock.name:
-                    existing_stock.name = stock.name
-                if stock.market:
-                    existing_stock.market = stock.market
-                if stock.price:
-                    existing_stock.price = stock.price
-                if stock.net_asset_per_share:
-                    existing_stock.net_asset_per_share = stock.net_asset_per_share
-                if stock.basic_eps:
-                    existing_stock.basic_eps = stock.basic_eps
-                if stock.bonus_rate:
-                    existing_stock.bonus_rate = stock.bonus_rate
-                if stock.assets_debt_ratio:
-                    existing_stock.assets_debt_ratio = stock.assets_debt_ratio
-                if stock.roe:
-                    existing_stock.roe = stock.roe
+                # 仅更新非空字段
+                for attr in ['name', 'market', 'price', 'net_asset_per_share', 
+                            'basic_eps', 'bonus_rate', 'assets_debt_ratio', 'roe']:
+                    value = getattr(stock, attr)
+                    if value:
+                        setattr(existing_stock, attr, value)
             else:
                 # 如果不存在该 stock 记录，直接使用新 stock
                 existing_stock = stock
@@ -194,22 +206,7 @@ class AStockService:
             
             stocks = []
             for row in rows:
-                stock = Stock(
-                    code=row[0],
-                    name=row[1],
-                    market=row[2],
-                    price=row[3],
-                    pe=row[4],
-                    pb=row[5],
-                    bonus_rate=row[6],
-                    net_asset_per_share=row[7],
-                    basic_eps=row[8],
-                    assets_debt_ratio=row[9],
-                    roe=row[10],
-                    growth=row[11],
-                    created_at=row[12],
-                    updated_at=row[13]
-                )
+                stock = self._create_stock_from_row(row)
                 stocks.append(stock)
             
             return stocks
@@ -228,22 +225,7 @@ class AStockService:
             row = self.cursor.fetchone()
             
             if row:
-                stock = Stock(
-                    code=row[0],
-                    name=row[1],
-                    market=row[2],
-                    price=row[3],
-                    pe=row[4],
-                    pb=row[5],
-                    bonus_rate=row[6],
-                    net_asset_per_share=row[7],
-                    basic_eps=row[8],
-                    assets_debt_ratio=row[9],
-                    roe=row[10],
-                    growth=row[11],
-                    created_at=row[12],
-                    updated_at=row[13]
-                )
+                stock = self._create_stock_from_row(row)
                 return stock
             return None
         except Exception as e:
@@ -333,22 +315,7 @@ class AStockService:
             # 构建股票列表
             stocks = []
             for row in rows:
-                stock = Stock(
-                    code=row[0],
-                    name=row[1],
-                    market=row[2],
-                    price=row[3],
-                    pe=row[4],
-                    pb=row[5],
-                    bonus_rate=row[6],
-                    net_asset_per_share=row[7],
-                    basic_eps=row[8],
-                    assets_debt_ratio=row[9],
-                    roe=row[10],
-                    growth=row[11],
-                    created_at=row[12],
-                    updated_at=row[13]
-                )
+                stock = self._create_stock_from_row(row)
                 stocks.append(stock)
 
             return stocks
