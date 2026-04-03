@@ -90,65 +90,17 @@ class AStockController:
         if not stock:
             return
         
-        # 准备财报数据
-        financial_data = {}
-        if financial_reports:
-            latest_report = financial_reports[0]
-            financial_data = {
-                'net_asset_per_share': latest_report.net_asset_per_share,
-                'basic_eps': latest_report.basic_eps,
-                'revenue': None,  # 暂时返回None，后续可以从API获取
-                'net_profit': None,  # 暂时返回None，后续可以从API获取
-                'gross_profit_rate': None,  # 暂时返回None，后续可以从API获取
-                'net_profit_rate': None,  # 暂时返回None，后续可以从API获取
-                'reports': [
-                    {
-                        'report_period': report.report_period,
-                        'roe': report.roe,
-                        'net_asset_per_share': report.net_asset_per_share,
-                        'basic_eps': report.basic_eps,
-                        'assets_debt_ratio': report.assets_debt_ratio
-                    }
-                    for report in financial_reports
-                ]
-            }
-        
-        # 准备分红数据
-        bonus_data = {
-            'history': [
-                {
-                    'year': bonus.year,
-                    'amount': bonus.bonus_amount,
-                    'rate': bonus.pre_tax_dividend_rate
-                }
-                for bonus in bonus_details
-            ]
-        }
-        
         # 创建股票详情视图
         if not self.stock_detail_view:
             self.stock_detail_view = StockDetailView()
         
-        # 准备股票数据字典
-        stock_data = {
-            'code': stock.code,
-            'name': stock.name,
-            'price': stock.price,
-            'pe': stock.pe,
-            'pb': stock.pb,
-            'bonus_rate': stock.bonus_rate,
-            'assets_debt_ratio': stock.assets_debt_ratio,
-            'roe': stock.roe,
-            'growth': stock.growth
-        }
-        
         # 更新详情视图数据
-        self.stock_detail_view.update_data(stock_data, financial_data, bonus_data)
+        self.stock_detail_view.update_data(stock, financial_reports, bonus_details)
         
         # 使用复用的窗口显示详情页面
         if not self.detail_window:
             self.detail_window = toga.Window(
-                title=f"{stock_data['name']} 详情",
+                title=f"{stock.name} 详情",
                 size=(800, 600),
                 resizable=True,
                 content=self.stock_detail_view,
@@ -159,7 +111,7 @@ class AStockController:
                 on_hide=None
             )
         else:
-            self.detail_window.title = f"{stock_data['name']} 详情"
+            self.detail_window.title = f"{stock.name} 详情"
             self.detail_window.content = self.stock_detail_view
         
         self.detail_window.show()

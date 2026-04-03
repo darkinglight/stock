@@ -1,8 +1,6 @@
-from typing import Optional, Dict, Any
-
 import toga
 from toga.style import Pack
-from toga.style.pack import COLUMN, ROW, CENTER
+from toga.style.pack import COLUMN, ROW
 
 
 class StockDetailView(toga.Box):
@@ -29,40 +27,41 @@ class StockDetailView(toga.Box):
         self.bonus_section = toga.Box(style=Pack(direction=COLUMN))
         self.add(self.bonus_section)
     
-    def update_data(self, stock_data: Dict[str, Any], financial_data: Dict[str, Any], bonus_data: Dict[str, Any]):
+    def update_data(self, stock, financial_reports, bonus_details):
         # 清空现有内容
         self.basic_info.clear()
         self.financial_section.clear()
         self.bonus_section.clear()
         
         # 更新标题
-        self.title.text = f"{stock_data.get('name', '')} ({stock_data.get('code', '')})"
+        self.title.text = f"{stock.name} ({stock.code})"
         
         # 更新基本信息
         basic_info_box = toga.Box(style=Pack(direction=COLUMN, flex=1))
-        basic_info_box.add(toga.Label(f"价格: {stock_data.get('price', '-')}", style=Pack(margin=2)))
-        basic_info_box.add(toga.Label(f"PE: {stock_data.get('pe', '-')}", style=Pack(margin=2)))
-        basic_info_box.add(toga.Label(f"PB: {stock_data.get('pb', '-')}", style=Pack(margin=2)))
-        basic_info_box.add(toga.Label(f"分红率: {stock_data.get('bonus_rate', '-')}%", style=Pack(margin=2)))
-        basic_info_box.add(toga.Label(f"资产负债率: {stock_data.get('assets_debt_ratio', '-')}%", style=Pack(margin=2)))
-        basic_info_box.add(toga.Label(f"ROE: {stock_data.get('roe', '-')}%", style=Pack(margin=2)))
-        basic_info_box.add(toga.Label(f"内在增长率: {stock_data.get('growth', '-')}%", style=Pack(margin=2)))
+        basic_info_box.add(toga.Label(f"价格: {stock.price if stock.price else '-'}", style=Pack(margin=2)))
+        basic_info_box.add(toga.Label(f"PE: {stock.pe if stock.pe else '-'}", style=Pack(margin=2)))
+        basic_info_box.add(toga.Label(f"PB: {stock.pb if stock.pb else '-'}", style=Pack(margin=2)))
+        basic_info_box.add(toga.Label(f"分红率: {stock.bonus_rate if stock.bonus_rate else '-'}%", style=Pack(margin=2)))
+        basic_info_box.add(toga.Label(f"资产负债率: {stock.assets_debt_ratio if stock.assets_debt_ratio else '-'}%", style=Pack(margin=2)))
+        basic_info_box.add(toga.Label(f"ROE: {stock.roe if stock.roe else '-'}%", style=Pack(margin=2)))
+        basic_info_box.add(toga.Label(f"内在增长率: {stock.growth if stock.growth else '-'}%", style=Pack(margin=2)))
         self.basic_info.add(basic_info_box)
         
         # 更新财报数据
         financial_title = toga.Label("财报数据", style=Pack(font_size=14, font_weight='bold', margin_bottom=5))
         self.financial_section.add(financial_title)
         
-        if financial_data:
+        if financial_reports:
+            latest_report = financial_reports[0]
             financial_table = toga.Table(
                 headings=["指标", "值"],
                 data=[
-                    ("每股净资产", financial_data.get('net_asset_per_share', '-')),
-                    ("每股收益", financial_data.get('basic_eps', '-')),
-                    ("营业收入", financial_data.get('revenue', '-')),
-                    ("净利润", financial_data.get('net_profit', '-')),
-                    ("毛利率", financial_data.get('gross_profit_rate', '-')),
-                    ("净利率", financial_data.get('net_profit_rate', '-')),
+                    ("每股净资产", latest_report.net_asset_per_share if latest_report.net_asset_per_share else '-'),
+                    ("每股收益", latest_report.basic_eps if latest_report.basic_eps else '-'),
+                    ("营业收入", "-"),  # 暂时返回-，后续可以从API获取
+                    ("净利润", "-"),  # 暂时返回-，后续可以从API获取
+                    ("毛利率", "-"),  # 暂时返回-，后续可以从API获取
+                    ("净利率", "-"),  # 暂时返回-，后续可以从API获取
                 ],
                 style=Pack(flex=1)
             )
@@ -71,19 +70,19 @@ class StockDetailView(toga.Box):
             self.financial_section.add(toga.Label("暂无财报数据", style=Pack(margin=5)))
         
         # 如果有财报历史数据，显示历史财报列表
-        if 'reports' in financial_data and financial_data['reports']:
+        if financial_reports:
             history_title = toga.Label("历史财报数据", style=Pack(font_size=14, font_weight='bold', margin_top=10, margin_bottom=5))
             self.financial_section.add(history_title)
             
             history_table = toga.Table(
                 headings=["报告期", "ROE", "每股净资产", "每股收益", "资产负债率"],
                 data=[
-                    (report.get('report_period', '-'), 
-                     report.get('roe', '-'), 
-                     report.get('net_asset_per_share', '-'), 
-                     report.get('basic_eps', '-'), 
-                     report.get('assets_debt_ratio', '-'))
-                    for report in financial_data['reports']
+                    (report.report_period if report.report_period else '-', 
+                     report.roe if report.roe else '-', 
+                     report.net_asset_per_share if report.net_asset_per_share else '-', 
+                     report.basic_eps if report.basic_eps else '-', 
+                     report.assets_debt_ratio if report.assets_debt_ratio else '-')
+                    for report in financial_reports
                 ],
                 style=Pack(flex=1)
             )
@@ -93,12 +92,14 @@ class StockDetailView(toga.Box):
         bonus_title = toga.Label("分红数据", style=Pack(font_size=14, font_weight='bold', margin_bottom=5))
         self.bonus_section.add(bonus_title)
         
-        if bonus_data:
+        if bonus_details:
             bonus_table = toga.Table(
                 headings=["年份", "分红金额", "分红率"],
                 data=[
-                    (item.get('year', '-'), item.get('amount', '-'), item.get('rate', '-'))
-                    for item in bonus_data.get('history', [])
+                    (bonus.year if bonus.year else '-', 
+                     bonus.bonus_amount if bonus.bonus_amount else '-', 
+                     bonus.dividend_payout_rate if bonus.dividend_payout_rate else '-')
+                    for bonus in bonus_details
                 ],
                 style=Pack(flex=1)
             )
