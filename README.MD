@@ -40,3 +40,7 @@ if you want to update, build, and run in one step, you could use `briefcase run 
 [akshare数据源](https://akshare.akfamily.xyz/data/stock/stock.html#id122)  
 [flet](https://flet.dev/docs/getting-started/async-apps)
 [icon](https://www.freepik.com/search?format=search&iconType=standard&last_filter=query&last_value=refresh&query=refresh&type=icon)
+
+# TODO
+1. 现金占比
+2. 经营性收入流和资本支出

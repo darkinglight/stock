@@ -176,11 +176,16 @@ class AStockService:
                 existing_stock.pb = existing_stock.price / existing_stock.net_asset_per_share
             if existing_stock.basic_eps and existing_stock.basic_eps > 0:
                 existing_stock.pe = existing_stock.price / existing_stock.basic_eps
-            # 计算内在增长率
-            if (existing_stock.roe and existing_stock.roe > 0 and 
-                existing_stock.bonus_rate is not None and 
-                existing_stock.pb and existing_stock.pb > 0):
-                existing_stock.growth = existing_stock.roe * (1 - existing_stock.bonus_rate / 100) + existing_stock.roe * existing_stock.bonus_rate / 100 / existing_stock.pb
+            # 计算内在增长率 = [ROE * (1 - 分红率) + ROE * 分红率 / PB] * (1 / (1 + 负债率))
+            if (existing_stock.roe and existing_stock.roe > 0 and
+                existing_stock.bonus_rate is not None and
+                existing_stock.pb and existing_stock.pb > 0 and
+                existing_stock.assets_debt_ratio is not None):
+                retention_growth = existing_stock.roe * (1 - existing_stock.bonus_rate / 100)
+                dividend_growth = (existing_stock.roe * existing_stock.bonus_rate / 100
+                                   / existing_stock.pb)
+                debt_factor = 1 / (1 + existing_stock.assets_debt_ratio / 100)
+                existing_stock.growth = (retention_growth + dividend_growth) * debt_factor
             
             # 使用 UPSERT 语法
             self.cursor.execute(self.SQL_SAVE_STOCK, (
