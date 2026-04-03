@@ -44,3 +44,4 @@ if you want to update, build, and run in one step, you could use `briefcase run 
 # TODO
 1. 现金占比
 2. 经营性收入流和资本支出
+3. roe方差稳定性
