@@ -63,6 +63,8 @@ class AStockService:
     
     SQL_GET_STOCKS_PAGINATED = 'SELECT code, name, market, price, pe, pb, bonus_rate, net_asset_per_share, basic_eps, assets_debt_ratio, roe, roe_stability, roe_trend, growth, created_at, updated_at FROM stock WHERE market IN (?, ?, ?) AND assets_debt_ratio <= ? ORDER BY {order_by} {order_dir} LIMIT ? OFFSET ?'
     
+    SQL_DROP_STOCK_TABLE = 'DROP TABLE IF EXISTS stock'
+    
 
     
     def __init__(self):
@@ -468,8 +470,20 @@ class AStockService:
         except Exception as e:
             print(f"获取实时数据失败: {e}")
             return []
+    
+    def drop_tables(self):
+        """
+        删除stock表
+        """
+        try:
+            self.cursor.execute(self.SQL_DROP_STOCK_TABLE)
+            self.conn.commit()
+            print("股票表已删除")
+        except Exception as e:
+            print(f"删除股票表失败: {e}")
 
 if __name__ == "__main__":
     service = AStockService()
     # 刷新股票数据
     data = service.refresh_stocks()
+    # service.drop_tables()
