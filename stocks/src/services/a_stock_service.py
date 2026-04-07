@@ -29,6 +29,8 @@ class AStockService:
         basic_eps REAL,                  -- 每股收益
         assets_debt_ratio REAL,          -- 资产负债率
         roe REAL,                        -- 净资产收益率
+        roe_stability REAL,              -- ROE稳定性得分
+        roe_trend REAL,                  -- ROE趋势得分
         growth REAL,                     -- 内在增长率
         created_at TEXT DEFAULT CURRENT_TIMESTAMP,
         updated_at TEXT DEFAULT CURRENT_TIMESTAMP
@@ -36,8 +38,8 @@ class AStockService:
     '''
     
     SQL_SAVE_STOCK = '''
-    INSERT INTO stock (code, name, market, price, pe, pb, bonus_rate, net_asset_per_share, basic_eps, assets_debt_ratio, roe, growth)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO stock (code, name, market, price, pe, pb, bonus_rate, net_asset_per_share, basic_eps, assets_debt_ratio, roe, roe_stability, roe_trend, growth)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(code) DO UPDATE SET
         name=excluded.name,
         market=excluded.market,
@@ -49,15 +51,17 @@ class AStockService:
         basic_eps=excluded.basic_eps,
         assets_debt_ratio=excluded.assets_debt_ratio,
         roe=excluded.roe,
+        roe_stability=excluded.roe_stability,
+        roe_trend=excluded.roe_trend,
         growth=excluded.growth,
         updated_at=CURRENT_TIMESTAMP
     '''
     
-    SQL_GET_ALL_STOCKS = 'SELECT code, name, market, price, pe, pb, bonus_rate, net_asset_per_share, basic_eps, assets_debt_ratio, roe, growth, created_at, updated_at FROM stock WHERE market IN (?, ?, ?)'
+    SQL_GET_ALL_STOCKS = 'SELECT code, name, market, price, pe, pb, bonus_rate, net_asset_per_share, basic_eps, assets_debt_ratio, roe, roe_stability, roe_trend, growth, created_at, updated_at FROM stock WHERE market IN (?, ?, ?)'
     
-    SQL_GET_STOCK_BY_CODE = 'SELECT code, name, market, price, pe, pb, bonus_rate, net_asset_per_share, basic_eps, assets_debt_ratio, roe, growth, created_at, updated_at FROM stock WHERE code = ? AND market IN (?, ?, ?)'
+    SQL_GET_STOCK_BY_CODE = 'SELECT code, name, market, price, pe, pb, bonus_rate, net_asset_per_share, basic_eps, assets_debt_ratio, roe, roe_stability, roe_trend, growth, created_at, updated_at FROM stock WHERE code = ? AND market IN (?, ?, ?)'
     
-    SQL_GET_STOCKS_PAGINATED = 'SELECT code, name, market, price, pe, pb, bonus_rate, net_asset_per_share, basic_eps, assets_debt_ratio, roe, growth, created_at, updated_at FROM stock WHERE market IN (?, ?, ?) AND assets_debt_ratio <= ? ORDER BY {order_by} {order_dir} LIMIT ? OFFSET ?'
+    SQL_GET_STOCKS_PAGINATED = 'SELECT code, name, market, price, pe, pb, bonus_rate, net_asset_per_share, basic_eps, assets_debt_ratio, roe, roe_stability, roe_trend, growth, created_at, updated_at FROM stock WHERE market IN (?, ?, ?) AND assets_debt_ratio <= ? ORDER BY {order_by} {order_dir} LIMIT ? OFFSET ?'
     
 
     
@@ -163,7 +167,7 @@ class AStockService:
             if existing_stock:
                 # 仅更新非空字段
                 for attr in ['name', 'market', 'price', 'net_asset_per_share', 
-                            'basic_eps', 'bonus_rate', 'assets_debt_ratio', 'roe']:
+                            'basic_eps', 'bonus_rate', 'assets_debt_ratio', 'roe', 'roe_stability', 'roe_trend']:
                     value = getattr(stock, attr)
                     if value:
                         setattr(existing_stock, attr, value)
@@ -191,7 +195,7 @@ class AStockService:
             self.cursor.execute(self.SQL_SAVE_STOCK, (
                 existing_stock.code, existing_stock.name, existing_stock.market, existing_stock.price,
                 existing_stock.pe, existing_stock.pb, existing_stock.bonus_rate, existing_stock.net_asset_per_share,
-                existing_stock.basic_eps, existing_stock.assets_debt_ratio, existing_stock.roe, existing_stock.growth
+                existing_stock.basic_eps, existing_stock.assets_debt_ratio, existing_stock.roe, existing_stock.roe_stability, existing_stock.roe_trend, existing_stock.growth
             ))
             
             self.conn.commit()

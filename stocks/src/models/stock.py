@@ -16,6 +16,8 @@ class Stock:
     basic_eps: Optional[float] = None  # 每股收益
     assets_debt_ratio: Optional[float] = None  # 资产负债率
     roe: Optional[float] = None  # 净资产收益率
+    roe_stability: Optional[float] = None  # ROE稳定性得分
+    roe_trend: Optional[float] = None  # ROE趋势得分
     growth: Optional[float] = None  # 内在增长率 = roe * (1 - 分红率) + roe * 分红率 / pb
     created_at: Optional[str] = None  # 创建时间
     updated_at: Optional[str] = None  # 更新时间

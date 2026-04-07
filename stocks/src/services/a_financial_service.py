@@ -1,5 +1,6 @@
 import sys
 import os
+import statistics
 
 # 添加src目录到Python路径
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -464,18 +465,56 @@ class AFinancialService:
         2. 每股净资产
         3. 每股收益 = 近4季度每股收益和 
         4. 资产负债率
+        5. ROE稳定性得分
         :param code: 股票代码
         :param reports: 财务报告列表
         """
         try:
             if reports:
-                # 计算ROE = sum(季度roe) / length * 4
+                # 计算ROE = sum(quarterly_roe) / length * 4
                 quarterly_roes = [r.quarterly_roe for r in reports if r.quarterly_roe]
                 avg_roe = None
+                roe_stability = None
+                roe_trend = None
                 if quarterly_roes:
                     avg_roe = sum(quarterly_roes) / len(quarterly_roes) * 4
+                    
+                    # 计算ROE稳定性得分（比较连续4个季度之间的波动）
+                    if len(quarterly_roes) >= 8:  # 需要至少8个季度数据才能形成连续的4季度组合
+                        # 计算连续4个季度的组合（滑动窗口）
+                        four_quarter_combos = []
+                        for i in range(len(quarterly_roes) - 3):
+                            combo = quarterly_roes[i:i+4]
+                            # 计算每个4季度组合的平均值
+                            combo_avg = sum(combo) / 4
+                            four_quarter_combos.append(combo_avg)
+                        
+                        # 计算这些4季度组合之间的差异（标准差）
+                        if len(four_quarter_combos) >= 2:
+                            # 计算组合间的标准差（越小越稳定）
+                            combo_std = statistics.stdev(four_quarter_combos)
+                            
+                            # 计算组合间的趋势（斜率）
+                            x = list(range(len(four_quarter_combos)))
+                            n = len(x)
+                            sum_x = sum(x)
+                            sum_y = sum(four_quarter_combos)
+                            sum_xy = sum(x[i] * four_quarter_combos[i] for i in range(n))
+                            sum_x2 = sum(x[i] ** 2 for i in range(n))
+                            
+                            # 计算斜率
+                            if n * sum_x2 - sum_x ** 2 != 0:
+                                slope = (n * sum_xy - sum_x * sum_y) / (n * sum_x2 - sum_x ** 2)
+                            else:
+                                slope = 0
+                            
+                            # 计算稳定性得分（0-100）
+                            # 标准差标准化（假设标准差不超过2）
+                            roe_stability = min(100, max(0, (1 - combo_std / 2) * 100))
+                            # 计算趋势得分（-100到100），正斜率为正分，负斜率为负分
+                            roe_trend = min(100, max(-100, slope * 300))
                 
-                # 计算季度EPS，逻辑同ROE
+                # 计算EPS，逻辑同ROE
                 quarterly_eps_list = [r.quarterly_eps for r in reports if r.quarterly_eps]
                 annualized_eps = None
                 if quarterly_eps_list:
@@ -485,6 +524,8 @@ class AFinancialService:
                 stock = Stock(
                     code=code,
                     roe=avg_roe,
+                    roe_stability=roe_stability,
+                    roe_trend=roe_trend,
                     net_asset_per_share=reports[0].net_asset_per_share,
                     basic_eps=annualized_eps,
                     assets_debt_ratio=reports[0].assets_debt_ratio
