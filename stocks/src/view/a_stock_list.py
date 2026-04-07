@@ -16,8 +16,8 @@ class StockListView(toga.Box):
         super().__init__(style=Pack(flex=1, direction=COLUMN))
 
         self.table = toga.Table(
-            headings=["ID", "代码", "名称", "PE", "PB", "分红率", "资产负债率", "ROE", "增长率"],
-            accessors=["id", "code", "name", "pe", "pb", "bonus_rate", "assets_debt_ratio", "roe", "growth"],
+            headings=["ID", "代码", "名称", "PE", "PB", "分红率", "资产负债率", "ROE", "ROE稳定性", "ROE趋势", "增长率"],
+            accessors=["id", "code", "name", "pe", "pb", "bonus_rate", "assets_debt_ratio", "roe", "roe_stability", "roe_trend", "growth"],
             data=self._build_data(self._stocks),
             on_select=self._on_select,
             style=Pack(flex=1),
@@ -42,6 +42,8 @@ class StockListView(toga.Box):
                 self._fmt(s.bonus_rate),
                 self._fmt(s.assets_debt_ratio),
                 self._fmt(s.roe),
+                self._fmt(s.roe_stability),
+                self._fmt(s.roe_trend),
                 self._fmt(s.growth),
             ))
         return rows
@@ -60,6 +62,8 @@ class StockListView(toga.Box):
                 getattr(row, 'bonus_rate', ''),          # 分红率
                 getattr(row, 'assets_debt_ratio', ''),   # 资产负债率
                 getattr(row, 'roe', ''),     # ROE
+                getattr(row, 'roe_stability', ''),     # ROE稳定性
+                getattr(row, 'roe_trend', ''),     # ROE趋势
                 getattr(row, 'growth', '')   # 增长率
             )
             self._on_select_handler(row_data)

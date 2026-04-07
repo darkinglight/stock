@@ -127,9 +127,11 @@ class AStockService:
             basic_eps=row[8],
             assets_debt_ratio=row[9],
             roe=row[10],
-            growth=row[11],
-            created_at=row[12],
-            updated_at=row[13]
+            roe_stability=row[11],
+            roe_trend=row[12],
+            growth=row[13],
+            created_at=row[14],
+            updated_at=row[15]
         )
 
     def _init_tables(self):
@@ -243,7 +245,7 @@ class AStockService:
             print(f"Failed to get stock by code: {e}")
             return None
     
-    def get_stocks_paginated(self, page: int = 1, page_size: int = 10, sort_by: str = 'growth', sort_order: str = 'desc', max_debt_ratio: Optional[float] = None, min_pe: Optional[float] = None, max_pe: Optional[float] = None, min_pb: Optional[float] = None, max_pb: Optional[float] = None, min_roe: Optional[float] = None, max_roe: Optional[float] = None, min_bonus_rate: Optional[float] = None, max_bonus_rate: Optional[float] = None) -> List[Stock]:
+    def get_stocks_paginated(self, page: int = 1, page_size: int = 10, sort_by: str = 'growth', sort_order: str = 'desc', max_debt_ratio: Optional[float] = None, min_pe: Optional[float] = None, max_pe: Optional[float] = None, min_pb: Optional[float] = None, max_pb: Optional[float] = None, min_roe: Optional[float] = None, max_roe: Optional[float] = None, min_bonus_rate: Optional[float] = None, max_bonus_rate: Optional[float] = None, min_roe_stability: Optional[float] = None, max_roe_stability: Optional[float] = None, min_roe_trend: Optional[float] = None, max_roe_trend: Optional[float] = None) -> List[Stock]:
         """
         分页查询A股股票列表，支持按单个字段或两个字段计算结果排序
         :param page: 页码，默认1
@@ -259,6 +261,10 @@ class AStockService:
         :param max_roe: 最大净资产收益率，默认None
         :param min_bonus_rate: 最小分红率，默认None
         :param max_bonus_rate: 最大分红率，默认None
+        :param min_roe_stability: 最小ROE稳定性，默认None
+        :param max_roe_stability: 最大ROE稳定性，默认None
+        :param min_roe_trend: 最小ROE趋势，默认None
+        :param max_roe_trend: 最大ROE趋势，默认None
         :return: 股票列表
         """
         try:
@@ -312,9 +318,25 @@ class AStockService:
                 where_conditions.append("bonus_rate <= ?")
                 params.append(max_bonus_rate)
 
+            # 添加ROE稳定性过滤
+            if min_roe_stability is not None:
+                where_conditions.append("roe_stability >= ?")
+                params.append(min_roe_stability)
+            if max_roe_stability is not None:
+                where_conditions.append("roe_stability <= ?")
+                params.append(max_roe_stability)
+
+            # 添加ROE趋势过滤
+            if min_roe_trend is not None:
+                where_conditions.append("roe_trend >= ?")
+                params.append(min_roe_trend)
+            if max_roe_trend is not None:
+                where_conditions.append("roe_trend <= ?")
+                params.append(max_roe_trend)
+
             # 构建SQL语句
             where_clause = " WHERE " + " AND ".join(where_conditions)
-            sql = f"SELECT code, name, market, price, pe, pb, bonus_rate, net_asset_per_share, basic_eps, assets_debt_ratio, roe, growth, created_at, updated_at FROM stock{where_clause} ORDER BY {sort_by} {sort_order} LIMIT ? OFFSET ?"
+            sql = f"SELECT code, name, market, price, pe, pb, bonus_rate, net_asset_per_share, basic_eps, assets_debt_ratio, roe, roe_stability, roe_trend, growth, created_at, updated_at FROM stock{where_clause} ORDER BY {sort_by} {sort_order} LIMIT ? OFFSET ?"
 
             # 添加分页参数
             params.extend([page_size, offset])

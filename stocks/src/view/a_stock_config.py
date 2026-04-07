@@ -17,6 +17,10 @@ class StockConfigView:
         'max_roe': None,
         'min_bonus_rate': None,
         'max_bonus_rate': None,
+        'min_roe_stability': None,
+        'max_roe_stability': None,
+        'min_roe_trend': None,
+        'max_roe_trend': None,
         'sort_by': 'growth',
         'sort_order': 'desc'
     }
@@ -62,9 +66,21 @@ class StockConfigView:
         max_bonus_label = toga.Label("最大分红率(%):", style=Pack(margin_bottom=5))
         max_bonus_input = toga.NumberInput(value=self._config['max_bonus_rate'] or 100, style=Pack(margin_bottom=15))
         
+        min_roe_stability_label = toga.Label("最小ROE稳定性:", style=Pack(margin_bottom=5))
+        min_roe_stability_input = toga.NumberInput(value=self._config['min_roe_stability'] or 0, style=Pack(margin_bottom=15))
+        
+        max_roe_stability_label = toga.Label("最大ROE稳定性:", style=Pack(margin_bottom=5))
+        max_roe_stability_input = toga.NumberInput(value=self._config['max_roe_stability'] or 10, style=Pack(margin_bottom=15))
+        
+        min_roe_trend_label = toga.Label("最小ROE趋势:", style=Pack(margin_bottom=5))
+        min_roe_trend_input = toga.NumberInput(value=self._config['min_roe_trend'] or 0, style=Pack(margin_bottom=15))
+        
+        max_roe_trend_label = toga.Label("最大ROE趋势:", style=Pack(margin_bottom=5))
+        max_roe_trend_input = toga.NumberInput(value=self._config['max_roe_trend'] or 10, style=Pack(margin_bottom=15))
+        
         sort_by_label = toga.Label("排序字段:", style=Pack(margin_bottom=5))
         sort_by_selection = toga.Selection(
-            items=['growth', 'pe', 'pb', 'roe', 'bonus_rate', 'assets_debt_ratio', 'growth / pb', 'growth / pe'],
+            items=['growth', 'pe', 'pb', 'roe', 'bonus_rate', 'assets_debt_ratio', 'roe_stability', 'roe_trend', 'growth / pb', 'growth / pe'],
             value=self._config['sort_by'],
             style=Pack(margin_bottom=15)
         )
@@ -89,6 +105,10 @@ class StockConfigView:
             self._config['max_roe'] = float(max_roe_input.value) if max_roe_input.value < 100 else None
             self._config['min_bonus_rate'] = float(min_bonus_input.value) if min_bonus_input.value > 0 else None
             self._config['max_bonus_rate'] = float(max_bonus_input.value) if max_bonus_input.value < 100 else None
+            self._config['min_roe_stability'] = float(min_roe_stability_input.value) if min_roe_stability_input.value > 0 else None
+            self._config['max_roe_stability'] = float(max_roe_stability_input.value) if max_roe_stability_input.value < 10 else None
+            self._config['min_roe_trend'] = float(min_roe_trend_input.value) if min_roe_trend_input.value > 0 else None
+            self._config['max_roe_trend'] = float(max_roe_trend_input.value) if max_roe_trend_input.value < 10 else None
             self._config['sort_by'] = sort_by_selection.value
             self._config['sort_order'] = sort_order_selection.value
             
@@ -126,6 +146,14 @@ class StockConfigView:
         content_box.add(min_bonus_input)
         content_box.add(max_bonus_label)
         content_box.add(max_bonus_input)
+        content_box.add(min_roe_stability_label)
+        content_box.add(min_roe_stability_input)
+        content_box.add(max_roe_stability_label)
+        content_box.add(max_roe_stability_input)
+        content_box.add(min_roe_trend_label)
+        content_box.add(min_roe_trend_input)
+        content_box.add(max_roe_trend_label)
+        content_box.add(max_roe_trend_input)
         content_box.add(sort_by_label)
         content_box.add(sort_by_selection)
         content_box.add(sort_order_label)

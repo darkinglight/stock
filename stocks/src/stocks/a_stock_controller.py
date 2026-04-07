@@ -47,7 +47,11 @@ class AStockController:
             min_roe=config.get('min_roe'),
             max_roe=config.get('max_roe'),
             min_bonus_rate=config.get('min_bonus_rate'),
-            max_bonus_rate=config.get('max_bonus_rate')
+            max_bonus_rate=config.get('max_bonus_rate'),
+            min_roe_stability=config.get('min_roe_stability'),
+            max_roe_stability=config.get('max_roe_stability'),
+            min_roe_trend=config.get('min_roe_trend'),
+            max_roe_trend=config.get('max_roe_trend')
         )
         return stocks_data
     
