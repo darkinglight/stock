@@ -6,6 +6,7 @@ from services.config_service import ConfigService
 from view.a_stock_list import StockListView
 from view.a_stock_config import StockConfigView
 from view.a_stock_detail import StockDetailView
+from view.a_stock_task import StockTaskView
 
 
 class AStockController:
@@ -14,12 +15,15 @@ class AStockController:
         self.stock_list_view = None
         self.stock_config_view = None
         self.stock_detail_view = None
+        self.stock_task_view = None
         self.detail_window = None
         self.service = AStockService()
         self.bonus_service = ABonusService()
         self.financial_service = AFinancialService()
         self.config_service = ConfigService()
         self._config = self.config_service.load_stock_list_config()
+        self.is_updating = False
+        self.update_thread = None
 
     def initialize_stock_list(self):
         stocks_data = self.get_stocks_data(self._config)
@@ -32,6 +36,10 @@ class AStockController:
             on_config_change=self.on_config_change,
             on_back=self.on_back,
             default_config=self._config
+        )
+        self.stock_task_view = StockTaskView(
+            on_start_update=self.on_start_update,
+            on_pause_update=self.on_pause_update
         )
         return self.stock_list_view
     
@@ -86,7 +94,13 @@ class AStockController:
             tooltip="列表配置",
             icon="resources/config.png"
         )
-        return [cmd_config]
+        cmd_task = toga.Command(
+            action=self.show_task_dialog,
+            text="任务",
+            tooltip="任务管理",
+            icon="resources/work.png"
+        )
+        return [cmd_config, cmd_task]
     
     def get_config_toolbar_commands(self):
         cmd_save = toga.Command(
@@ -116,6 +130,105 @@ class AStockController:
         if self.stock_list_view:
             self.stock_list_view.update_data(stocks_data)
     
+    def show_task_dialog(self, widget=None):
+        if self.stock_task_view and self.main_window:
+            # 清空工具栏并添加任务页面的命令
+            self.main_window.toolbar.clear()
+            for command in self.get_task_toolbar_commands():
+                self.main_window.toolbar.add(command)
+            # 切换到任务页面
+            self.main_window.content = self.stock_task_view
+            self.main_window.title = "任务管理"
+
+    def get_task_toolbar_commands(self):
+        cmd_back = toga.Command(
+            action=self.on_back,
+            text="返回",
+            tooltip="返回股票列表",
+            icon="resources/back.png"
+        )
+        return [cmd_back]
+
+    def on_start_update(self, widget=None):
+        """开始更新任务"""
+        if self.is_updating:
+            return
+        
+        self.is_updating = True
+        self.stock_task_view.set_button_states(False, True)
+        self.stock_task_view.update_overall_status("更新中")
+        
+        # 启动更新线程
+        import threading
+        self.update_thread = threading.Thread(target=self._perform_update)
+        self.update_thread.daemon = True
+        self.update_thread.start()
+
+    def on_pause_update(self, widget=None):
+        """暂停更新任务"""
+        self.is_updating = False
+        if self.update_thread:
+            self.update_thread.join(timeout=1)
+        self.stock_task_view.set_button_states(True, False)
+        self.stock_task_view.update_overall_status("已暂停")
+
+    def _perform_update(self):
+        """执行更新任务"""
+        try:
+            # 更新Stock
+            self.stock_task_view.update_task_status("Stock刷新", "进行中", 0)
+            self.stock_task_view.update_progress(0)
+            # 模拟Stock更新过程
+            import time
+            for i in range(1, 34):
+                if not self.is_updating:
+                    break
+                time.sleep(0.1)
+                progress = i
+                self.stock_task_view.update_task_status("Stock刷新", "进行中", progress)
+                self.stock_task_view.update_progress(progress)
+            
+            if not self.is_updating:
+                return
+            
+            # 更新Financial
+            self.stock_task_view.update_task_status("Stock刷新", "完成", 100)
+            self.stock_task_view.update_task_status("Financial更新", "进行中", 0)
+            for i in range(1, 34):
+                if not self.is_updating:
+                    break
+                time.sleep(0.1)
+                progress = 33 + i
+                self.stock_task_view.update_task_status("Financial更新", "进行中", progress - 33)
+                self.stock_task_view.update_progress(progress)
+            
+            if not self.is_updating:
+                return
+            
+            # 更新Bonus
+            self.stock_task_view.update_task_status("Financial更新", "完成", 100)
+            self.stock_task_view.update_task_status("Bonus更新", "进行中", 0)
+            for i in range(1, 34):
+                if not self.is_updating:
+                    break
+                time.sleep(0.1)
+                progress = 66 + i
+                self.stock_task_view.update_task_status("Bonus更新", "进行中", progress - 66)
+                self.stock_task_view.update_progress(progress)
+            
+            if self.is_updating:
+                # 更新完成
+                self.stock_task_view.update_task_status("Bonus更新", "完成", 100)
+                self.stock_task_view.update_progress(100)
+                self.stock_task_view.update_overall_status("更新完成")
+                # 更新最近更新日期
+                from datetime import datetime
+                current_date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                self.stock_task_view.update_last_update_date(current_date)
+        finally:
+            self.is_updating = False
+            self.stock_task_view.set_button_states(True, False)
+
     def on_stock_select(self, row):
         """
         处理股票选择事件
