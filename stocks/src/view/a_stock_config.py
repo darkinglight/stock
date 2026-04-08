@@ -9,18 +9,18 @@ class StockConfigView(toga.Box):
     DEFAULT_CONFIG = {
         'page_size': 20,
         'max_debt_ratio': 30.0,
-        'min_pe': None,
-        'max_pe': None,
-        'min_pb': None,
-        'max_pb': None,
-        'min_roe': None,
-        'max_roe': None,
-        'min_bonus_rate': None,
-        'max_bonus_rate': None,
-        'min_roe_stability': None,
-        'max_roe_stability': None,
-        'min_roe_trend': None,
-        'max_roe_trend': None,
+        'min_pe': 0,
+        'max_pe': 100,
+        'min_pb': 0,
+        'max_pb': 10,
+        'min_roe': 0,
+        'max_roe': 100,
+        'min_bonus_rate': 0,
+        'max_bonus_rate': 100,
+        'min_roe_stability': 0,
+        'max_roe_stability': 100,
+        'min_roe_trend': -100,
+        'max_roe_trend': 100,
         'sort_by': 'growth',
         'sort_order': 'desc'
     }
@@ -40,92 +40,113 @@ class StockConfigView(toga.Box):
         # 创建内容容器
         content_box = toga.Box(style=Pack(direction=COLUMN, margin=10))
         
+        # 每页显示数量
         page_size_label = toga.Label("每页显示数量:", style=Pack(margin_bottom=5))
         self.page_size_input = toga.NumberInput(value=self._config['page_size'], style=Pack(margin_bottom=15))
+        content_box.add(page_size_label)
+        content_box.add(self.page_size_input)
         
+        # 最大资产负债率
         max_debt_label = toga.Label("最大资产负债率(%):", style=Pack(margin_bottom=5))
         self.max_debt_input = toga.NumberInput(value=self._config['max_debt_ratio'], style=Pack(margin_bottom=15))
+        content_box.add(max_debt_label)
+        content_box.add(self.max_debt_input)
         
-        min_pe_label = toga.Label("最小市盈率:", style=Pack(margin_bottom=5))
-        self.min_pe_input = toga.NumberInput(value=self._config['min_pe'] or 0, style=Pack(margin_bottom=15))
+        # 市盈率范围
+        pe_label = toga.Label("市盈率范围:", style=Pack(margin_bottom=5))
+        pe_box = toga.Box(style=Pack(direction=ROW, margin_bottom=15, alignment="center"))
+        self.min_pe_input = toga.NumberInput(value=self._config['min_pe'], style=Pack(width=80))
+        pe_box.add(self.min_pe_input)
+        pe_box.add(toga.Label(" < ", style=Pack(margin_left=5, margin_right=5)))
+        pe_box.add(toga.Label("PE", style=Pack(margin_right=5)))
+        pe_box.add(toga.Label(" < ", style=Pack(margin_right=5)))
+        self.max_pe_input = toga.NumberInput(value=self._config['max_pe'], style=Pack(width=80))
+        pe_box.add(self.max_pe_input)
+        content_box.add(pe_label)
+        content_box.add(pe_box)
         
-        max_pe_label = toga.Label("最大市盈率:", style=Pack(margin_bottom=5))
-        self.max_pe_input = toga.NumberInput(value=self._config['max_pe'] or 100, style=Pack(margin_bottom=15))
+        # 市净率范围
+        pb_label = toga.Label("市净率范围:", style=Pack(margin_bottom=5))
+        pb_box = toga.Box(style=Pack(direction=ROW, margin_bottom=15, alignment="center"))
+        self.min_pb_input = toga.NumberInput(value=self._config['min_pb'], style=Pack(width=80))
+        pb_box.add(self.min_pb_input)
+        pb_box.add(toga.Label(" < ", style=Pack(margin_left=5, margin_right=5)))
+        pb_box.add(toga.Label("PB", style=Pack(margin_right=5)))
+        pb_box.add(toga.Label(" < ", style=Pack(margin_right=5)))
+        self.max_pb_input = toga.NumberInput(value=self._config['max_pb'], style=Pack(width=80))
+        pb_box.add(self.max_pb_input)
+        content_box.add(pb_label)
+        content_box.add(pb_box)
         
-        min_pb_label = toga.Label("最小市净率:", style=Pack(margin_bottom=5))
-        self.min_pb_input = toga.NumberInput(value=self._config['min_pb'] or 0, style=Pack(margin_bottom=15))
+        # ROE范围
+        roe_label = toga.Label("ROE范围(%):", style=Pack(margin_bottom=5))
+        roe_box = toga.Box(style=Pack(direction=ROW, margin_bottom=15, alignment="center"))
+        self.min_roe_input = toga.NumberInput(value=self._config['min_roe'], style=Pack(width=80))
+        roe_box.add(self.min_roe_input)
+        roe_box.add(toga.Label(" < ", style=Pack(margin_left=5, margin_right=5)))
+        roe_box.add(toga.Label("ROE", style=Pack(margin_right=5)))
+        roe_box.add(toga.Label(" < ", style=Pack(margin_right=5)))
+        self.max_roe_input = toga.NumberInput(value=self._config['max_roe'], style=Pack(width=80))
+        roe_box.add(self.max_roe_input)
+        content_box.add(roe_label)
+        content_box.add(roe_box)
         
-        max_pb_label = toga.Label("最大市净率:", style=Pack(margin_bottom=5))
-        self.max_pb_input = toga.NumberInput(value=self._config['max_pb'] or 10, style=Pack(margin_bottom=15))
+        # 分红率范围
+        bonus_label = toga.Label("分红率范围(%):", style=Pack(margin_bottom=5))
+        bonus_box = toga.Box(style=Pack(direction=ROW, margin_bottom=15, alignment="center"))
+        self.min_bonus_input = toga.NumberInput(value=self._config['min_bonus_rate'], style=Pack(width=80))
+        bonus_box.add(self.min_bonus_input)
+        bonus_box.add(toga.Label(" < ", style=Pack(margin_left=5, margin_right=5)))
+        bonus_box.add(toga.Label("分红率", style=Pack(margin_right=5)))
+        bonus_box.add(toga.Label(" < ", style=Pack(margin_right=5)))
+        self.max_bonus_input = toga.NumberInput(value=self._config['max_bonus_rate'], style=Pack(width=80))
+        bonus_box.add(self.max_bonus_input)
+        content_box.add(bonus_label)
+        content_box.add(bonus_box)
         
-        min_roe_label = toga.Label("最小ROE(%):", style=Pack(margin_bottom=5))
-        self.min_roe_input = toga.NumberInput(value=self._config['min_roe'] or 0, style=Pack(margin_bottom=15))
+        # ROE稳定性范围
+        roe_stability_label = toga.Label("ROE稳定性范围:", style=Pack(margin_bottom=5))
+        roe_stability_box = toga.Box(style=Pack(direction=ROW, margin_bottom=15, alignment="center"))
+        self.min_roe_stability_input = toga.NumberInput(value=self._config['min_roe_stability'], style=Pack(width=80))
+        roe_stability_box.add(self.min_roe_stability_input)
+        roe_stability_box.add(toga.Label(" < ", style=Pack(margin_left=5, margin_right=5)))
+        roe_stability_box.add(toga.Label("稳定性", style=Pack(margin_right=5)))
+        roe_stability_box.add(toga.Label(" < ", style=Pack(margin_right=5)))
+        self.max_roe_stability_input = toga.NumberInput(value=self._config['max_roe_stability'], style=Pack(width=80))
+        roe_stability_box.add(self.max_roe_stability_input)
+        content_box.add(roe_stability_label)
+        content_box.add(roe_stability_box)
         
-        max_roe_label = toga.Label("最大ROE(%):", style=Pack(margin_bottom=5))
-        self.max_roe_input = toga.NumberInput(value=self._config['max_roe'] or 100, style=Pack(margin_bottom=15))
+        # ROE趋势范围
+        roe_trend_label = toga.Label("ROE趋势范围:", style=Pack(margin_bottom=5))
+        roe_trend_box = toga.Box(style=Pack(direction=ROW, margin_bottom=15, alignment="center"))
+        self.min_roe_trend_input = toga.NumberInput(value=self._config['min_roe_trend'], style=Pack(width=80))
+        roe_trend_box.add(self.min_roe_trend_input)
+        roe_trend_box.add(toga.Label(" < ", style=Pack(margin_left=5, margin_right=5)))
+        roe_trend_box.add(toga.Label("趋势", style=Pack(margin_right=5)))
+        roe_trend_box.add(toga.Label(" < ", style=Pack(margin_right=5)))
+        self.max_roe_trend_input = toga.NumberInput(value=self._config['max_roe_trend'], style=Pack(width=80))
+        roe_trend_box.add(self.max_roe_trend_input)
+        content_box.add(roe_trend_label)
+        content_box.add(roe_trend_box)
         
-        min_bonus_label = toga.Label("最小分红率(%):", style=Pack(margin_bottom=5))
-        self.min_bonus_input = toga.NumberInput(value=self._config['min_bonus_rate'] or 0, style=Pack(margin_bottom=15))
-        
-        max_bonus_label = toga.Label("最大分红率(%):", style=Pack(margin_bottom=5))
-        self.max_bonus_input = toga.NumberInput(value=self._config['max_bonus_rate'] or 100, style=Pack(margin_bottom=15))
-        
-        min_roe_stability_label = toga.Label("最小ROE稳定性:", style=Pack(margin_bottom=5))
-        self.min_roe_stability_input = toga.NumberInput(value=self._config['min_roe_stability'] or 0, style=Pack(margin_bottom=15))
-        
-        max_roe_stability_label = toga.Label("最大ROE稳定性:", style=Pack(margin_bottom=5))
-        self.max_roe_stability_input = toga.NumberInput(value=self._config['max_roe_stability'] or 10, style=Pack(margin_bottom=15))
-        
-        min_roe_trend_label = toga.Label("最小ROE趋势:", style=Pack(margin_bottom=5))
-        self.min_roe_trend_input = toga.NumberInput(value=self._config['min_roe_trend'] or 0, style=Pack(margin_bottom=15))
-        
-        max_roe_trend_label = toga.Label("最大ROE趋势:", style=Pack(margin_bottom=5))
-        self.max_roe_trend_input = toga.NumberInput(value=self._config['max_roe_trend'] or 10, style=Pack(margin_bottom=15))
-        
+        # 排序字段
         sort_by_label = toga.Label("排序字段:", style=Pack(margin_bottom=5))
         self.sort_by_selection = toga.Selection(
             items=['growth', 'pe', 'pb', 'roe', 'bonus_rate', 'assets_debt_ratio', 'roe_stability', 'roe_trend', 'growth / pb', 'growth / pe'],
             value=self._config['sort_by'],
             style=Pack(margin_bottom=15)
         )
+        content_box.add(sort_by_label)
+        content_box.add(self.sort_by_selection)
         
+        # 排序顺序
         sort_order_label = toga.Label("排序顺序:", style=Pack(margin_bottom=5))
         self.sort_order_selection = toga.Selection(
             items=['desc', 'asc'],
             value=self._config['sort_order'],
             style=Pack(margin_bottom=20)
         )
-        
-        content_box.add(page_size_label)
-        content_box.add(self.page_size_input)
-        content_box.add(max_debt_label)
-        content_box.add(self.max_debt_input)
-        content_box.add(min_pe_label)
-        content_box.add(self.min_pe_input)
-        content_box.add(max_pe_label)
-        content_box.add(self.max_pe_input)
-        content_box.add(min_pb_label)
-        content_box.add(self.min_pb_input)
-        content_box.add(max_pb_label)
-        content_box.add(self.max_pb_input)
-        content_box.add(min_roe_label)
-        content_box.add(self.min_roe_input)
-        content_box.add(max_roe_label)
-        content_box.add(self.max_roe_input)
-        content_box.add(min_bonus_label)
-        content_box.add(self.min_bonus_input)
-        content_box.add(max_bonus_label)
-        content_box.add(self.max_bonus_input)
-        content_box.add(min_roe_stability_label)
-        content_box.add(self.min_roe_stability_input)
-        content_box.add(max_roe_stability_label)
-        content_box.add(self.max_roe_stability_input)
-        content_box.add(min_roe_trend_label)
-        content_box.add(self.min_roe_trend_input)
-        content_box.add(max_roe_trend_label)
-        content_box.add(self.max_roe_trend_input)
-        content_box.add(sort_by_label)
-        content_box.add(self.sort_by_selection)
         content_box.add(sort_order_label)
         content_box.add(self.sort_order_selection)
         
@@ -139,18 +160,18 @@ class StockConfigView(toga.Box):
     def _on_save(self, widget):
         self._config['page_size'] = int(self.page_size_input.value)
         self._config['max_debt_ratio'] = float(self.max_debt_input.value)
-        self._config['min_pe'] = float(self.min_pe_input.value) if self.min_pe_input.value > 0 else None
-        self._config['max_pe'] = float(self.max_pe_input.value) if self.max_pe_input.value < 100 else None
-        self._config['min_pb'] = float(self.min_pb_input.value) if self.min_pb_input.value > 0 else None
-        self._config['max_pb'] = float(self.max_pb_input.value) if self.max_pb_input.value < 10 else None
-        self._config['min_roe'] = float(self.min_roe_input.value) if self.min_roe_input.value > 0 else None
-        self._config['max_roe'] = float(self.max_roe_input.value) if self.max_roe_input.value < 100 else None
-        self._config['min_bonus_rate'] = float(self.min_bonus_input.value) if self.min_bonus_input.value > 0 else None
-        self._config['max_bonus_rate'] = float(self.max_bonus_input.value) if self.max_bonus_input.value < 100 else None
-        self._config['min_roe_stability'] = float(self.min_roe_stability_input.value) if self.min_roe_stability_input.value > 0 else None
-        self._config['max_roe_stability'] = float(self.max_roe_stability_input.value) if self.max_roe_stability_input.value < 10 else None
-        self._config['min_roe_trend'] = float(self.min_roe_trend_input.value) if self.min_roe_trend_input.value > 0 else None
-        self._config['max_roe_trend'] = float(self.max_roe_trend_input.value) if self.max_roe_trend_input.value < 10 else None
+        self._config['min_pe'] = float(self.min_pe_input.value)
+        self._config['max_pe'] = float(self.max_pe_input.value)
+        self._config['min_pb'] = float(self.min_pb_input.value)
+        self._config['max_pb'] = float(self.max_pb_input.value)
+        self._config['min_roe'] = float(self.min_roe_input.value)
+        self._config['max_roe'] = float(self.max_roe_input.value)
+        self._config['min_bonus_rate'] = float(self.min_bonus_input.value)
+        self._config['max_bonus_rate'] = float(self.max_bonus_input.value)
+        self._config['min_roe_stability'] = float(self.min_roe_stability_input.value)
+        self._config['max_roe_stability'] = float(self.max_roe_stability_input.value)
+        self._config['min_roe_trend'] = float(self.min_roe_trend_input.value)
+        self._config['max_roe_trend'] = float(self.max_roe_trend_input.value)
         self._config['sort_by'] = self.sort_by_selection.value
         self._config['sort_order'] = self.sort_order_selection.value
         
