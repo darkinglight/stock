@@ -14,15 +14,19 @@ class ConfigService:
     DEFAULT_STOCK_CONFIG = {
         'page_size': 20,
         'max_debt_ratio': 30.0,
-        'min_pe': None,
-        'max_pe': None,
-        'min_pb': None,
-        'max_pb': None,
-        'min_roe': None,
-        'max_roe': None,
-        'min_bonus_rate': None,
-        'max_bonus_rate': None,
-        'sort_by': 'growth',
+        'min_pe': 3,
+        'max_pe': 20,
+        'min_pb': 0.5,
+        'max_pb': 5,
+        'min_roe': 5,
+        'max_roe': 30,
+        'min_roe_stability': 50,
+        'max_roe_stability': 100,
+        'min_roe_trend': -100,
+        'max_roe_trend': 100,
+        'min_bonus_rate': 10,
+        'max_bonus_rate': 100,
+        'sort_by': 'growth / pb',
         'sort_order': 'desc'
     }
 
