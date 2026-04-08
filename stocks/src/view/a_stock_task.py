@@ -11,17 +11,17 @@ class StockTaskView(toga.Box):
         self._on_start_update_handler = on_start_update
         self._on_pause_update_handler = on_pause_update
         
-        super().__init__(style=Pack(flex=1, direction=COLUMN, padding=10))
+        super().__init__(style=Pack(flex=1, direction=COLUMN, margin=10))
 
         # 创建标题
         self.title = toga.Label(
             "任务管理", 
-            style=Pack(font_size=18, font_weight='bold', padding_bottom=10)
+            style=Pack(font_size=18, font_weight='bold', margin_bottom=10)
         )
         self.add(self.title)
 
         # 创建最近更新日期区域
-        self.update_date_box = toga.Box(style=Pack(direction=ROW, padding=5))
+        self.update_date_box = toga.Box(style=Pack(direction=ROW, margin=5))
         self.update_date_label = toga.Label("最近更新日期:", style=Pack(width=120))
         self.update_date_value = toga.Label("未更新", style=Pack(flex=1))
         self.update_date_box.add(self.update_date_label)
@@ -29,7 +29,7 @@ class StockTaskView(toga.Box):
         self.add(self.update_date_box)
 
         # 创建任务状态区域
-        self.status_box = toga.Box(style=Pack(direction=ROW, padding=5))
+        self.status_box = toga.Box(style=Pack(direction=ROW, margin=5))
         self.status_label = toga.Label("任务状态:", style=Pack(width=120))
         self.status_value = toga.Label("就绪", style=Pack(flex=1))
         self.status_box.add(self.status_label)
@@ -37,8 +37,8 @@ class StockTaskView(toga.Box):
         self.add(self.status_box)
 
         # 创建进度条区域
-        self.progress_box = toga.Box(style=Pack(direction=COLUMN, padding=5))
-        self.progress_label = toga.Label("更新进度:", style=Pack(padding_bottom=5))
+        self.progress_box = toga.Box(style=Pack(direction=COLUMN, margin=5))
+        self.progress_label = toga.Label("更新进度:", style=Pack(margin_bottom=5))
         self.progress_bar = toga.ProgressBar(max=100, value=0, style=Pack(height=20, margin_bottom=5))
         self.progress_text = toga.Label("0%", style=Pack(text_align=RIGHT))
         self.progress_box.add(self.progress_label)
@@ -47,7 +47,7 @@ class StockTaskView(toga.Box):
         self.add(self.progress_box)
 
         # 创建按钮区域
-        self.button_box = toga.Box(style=Pack(direction=ROW, padding=5, alignment=CENTER))
+        self.button_box = toga.Box(style=Pack(direction=ROW, margin=5, align_items=CENTER))
         self.start_button = toga.Button(
             "开始更新", 
             on_press=self._on_start_update, 
@@ -64,8 +64,8 @@ class StockTaskView(toga.Box):
         self.add(self.button_box)
 
         # 创建任务列表区域
-        self.task_list_box = toga.Box(style=Pack(direction=COLUMN, padding=5, flex=1))
-        self.task_list_label = toga.Label("任务列表:", style=Pack(padding_bottom=5))
+        self.task_list_box = toga.Box(style=Pack(direction=COLUMN, margin=5, flex=1))
+        self.task_list_label = toga.Label("任务列表:", style=Pack(margin_bottom=5))
         self.task_list = toga.Table(
             headings=["任务名称", "状态", "进度"],
             accessors=["name", "status", "progress"],
