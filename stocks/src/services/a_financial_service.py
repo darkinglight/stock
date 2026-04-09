@@ -57,24 +57,6 @@ class AFinancialService:
         # 初始化AStockService实例
         self.stock_service = AStockService()
     
-    def __enter__(self):
-        """
-        上下文管理器入口
-        :return: 当前实例
-        """
-        return self
-    
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        """
-        上下文管理器出口
-        :param exc_type: 异常类型
-        :param exc_val: 异常值
-        :param exc_tb: 异常追踪
-        """
-        pass
-    
-
-    
     def drop_financial_table(self):
         """
         删除financial表
@@ -295,11 +277,12 @@ class AFinancialService:
             print(f"保存股票 {code} 财务数据时出错: {e}")
         return None
     
-    def batch_save_financial_data(self, stock_codes_to_update, progress_callback: Optional[Callable[[int, int, str], None]] = None):
+    def batch_save_financial_data(self, stock_codes_to_update, progress_callback: Optional[Callable[[int, int, str], None]] = None, should_stop: Optional[Callable[[], bool]] = None):
         """
         批量保存财务数据
         :param stock_codes_to_update: 需要更新的股票代码列表
         :param progress_callback: 进度回调函数，参数为(当前进度, 总数, 阶段名称)
+        :param should_stop: 停止检查回调函数，返回True表示应该停止
         :return: 成功获取财务数据的股票代码和报告列表
         """
         successful_stocks = []
@@ -308,6 +291,11 @@ class AFinancialService:
         print(f"开始批量保存财务数据，共 {total_stocks} 只股票")
         
         for i, code in enumerate(stock_codes_to_update):
+            # 检查是否应该停止
+            if should_stop and should_stop():
+                print("批量保存财务数据被用户中断")
+                break
+            
             result = self._process_single_stock(code)
             if result:
                 successful_stocks.append(result)
@@ -318,11 +306,12 @@ class AFinancialService:
         print(f"财务数据保存完成，共成功保存 {len(successful_stocks)} 只股票")
         return successful_stocks
     
-    def batch_update_stock_data(self, successful_stocks, progress_callback: Optional[Callable[[int, int, str], None]] = None):
+    def batch_update_stock_data(self, successful_stocks, progress_callback: Optional[Callable[[int, int, str], None]] = None, should_stop: Optional[Callable[[], bool]] = None):
         """
         批量更新股票数据
         :param successful_stocks: 成功获取财务数据的股票代码和报告列表
         :param progress_callback: 进度回调函数，参数为(当前进度, 总数, 阶段名称)
+        :param should_stop: 停止检查回调函数，返回True表示应该停止
         :return: 更新成功的股票数量
         """
         updated_count = 0
@@ -331,6 +320,11 @@ class AFinancialService:
         print(f"开始批量更新股票数据，共 {total_stocks} 只股票")
         
         for i, (code, reports) in enumerate(successful_stocks):
+            # 检查是否应该停止
+            if should_stop and should_stop():
+                print("批量更新股票数据被用户中断")
+                break
+            
             try:
                 self._update_stock_data(code, reports)
                 updated_count += 1
@@ -342,11 +336,12 @@ class AFinancialService:
         
         return updated_count
     
-    def refresh_financial_data(self, progress_callback: Optional[Callable[[int, int, str], None]] = None) -> int:
+    def refresh_financial_data(self, progress_callback: Optional[Callable[[int, int, str], None]] = None, should_stop: Optional[Callable[[], bool]] = None) -> int:
         """
         刷新财务数据，包括ROE、季度ROE和每股净资产
         支持中断续更，剔除今天已经更新过的股票
         :param progress_callback: 进度回调函数，参数为(当前进度, 总数, 阶段名称)
+        :param should_stop: 停止检查回调函数，返回True表示应该停止
         :return: 更新的股票数量
         """
         try:
@@ -367,9 +362,14 @@ class AFinancialService:
             
             print(f"共需要更新 {total_stocks} 只股票的财务数据")
             
-            successful_stocks = self.batch_save_financial_data(stock_codes_to_update, progress_callback)
+            successful_stocks = self.batch_save_financial_data(stock_codes_to_update, progress_callback, should_stop)
             
-            updated_count = self.batch_update_stock_data(successful_stocks, progress_callback)
+            # 检查是否应该停止
+            if should_stop and should_stop():
+                print("财务数据刷新被用户中断")
+                return 0
+            
+            updated_count = self.batch_update_stock_data(successful_stocks, progress_callback, should_stop)
             
             print(f"财务数据刷新完成，共更新 {updated_count} 只股票")
             return updated_count

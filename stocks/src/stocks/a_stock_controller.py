@@ -176,7 +176,7 @@ class AStockController:
         self.stock_task_view.set_task_running(task_name, False)
         self.stock_task_view.update_task_status(task_name, "已暂停", 0)
 
-    def _update_ui_safe(self, task_name: str, status: str, progress: int):
+    def _update_ui_safe(self, task_name: str, status: str, progress: float):
         """线程安全地更新UI"""
         if self.stock_task_view:
             self.stock_task_view.update_task_status(task_name, status, progress)
@@ -191,7 +191,7 @@ class AStockController:
         def callback(current: int, total: int, phase: str = ""):
             if not self.task_running.get(task_name, False):
                 return
-            progress = int(current / total * 100) if total > 0 else 0
+            progress = round(current / total * 100, 2) if total > 0 else 0
             status = f"{phase}" if phase else "进行中"
             if self._loop:
                 self._loop.call_soon_threadsafe(self._update_ui_safe, task_name, status, progress)
@@ -201,11 +201,13 @@ class AStockController:
         """执行单个任务更新"""
         try:
             progress_callback = self._create_progress_callback(task_name)
+            # 创建停止检查回调
+            should_stop = lambda: not self.task_running.get(task_name, False)
             
             if task_name == "Stock刷新":
                 self.service.refresh_stocks(progress_callback)
             elif task_name == "Financial更新":
-                self.financial_service.refresh_financial_data(progress_callback)
+                self.financial_service.refresh_financial_data(progress_callback, should_stop)
             elif task_name == "Bonus更新":
                 self.bonus_service.refresh_all(progress_callback)
             

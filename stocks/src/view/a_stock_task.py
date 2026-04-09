@@ -56,9 +56,9 @@ class TaskRow(toga.Box):
         if self._on_pause_handler:
             self._on_pause_handler(self.task_name)
 
-    def update_status(self, status: str, progress: int):
+    def update_status(self, status: str, progress: float):
         self.status_label.text = status
-        self.progress_label.text = f"{progress}%"
+        self.progress_label.text = f"{progress:.2f}%"
 
     def set_running(self, running: bool):
         self._is_running = running
@@ -110,7 +110,7 @@ class StockTaskView(toga.Box):
         if self._on_pause_update_handler:
             self._on_pause_update_handler(task_name)
 
-    def update_task_status(self, task_name: str, status: str, progress: int):
+    def update_task_status(self, task_name: str, status: str, progress: float):
         if task_name in self.task_rows:
             self.task_rows[task_name].update_status(status, progress)
 
