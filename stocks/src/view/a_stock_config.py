@@ -180,17 +180,3 @@ class StockConfigView(toga.Box):
         
         if self._on_back_handler:
             self._on_back_handler()
-
-    def _on_cancel(self, widget):
-        if self._on_back_handler:
-            self._on_back_handler()
-
-    def _on_back(self, widget):
-        if self._on_back_handler:
-            self._on_back_handler()
-
-    def get_config(self):
-        return self._config.copy()
-
-    def set_config(self, config):
-        self._config.update(config)

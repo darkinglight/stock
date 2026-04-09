@@ -1,115 +1,128 @@
-from typing import Optional, Callable
+from typing import Optional, Callable, Dict
 
 import toga
 from toga.style import Pack
-from toga.style.pack import COLUMN, ROW, CENTER, RIGHT
+from toga.style.pack import COLUMN, ROW, CENTER
+
+
+class TaskRow(toga.Box):
+    """单个任务行，包含名称、状态、进度和控制按钮"""
+
+    def __init__(
+        self,
+        task_name: str,
+        on_start: Optional[Callable] = None,
+        on_pause: Optional[Callable] = None,
+    ):
+        super().__init__(style=Pack(direction=ROW, margin=5, alignment=CENTER))
+
+        self.task_name = task_name
+        self._on_start_handler = on_start
+        self._on_pause_handler = on_pause
+        self._is_running = False
+
+        self.name_label = toga.Label(
+            task_name, style=Pack(width=120, font_weight="bold")
+        )
+
+        self.status_label = toga.Label("就绪", style=Pack(width=80))
+
+        self.progress_label = toga.Label("0%", style=Pack(width=60))
+
+        self.start_button = toga.Button(
+            "开始",
+            on_press=self._on_start,
+            style=Pack(width=80, margin_left=10),
+        )
+
+        self.pause_button = toga.Button(
+            "暂停",
+            on_press=self._on_pause,
+            style=Pack(width=80, margin_left=5),
+            enabled=False,
+        )
+
+        self.add(self.name_label)
+        self.add(self.status_label)
+        self.add(self.progress_label)
+        self.add(self.start_button)
+        self.add(self.pause_button)
+
+    def _on_start(self, widget):
+        if self._on_start_handler:
+            self._on_start_handler(self.task_name)
+
+    def _on_pause(self, widget):
+        if self._on_pause_handler:
+            self._on_pause_handler(self.task_name)
+
+    def update_status(self, status: str, progress: int):
+        self.status_label.text = status
+        self.progress_label.text = f"{progress}%"
+
+    def set_running(self, running: bool):
+        self._is_running = running
+        self.start_button.enabled = not running
+        self.pause_button.enabled = running
 
 
 class StockTaskView(toga.Box):
 
-    def __init__(self, on_start_update: Optional[Callable] = None, on_pause_update: Optional[Callable] = None):
+    def __init__(
+        self,
+        on_start_update: Optional[Callable] = None,
+        on_pause_update: Optional[Callable] = None,
+    ):
         self._on_start_update_handler = on_start_update
         self._on_pause_update_handler = on_pause_update
-        
+
         super().__init__(style=Pack(flex=1, direction=COLUMN, margin=10))
 
-        # 创建标题
         self.title = toga.Label(
-            "任务管理", 
-            style=Pack(font_size=18, font_weight='bold', margin_bottom=10)
+            "任务管理", style=Pack(font_size=18, font_weight="bold", margin_bottom=10)
         )
         self.add(self.title)
 
-        # 创建最近更新日期区域
-        self.update_date_box = toga.Box(style=Pack(direction=ROW, margin=5))
-        self.update_date_label = toga.Label("最近更新日期:", style=Pack(width=120))
-        self.update_date_value = toga.Label("未更新", style=Pack(flex=1))
-        self.update_date_box.add(self.update_date_label)
-        self.update_date_box.add(self.update_date_value)
-        self.add(self.update_date_box)
+        header_box = toga.Box(style=Pack(direction=ROW, margin=5, alignment=CENTER))
+        header_box.add(toga.Label("任务名称", style=Pack(width=120, font_weight="bold")))
+        header_box.add(toga.Label("状态", style=Pack(width=80, font_weight="bold")))
+        header_box.add(toga.Label("进度", style=Pack(width=60, font_weight="bold")))
+        header_box.add(toga.Label("", style=Pack(width=170)))
+        self.add(header_box)
 
-        # 创建任务状态区域
-        self.status_box = toga.Box(style=Pack(direction=ROW, margin=5))
-        self.status_label = toga.Label("任务状态:", style=Pack(width=120))
-        self.status_value = toga.Label("就绪", style=Pack(flex=1))
-        self.status_box.add(self.status_label)
-        self.status_box.add(self.status_value)
-        self.add(self.status_box)
+        self.task_rows: Dict[str, TaskRow] = {}
+        tasks = ["Stock刷新", "Financial更新", "Bonus更新"]
 
-        # 创建进度条区域
-        self.progress_box = toga.Box(style=Pack(direction=COLUMN, margin=5))
-        self.progress_label = toga.Label("更新进度:", style=Pack(margin_bottom=5))
-        self.progress_bar = toga.ProgressBar(max=100, value=0, style=Pack(height=20, margin_bottom=5))
-        self.progress_text = toga.Label("0%", style=Pack(text_align=RIGHT))
-        self.progress_box.add(self.progress_label)
-        self.progress_box.add(self.progress_bar)
-        self.progress_box.add(self.progress_text)
-        self.add(self.progress_box)
+        for task_name in tasks:
+            row = TaskRow(
+                task_name=task_name,
+                on_start=self._on_task_start,
+                on_pause=self._on_task_pause,
+            )
+            self.task_rows[task_name] = row
+            self.add(row)
 
-        # 创建按钮区域
-        self.button_box = toga.Box(style=Pack(direction=ROW, margin=5, align_items=CENTER))
-        self.start_button = toga.Button(
-            "开始更新", 
-            on_press=self._on_start_update, 
-            style=Pack(width=100, margin_right=10)
-        )
-        self.pause_button = toga.Button(
-            "暂停更新", 
-            on_press=self._on_pause_update, 
-            style=Pack(width=100),
-            enabled=False
-        )
-        self.button_box.add(self.start_button)
-        self.button_box.add(self.pause_button)
-        self.add(self.button_box)
-
-        # 创建任务列表区域
-        self.task_list_box = toga.Box(style=Pack(direction=COLUMN, margin=5, flex=1))
-        self.task_list_label = toga.Label("任务列表:", style=Pack(margin_bottom=5))
-        self.task_list = toga.Table(
-            headings=["任务名称", "状态", "进度"],
-            accessors=["name", "status", "progress"],
-            data=[
-                ("Stock刷新", "就绪", "0%"),
-                ("Financial更新", "就绪", "0%"),
-                ("Bonus更新", "就绪", "0%"),
-            ],
-            style=Pack(flex=1)
-        )
-        self.task_list_box.add(self.task_list_label)
-        self.task_list_box.add(self.task_list)
-        self.add(self.task_list_box)
-
-    def _on_start_update(self, widget):
+    def _on_task_start(self, task_name: str):
         if self._on_start_update_handler:
-            self._on_start_update_handler()
+            self._on_start_update_handler(task_name)
 
-    def _on_pause_update(self, widget):
+    def _on_task_pause(self, task_name: str):
         if self._on_pause_update_handler:
-            self._on_pause_update_handler()
+            self._on_pause_update_handler(task_name)
 
-    def update_task_status(self, task_name, status, progress):
-        """更新任务状态"""
-        for i, row in enumerate(self.task_list.data):
-            if row[0] == task_name:
-                new_row = (task_name, status, f"{progress}%")
-                self.task_list.data[i] = new_row
-                break
+    def update_task_status(self, task_name: str, status: str, progress: int):
+        if task_name in self.task_rows:
+            self.task_rows[task_name].update_status(status, progress)
 
-    def update_overall_status(self, status):
-        """更新整体状态"""
-        self.status_value.text = status
+    def update_overall_status(self, status: str):
+        pass
 
-    def update_progress(self, value):
-        """更新进度条"""
-        self.progress_bar.value = value
-        self.progress_text.text = f"{value}%"
+    def update_progress(self, value: int):
+        pass
 
-    def update_last_update_date(self, date_str):
-        """更新最近更新日期"""
-        self.update_date_value.text = date_str
+    def set_button_states(self, start_enabled: bool, pause_enabled: bool):
+        pass
 
-    def set_button_states(self, start_enabled, pause_enabled):
-        """设置按钮状态"""
-        self.start_button.enabled = start_enabled
-        self.pause_button.enabled = pause_enabled
+    def set_task_running(self, task_name: str, running: bool):
+        if task_name in self.task_rows:
+            self.task_rows[task_name].set_running(running)

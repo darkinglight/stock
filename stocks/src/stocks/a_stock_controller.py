@@ -1,3 +1,6 @@
+import threading
+import time
+
 import toga
 from services.a_stock_service import AStockService
 from services.a_bonus_service import ABonusService
@@ -22,8 +25,8 @@ class AStockController:
         self.financial_service = AFinancialService()
         self.config_service = ConfigService()
         self._config = self.config_service.load_stock_list_config()
-        self.is_updating = False
-        self.update_thread = None
+        self.task_threads = {}
+        self.task_running = {}
 
     def initialize_stock_list(self):
         stocks_data = self.get_stocks_data(self._config)
@@ -149,85 +152,42 @@ class AStockController:
         )
         return [cmd_back]
 
-    def on_start_update(self, widget=None):
-        """开始更新任务"""
-        if self.is_updating:
+    def on_start_update(self, task_name: str):
+        """开始更新指定任务"""
+        if self.task_running.get(task_name, False):
             return
-        
-        self.is_updating = True
-        self.stock_task_view.set_button_states(False, True)
-        self.stock_task_view.update_overall_status("更新中")
-        
-        # 启动更新线程
-        import threading
-        self.update_thread = threading.Thread(target=self._perform_update)
-        self.update_thread.daemon = True
-        self.update_thread.start()
 
-    def on_pause_update(self, widget=None):
-        """暂停更新任务"""
-        self.is_updating = False
-        if self.update_thread:
-            self.update_thread.join(timeout=1)
-        self.stock_task_view.set_button_states(True, False)
-        self.stock_task_view.update_overall_status("已暂停")
+        self.task_running[task_name] = True
+        self.stock_task_view.set_task_running(task_name, True)
+        self.stock_task_view.update_task_status(task_name, "进行中", 0)
 
-    def _perform_update(self):
-        """执行更新任务"""
+        thread = threading.Thread(target=self._perform_task_update, args=(task_name,))
+        thread.daemon = True
+        thread.start()
+        self.task_threads[task_name] = thread
+
+    def on_pause_update(self, task_name: str):
+        """暂停更新指定任务"""
+        self.task_running[task_name] = False
+        if task_name in self.task_threads:
+            self.task_threads[task_name].join(timeout=1)
+        self.stock_task_view.set_task_running(task_name, False)
+        self.stock_task_view.update_task_status(task_name, "已暂停", 0)
+
+    def _perform_task_update(self, task_name: str):
+        """执行单个任务更新"""
         try:
-            # 更新Stock
-            self.stock_task_view.update_task_status("Stock刷新", "进行中", 0)
-            self.stock_task_view.update_progress(0)
-            # 模拟Stock更新过程
-            import time
-            for i in range(1, 34):
-                if not self.is_updating:
-                    break
-                time.sleep(0.1)
-                progress = i
-                self.stock_task_view.update_task_status("Stock刷新", "进行中", progress)
-                self.stock_task_view.update_progress(progress)
-            
-            if not self.is_updating:
-                return
-            
-            # 更新Financial
-            self.stock_task_view.update_task_status("Stock刷新", "完成", 100)
-            self.stock_task_view.update_task_status("Financial更新", "进行中", 0)
-            for i in range(1, 34):
-                if not self.is_updating:
-                    break
-                time.sleep(0.1)
-                progress = 33 + i
-                self.stock_task_view.update_task_status("Financial更新", "进行中", progress - 33)
-                self.stock_task_view.update_progress(progress)
-            
-            if not self.is_updating:
-                return
-            
-            # 更新Bonus
-            self.stock_task_view.update_task_status("Financial更新", "完成", 100)
-            self.stock_task_view.update_task_status("Bonus更新", "进行中", 0)
-            for i in range(1, 34):
-                if not self.is_updating:
-                    break
-                time.sleep(0.1)
-                progress = 66 + i
-                self.stock_task_view.update_task_status("Bonus更新", "进行中", progress - 66)
-                self.stock_task_view.update_progress(progress)
-            
-            if self.is_updating:
-                # 更新完成
-                self.stock_task_view.update_task_status("Bonus更新", "完成", 100)
-                self.stock_task_view.update_progress(100)
-                self.stock_task_view.update_overall_status("更新完成")
-                # 更新最近更新日期
-                from datetime import datetime
-                current_date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                self.stock_task_view.update_last_update_date(current_date)
+            for i in range(1, 101):
+                if not self.task_running.get(task_name, False):
+                    return
+                time.sleep(0.05)
+                self.stock_task_view.update_task_status(task_name, "进行中", i)
+
+            if self.task_running.get(task_name, False):
+                self.stock_task_view.update_task_status(task_name, "完成", 100)
         finally:
-            self.is_updating = False
-            self.stock_task_view.set_button_states(True, False)
+            self.task_running[task_name] = False
+            self.stock_task_view.set_task_running(task_name, False)
 
     def on_stock_select(self, row):
         """
