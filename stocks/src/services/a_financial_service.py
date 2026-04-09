@@ -6,7 +6,7 @@ import statistics
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import akshare as ak
-from typing import List
+from typing import List, Optional, Callable
 from models.financial import Financial
 from database.connection import DatabaseConnectionManager
 import datetime
@@ -301,10 +301,11 @@ class AFinancialService:
             print(f"保存股票 {code} 财务数据时出错: {e}")
         return None
     
-    def batch_save_financial_data(self, stock_codes_to_update):
+    def batch_save_financial_data(self, stock_codes_to_update, progress_callback: Optional[Callable[[int, int, str], None]] = None):
         """
         批量保存财务数据
         :param stock_codes_to_update: 需要更新的股票代码列表
+        :param progress_callback: 进度回调函数，参数为(当前进度, 总数, 阶段名称)
         :return: 成功获取财务数据的股票代码和报告列表
         """
         successful_stocks = []
@@ -317,17 +318,17 @@ class AFinancialService:
             if result:
                 successful_stocks.append(result)
             
-            # 输出进度百分比
-            progress = (i + 1) / total_stocks * 100
-            print(f"保存财务数据进度: {progress:.2f}% ({i + 1}/{total_stocks})")
+            if progress_callback:
+                progress_callback(i + 1, total_stocks, "获取财务数据")
         
         print(f"财务数据保存完成，共成功保存 {len(successful_stocks)} 只股票")
         return successful_stocks
     
-    def batch_update_stock_data(self, successful_stocks):
+    def batch_update_stock_data(self, successful_stocks, progress_callback: Optional[Callable[[int, int, str], None]] = None):
         """
         批量更新股票数据
         :param successful_stocks: 成功获取财务数据的股票代码和报告列表
+        :param progress_callback: 进度回调函数，参数为(当前进度, 总数, 阶段名称)
         :return: 更新成功的股票数量
         """
         updated_count = 0
@@ -337,47 +338,40 @@ class AFinancialService:
         
         for i, (code, reports) in enumerate(successful_stocks):
             try:
-                # 更新股票数据
                 self._update_stock_data(code, reports)
                 updated_count += 1
             except Exception as e:
                 print(f"更新股票 {code} 数据时出错: {e}")
             
-            # 输出进度百分比
-            progress = (i + 1) / total_stocks * 100
-            print(f"更新股票数据进度: {progress:.2f}% ({i + 1}/{total_stocks})")
+            if progress_callback:
+                progress_callback(i + 1, total_stocks, "更新股票数据")
         
         return updated_count
     
-    def refresh_financial_data(self) -> int:
+    def refresh_financial_data(self, progress_callback: Optional[Callable[[int, int, str], None]] = None) -> int:
         """
         刷新财务数据，包括ROE、季度ROE和每股净资产
         支持中断续更，剔除今天已经更新过的股票
+        :param progress_callback: 进度回调函数，参数为(当前进度, 总数, 阶段名称)
         :return: 更新的股票数量
         """
         try:
-            # 获取所有A股股票
             stocks = self.stock_service._get_all_stocks()
             
-            # 一次性获取所有今日已更新的股票代码
             today = datetime.datetime.now().strftime('%Y-%m-%d')
             
-            # 查询今天更新过的股票代码，使用DISTINCT去重
             self.cursor.execute(self.SQL_GET_UPDATED_CODES, (today + '%',))
             updated_codes = {row[0] for row in self.cursor.fetchall()}
             
-            # 过滤出需要更新的股票代码
             stock_codes_to_update = [stock.code for stock in stocks if stock.code not in updated_codes]
             
             total_stocks = len(stock_codes_to_update)
             
             print(f"共需要更新 {total_stocks} 只股票的财务数据")
             
-            # 第一步：批量保存财务数据
-            successful_stocks = self.batch_save_financial_data(stock_codes_to_update)
+            successful_stocks = self.batch_save_financial_data(stock_codes_to_update, progress_callback)
             
-            # 第二步：批量更新股票数据
-            updated_count = self.batch_update_stock_data(successful_stocks)
+            updated_count = self.batch_update_stock_data(successful_stocks, progress_callback)
             
             print(f"财务数据刷新完成，共更新 {updated_count} 只股票")
             return updated_count

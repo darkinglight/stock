@@ -4,7 +4,7 @@ import os
 # 添加src目录到Python路径
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from typing import List, Optional
+from typing import List, Optional, Callable
 import time
 from models.stock import Stock
 from database.connection import DatabaseConnectionManager
@@ -356,31 +356,36 @@ class AStockService:
             print(f"Failed to get stocks paginated: {e}")
             return []
     
-    def refresh_stocks(self) -> int:
+    def refresh_stocks(self, progress_callback: Optional[Callable[[int, int, str], None]] = None) -> int:
         """
         刷新A股股票数据（代码、名称、最新价）
         1天内不重复更新
+        :param progress_callback: 进度回调函数，参数为(当前进度, 总数, 阶段名称)
         :return: 更新的股票数量
         """
-        # 检查是否需要刷新（1天间隔）
         one_day_in_seconds = 24 * 60 * 60
         if not self._should_refresh(self.refresh_config_key, one_day_in_seconds):
             print("A股数据在1天内已更新，跳过刷新")
             return 0
         
         try:
-            # 从API获取全量股票数据
+            if progress_callback:
+                progress_callback(0, 1, "获取数据")
+            
             stocks = self.get_data_from_api()
+            
+            if progress_callback:
+                progress_callback(1, 1, "获取数据")
             
             updated_count = 0
             total = len(stocks)
             for i, stock in enumerate(stocks, 1):
                 if self._save_stock(stock):
                     updated_count += 1
-                if i % 500 == 0 or i == total:
-                    print(f"刷新进度: {i}/{total}，已更新 {updated_count} 只")
+                
+                if progress_callback:
+                    progress_callback(i, total, "保存数据")
             
-            # 更新刷新时间
             self.config_service.set_config(self.refresh_config_key, str(int(time.time())))
             print(f"A股数据刷新完成，共更新 {updated_count} 只股票")
             return updated_count

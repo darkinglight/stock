@@ -5,7 +5,7 @@ import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import akshare as ak
-from typing import Optional, List
+from typing import Optional, List, Callable
 import datetime
 from database.connection import DatabaseConnectionManager
 from models import Bonus
@@ -178,14 +178,17 @@ class ABonusService:
             print(f"获取并保存分红数据失败 (股票代码: {code}): {e}")
             return 0
     
-    def refresh_all(self) -> int:
-        self.refresh_all_bonus_records()
-        return self.refresh_all_bonus_rates()
+    def refresh_all(self, progress_callback: Optional[Callable[[int, int, str], None]] = None) -> int:
+        self.refresh_all_bonus_records(progress_callback)
+        return self.refresh_all_bonus_rates(progress_callback)
     
-    def refresh_all_bonus_records(self) -> int:
+    def refresh_all_bonus_records(self, progress_callback: Optional[Callable[[int, int, str], None]] = None) -> int:
         """
         全量保存所有A股的分红详细数据
         支持中断续更，跳过今天已经更新过的股票
+        
+        Args:
+            progress_callback: 进度回调函数，参数为(当前进度, 总数, 阶段名称)
         
         Returns:
             int: 保存的股票数量
@@ -211,8 +214,8 @@ class ABonusService:
                 except Exception as e:
                     print(f"保存股票 {stock.code} 分红数据时出错: {e}")
                 
-                progress = (i + 1) / total_stocks * 100
-                print(f"进度: {progress:.2f}% ({i + 1}/{total_stocks})")
+                if progress_callback:
+                    progress_callback(i + 1, total_stocks, "获取分红数据")
             
             print(f"分红数据保存完成，共保存 {updated_count} 只股票")
             return updated_count
@@ -221,9 +224,12 @@ class ABonusService:
             print(f"保存分红数据失败: {e}")
             return 0
     
-    def refresh_all_bonus_rates(self) -> int:
+    def refresh_all_bonus_rates(self, progress_callback: Optional[Callable[[int, int, str], None]] = None) -> int:
         """
         根据数据库中已保存的分红数据，全量刷新所有股票的bonus_rate
+        
+        Args:
+            progress_callback: 进度回调函数，参数为(当前进度, 总数, 阶段名称)
         
         Returns:
             int: 更新的股票数量
@@ -278,8 +284,8 @@ class ABonusService:
                 except Exception as e:
                     print(f"刷新股票 {code} 分红率时出错: {e}")
                 
-                progress = (i + 1) / total * 100
-                print(f"进度: {progress:.2f}% ({i + 1}/{total})")
+                if progress_callback:
+                    progress_callback(i + 1, total, "更新分红率")
             
             print(f"分红率刷新完成，共更新 {updated_count} 只股票")
             return updated_count

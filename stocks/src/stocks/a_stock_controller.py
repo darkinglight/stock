@@ -1,6 +1,5 @@
 import asyncio
 import threading
-import time
 
 import toga
 from services.a_stock_service import AStockService
@@ -187,16 +186,29 @@ class AStockController:
         if self.stock_task_view:
             self.stock_task_view.set_task_running(task_name, running)
 
+    def _create_progress_callback(self, task_name: str):
+        """创建进度回调函数，支持阶段名称"""
+        def callback(current: int, total: int, phase: str = ""):
+            if not self.task_running.get(task_name, False):
+                return
+            progress = int(current / total * 100) if total > 0 else 0
+            status = f"{phase}" if phase else "进行中"
+            if self._loop:
+                self._loop.call_soon_threadsafe(self._update_ui_safe, task_name, status, progress)
+        return callback
+
     def _perform_task_update(self, task_name: str):
         """执行单个任务更新"""
         try:
-            for i in range(1, 101):
-                if not self.task_running.get(task_name, False):
-                    return
-                time.sleep(0.05)
-                if self._loop:
-                    self._loop.call_soon_threadsafe(self._update_ui_safe, task_name, "进行中", i)
-
+            progress_callback = self._create_progress_callback(task_name)
+            
+            if task_name == "Stock刷新":
+                self.service.refresh_stocks(progress_callback)
+            elif task_name == "Financial更新":
+                self.financial_service.refresh_financial_data(progress_callback)
+            elif task_name == "Bonus更新":
+                self.bonus_service.refresh_all(progress_callback)
+            
             if self.task_running.get(task_name, False):
                 if self._loop:
                     self._loop.call_soon_threadsafe(self._update_ui_safe, task_name, "完成", 100)
