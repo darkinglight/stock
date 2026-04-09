@@ -53,9 +53,6 @@ class AFinancialService:
         初始化财务服务
         """
         self.db_manager = DatabaseConnectionManager()
-        # 在初始化时获取数据库连接
-        self.conn = self.db_manager.get_connection()
-        self.cursor = self.conn.cursor()
         self._init_tables()
         # 初始化AStockService实例
         self.stock_service = AStockService()
@@ -69,29 +66,14 @@ class AFinancialService:
     
     def __exit__(self, exc_type, exc_val, exc_tb):
         """
-        上下文管理器出口，关闭连接
+        上下文管理器出口
         :param exc_type: 异常类型
         :param exc_val: 异常值
         :param exc_tb: 异常追踪
         """
-        self.close()
+        pass
     
-    def close(self):
-        """
-        关闭数据库连接
-        """
-        try:
-            if hasattr(self, 'cursor') and self.cursor:
-                self.cursor.close()
-                self.cursor = None
-            if hasattr(self, 'conn') and self.conn:
-                self.conn.close()
-                self.conn = None
-            if hasattr(self, 'stock_service') and self.stock_service:
-                self.stock_service.close()
-                self.stock_service = None
-        except Exception as e:
-            print(f"关闭数据库连接失败: {e}")
+
     
     def drop_financial_table(self):
         """
@@ -99,8 +81,12 @@ class AFinancialService:
         :return: 是否删除成功
         """
         try:
-            self.cursor.execute(self.SQL_DROP_FINANCIAL_TABLE)
-            self.conn.commit()
+            # 获取线程本地连接和游标
+            conn = self.db_manager.get_connection()
+            cursor = conn.cursor()
+            
+            cursor.execute(self.SQL_DROP_FINANCIAL_TABLE)
+            conn.commit()
             print("financial表删除成功")
             return True
         except Exception as e:
@@ -111,17 +97,21 @@ class AFinancialService:
         """
         初始化财务数据表
         """
+        # 获取线程本地连接和游标
+        conn = self.db_manager.get_connection()
+        cursor = conn.cursor()
+        
         # 创建财务数据表
-        self.cursor.execute(self.SQL_CREATE_FINANCIAL_TABLE)
+        cursor.execute(self.SQL_CREATE_FINANCIAL_TABLE)
         
         # 创建索引
         try:
             # 创建code列的索引
-            self.cursor.execute("CREATE INDEX IF NOT EXISTS idx_financial_code ON financial (code)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_financial_code ON financial (code)")
         except Exception as e:
             print(f"创建索引失败: {e}")
         
-        self.conn.commit()
+        conn.commit()
     
     def get_financial_data(self, symbol: str) -> List[Financial]:
         """
@@ -262,19 +252,23 @@ class AFinancialService:
             if not reports:
                 return False
             
+            # 获取线程本地连接和游标
+            conn = self.db_manager.get_connection()
+            cursor = conn.cursor()
+            
             # 清空该股票的现有财务数据
             code = reports[0].code
-            self.cursor.execute(self.SQL_DELETE_FINANCIAL_DATA, (code,))
+            cursor.execute(self.SQL_DELETE_FINANCIAL_DATA, (code,))
             
             # 保存新数据
             for report in reports:
                 # 插入数据，包括roe、quarterly_roe、net_asset_per_share、basic_eps、quarterly_eps、operating_cash_flow_per_share、assets_debt_ratio
-                self.cursor.execute(
+                cursor.execute(
                     self.SQL_INSERT_FINANCIAL_DATA,
                     (report.code, report.report_period, report.roe, report.quarterly_roe, report.net_asset_per_share, report.basic_eps, report.quarterly_eps, report.operating_cash_flow_per_share, report.assets_debt_ratio)
                 )
             
-            self.conn.commit()
+            conn.commit()
             return True
             
         except Exception as e:
@@ -360,8 +354,12 @@ class AFinancialService:
             
             today = datetime.datetime.now().strftime('%Y-%m-%d')
             
-            self.cursor.execute(self.SQL_GET_UPDATED_CODES, (today + '%',))
-            updated_codes = {row[0] for row in self.cursor.fetchall()}
+            # 获取线程本地连接和游标
+            conn = self.db_manager.get_connection()
+            cursor = conn.cursor()
+            
+            cursor.execute(self.SQL_GET_UPDATED_CODES, (today + '%',))
+            updated_codes = {row[0] for row in cursor.fetchall()}
             
             stock_codes_to_update = [stock.code for stock in stocks if stock.code not in updated_codes]
             
@@ -421,9 +419,13 @@ class AFinancialService:
         :return: 是否更新成功
         """
         try:
+            # 获取线程本地连接和游标
+            conn = self.db_manager.get_connection()
+            cursor = conn.cursor()
+            
             # 从数据库获取该股票的财报数据
-            self.cursor.execute(self.SQL_GET_FINANCIAL_DATA_BY_CODE, (code,))
-            rows = self.cursor.fetchall()
+            cursor.execute(self.SQL_GET_FINANCIAL_DATA_BY_CODE, (code,))
+            rows = cursor.fetchall()
             
             if not rows:
                 return False
@@ -541,9 +543,13 @@ class AFinancialService:
             List[Financial]: 财报数据列表
         """
         try:
+            # 获取线程本地连接和游标
+            conn = self.db_manager.get_connection()
+            cursor = conn.cursor()
+            
             # 从数据库获取该股票的财报数据
-            self.cursor.execute(self.SQL_GET_FINANCIAL_DATA_BY_CODE, (code,))
-            rows = self.cursor.fetchall()
+            cursor.execute(self.SQL_GET_FINANCIAL_DATA_BY_CODE, (code,))
+            rows = cursor.fetchall()
             
             # 将数据库记录转换为Financial对象列表
             reports = []

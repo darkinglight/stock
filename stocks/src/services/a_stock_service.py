@@ -73,9 +73,7 @@ class AStockService:
         """
         self.db_manager = DatabaseConnectionManager()
         self.config_service = ConfigService()
-        # 在初始化时获取数据库连接
-        self.conn = self.db_manager.get_connection()
-        self.cursor = self.conn.cursor()
+        # 初始化表结构
         self._init_tables()
         self.refresh_config_key = "a_stock_last_refresh"
     
@@ -88,26 +86,14 @@ class AStockService:
     
     def __exit__(self, exc_type, exc_val, exc_tb):
         """
-        上下文管理器出口，关闭连接
+        上下文管理器出口
         :param exc_type: 异常类型
         :param exc_val: 异常值
         :param exc_tb: 异常追踪
         """
-        self.close()
+        pass
     
-    def close(self):
-        """
-        关闭数据库连接
-        """
-        try:
-            if hasattr(self, 'cursor') and self.cursor:
-                self.cursor.close()
-                self.cursor = None
-            if hasattr(self, 'conn') and self.conn:
-                self.conn.close()
-                self.conn = None
-        except Exception as e:
-            print(f"关闭数据库连接失败: {e}")
+
 
     def _create_stock_from_row(self, row):
         """
@@ -138,10 +124,14 @@ class AStockService:
         """
         初始化数据库表
         """
-        # 创建股票表
-        self.cursor.execute(self.SQL_CREATE_STOCK_TABLE)
+        # 获取线程本地连接和游标
+        conn = self.db_manager.get_connection()
+        cursor = conn.cursor()
         
-        self.conn.commit()
+        # 创建股票表
+        cursor.execute(self.SQL_CREATE_STOCK_TABLE)
+        
+        conn.commit()
     
     def _should_refresh(self, key: str, interval: int) -> bool:
         """
@@ -195,14 +185,18 @@ class AStockService:
                 debt_factor = 1 / (1 + existing_stock.assets_debt_ratio / 100)
                 existing_stock.growth = (retention_growth + dividend_growth) * debt_factor
             
+            # 获取线程本地连接和游标
+            conn = self.db_manager.get_connection()
+            cursor = conn.cursor()
+            
             # 使用 UPSERT 语法
-            self.cursor.execute(self.SQL_SAVE_STOCK, (
+            cursor.execute(self.SQL_SAVE_STOCK, (
                 existing_stock.code, existing_stock.name, existing_stock.market, existing_stock.price,
                 existing_stock.pe, existing_stock.pb, existing_stock.bonus_rate, existing_stock.net_asset_per_share,
                 existing_stock.basic_eps, existing_stock.assets_debt_ratio, existing_stock.roe, existing_stock.roe_stability, existing_stock.roe_trend, existing_stock.growth
             ))
             
-            self.conn.commit()
+            conn.commit()
             return True
         except Exception as e:
             print(f"Failed to save stock: {e}")
@@ -214,8 +208,12 @@ class AStockService:
         :return: 股票列表
         """
         try:
-            self.cursor.execute(self.SQL_GET_ALL_STOCKS, ('sh', 'sz', 'bj'))
-            rows = self.cursor.fetchall()
+            # 获取线程本地连接和游标
+            conn = self.db_manager.get_connection()
+            cursor = conn.cursor()
+            
+            cursor.execute(self.SQL_GET_ALL_STOCKS, ('sh', 'sz', 'bj'))
+            rows = cursor.fetchall()
             
             stocks = []
             for row in rows:
@@ -234,8 +232,12 @@ class AStockService:
         :return: 股票对象或 None
         """
         try:
-            self.cursor.execute(self.SQL_GET_STOCK_BY_CODE, (code, 'sh', 'sz', 'bj'))
-            row = self.cursor.fetchone()
+            # 获取线程本地连接和游标
+            conn = self.db_manager.get_connection()
+            cursor = conn.cursor()
+            
+            cursor.execute(self.SQL_GET_STOCK_BY_CODE, (code, 'sh', 'sz', 'bj'))
+            row = cursor.fetchone()
             
             if row:
                 stock = self._create_stock_from_row(row)
@@ -341,9 +343,13 @@ class AStockService:
             # 添加分页参数
             params.extend([page_size, offset])
 
+            # 获取线程本地连接和游标
+            conn = self.db_manager.get_connection()
+            cursor = conn.cursor()
+            
             # 执行查询
-            self.cursor.execute(sql, params)
-            rows = self.cursor.fetchall()
+            cursor.execute(sql, params)
+            rows = cursor.fetchall()
 
             # 构建股票列表
             stocks = []
@@ -503,8 +509,12 @@ class AStockService:
         删除stock表
         """
         try:
-            self.cursor.execute(self.SQL_DROP_STOCK_TABLE)
-            self.conn.commit()
+            # 获取线程本地连接和游标
+            conn = self.db_manager.get_connection()
+            cursor = conn.cursor()
+            
+            cursor.execute(self.SQL_DROP_STOCK_TABLE)
+            conn.commit()
             print("股票表已删除")
         except Exception as e:
             print(f"删除股票表失败: {e}")

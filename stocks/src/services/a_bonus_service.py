@@ -49,8 +49,6 @@ class ABonusService:
         self.db_manager = DatabaseConnectionManager()
         self.config_service = ConfigService()
         self.stock_service = AStockService()
-        self.conn = self.db_manager.get_connection()
-        self.cursor = self.conn.cursor()
         self._create_bonus_table()
     
     def __enter__(self):
@@ -62,62 +60,59 @@ class ABonusService:
     
     def __exit__(self, exc_type, exc_val, exc_tb):
         """
-        上下文管理器出口，关闭连接
+        上下文管理器出口
         :param exc_type: 异常类型
         :param exc_val: 异常值
         :param exc_tb: 异常追踪
         """
-        self.close()
+        pass
     
-    def close(self):
-        """
-        关闭数据库连接
-        """
-        try:
-            if hasattr(self, 'cursor') and self.cursor:
-                self.cursor.close()
-                self.cursor = None
-            if hasattr(self, 'conn') and self.conn:
-                self.conn.close()
-                self.conn = None
-            if hasattr(self, 'stock_service') and self.stock_service:
-                self.stock_service.close()
-                self.stock_service = None
-        except Exception as e:
-            print(f"关闭数据库连接失败: {e}")
+
     
     def drop_bonus_table(self):
         """
         删除bonus表
         """
         try:
-            self.cursor.execute("DROP TABLE IF EXISTS bonus")
-            self.conn.commit()
+            # 获取线程本地连接和游标
+            conn = self.db_manager.get_connection()
+            cursor = conn.cursor()
+            
+            cursor.execute("DROP TABLE IF EXISTS bonus")
+            conn.commit()
             print("bonus表删除成功")
         except Exception as e:
             print(f"删除bonus表失败: {e}")
             try:
-                self.conn.rollback()
+                conn.rollback()
             except:
                 pass
 
     def _create_bonus_table(self):
         """创建分红记录表"""
         try:
-            self.cursor.execute(self.SQL_CREATE_BONUS_TABLE)
+            # 获取线程本地连接和游标
+            conn = self.db_manager.get_connection()
+            cursor = conn.cursor()
+            
+            cursor.execute(self.SQL_CREATE_BONUS_TABLE)
             
             # 创建stock_code列的索引
-            self.cursor.execute("CREATE INDEX IF NOT EXISTS idx_stock_code ON bonus (stock_code)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_stock_code ON bonus (stock_code)")
             
-            self.conn.commit()
+            conn.commit()
         except Exception as e:
             print(f"创建表失败: {e}")
     
     def _save_bonus_records(self, code: str, records: List[Bonus]):
         """保存分红记录"""
         try:
+            # 获取线程本地连接和游标
+            conn = self.db_manager.get_connection()
+            cursor = conn.cursor()
+            
             # 先删除旧记录
-            self.cursor.execute(self.SQL_DELETE_BONUS_RECORDS, (code,))
+            cursor.execute(self.SQL_DELETE_BONUS_RECORDS, (code,))
             
             # 插入新记录
             data = []
@@ -134,13 +129,13 @@ class ABonusService:
                 ))
             
             if data:
-                self.cursor.executemany(self.SQL_INSERT_BONUS_RECORDS, data)
+                cursor.executemany(self.SQL_INSERT_BONUS_RECORDS, data)
             
-            self.conn.commit()
+            conn.commit()
         except Exception as e:
             print(f"保存分红记录失败 (股票代码: {code}): {e}")
             try:
-                self.conn.rollback()
+                conn.rollback()
             except:
                 pass
     
@@ -197,8 +192,12 @@ class ABonusService:
             stocks = self.stock_service._get_all_stocks()
             
             today = datetime.datetime.now().strftime('%Y-%m-%d')
-            self.cursor.execute(self.SQL_GET_UPDATED_CODES, (today + '%',))
-            updated_codes = {row[0] for row in self.cursor.fetchall()}
+            # 获取线程本地连接和游标
+            conn = self.db_manager.get_connection()
+            cursor = conn.cursor()
+            
+            cursor.execute(self.SQL_GET_UPDATED_CODES, (today + '%',))
+            updated_codes = {row[0] for row in cursor.fetchall()}
             
             stocks_to_update = [stock for stock in stocks if stock.code not in updated_codes]
             
@@ -235,8 +234,12 @@ class ABonusService:
             int: 更新的股票数量
         """
         try:
-            self.cursor.execute(self.SQL_GET_ALL_BONUS_RECORDS)
-            all_records = self.cursor.fetchall()
+            # 获取线程本地连接和游标
+            conn = self.db_manager.get_connection()
+            cursor = conn.cursor()
+            
+            cursor.execute(self.SQL_GET_ALL_BONUS_RECORDS)
+            all_records = cursor.fetchall()
             
             if not all_records:
                 print("没有分红数据")
@@ -305,6 +308,10 @@ class ABonusService:
             List[Bonus]: 分红详情列表
         """
         try:
+            # 获取线程本地连接和游标
+            conn = self.db_manager.get_connection()
+            cursor = conn.cursor()
+            
             # 查询该股票的所有分红记录
             query = """
             SELECT stock_code, report_period, bonus_description, bonus_amount, 
@@ -313,8 +320,8 @@ class ABonusService:
             WHERE stock_code = ?
             ORDER BY year DESC, quarter DESC
             """
-            self.cursor.execute(query, (code,))
-            rows = self.cursor.fetchall()
+            cursor.execute(query, (code,))
+            rows = cursor.fetchall()
             
             # 转换为Bonus对象列表
             bonus_list = []
