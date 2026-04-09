@@ -1,3 +1,4 @@
+import asyncio
 import threading
 import time
 
@@ -27,8 +28,10 @@ class AStockController:
         self._config = self.config_service.load_stock_list_config()
         self.task_threads = {}
         self.task_running = {}
+        self._loop = None
 
     def initialize_stock_list(self):
+        self._loop = asyncio.get_event_loop()
         stocks_data = self.get_stocks_data(self._config)
 
         self.stock_list_view = StockListView(
@@ -174,6 +177,16 @@ class AStockController:
         self.stock_task_view.set_task_running(task_name, False)
         self.stock_task_view.update_task_status(task_name, "已暂停", 0)
 
+    def _update_ui_safe(self, task_name: str, status: str, progress: int):
+        """线程安全地更新UI"""
+        if self.stock_task_view:
+            self.stock_task_view.update_task_status(task_name, status, progress)
+
+    def _set_running_safe(self, task_name: str, running: bool):
+        """线程安全地设置运行状态"""
+        if self.stock_task_view:
+            self.stock_task_view.set_task_running(task_name, running)
+
     def _perform_task_update(self, task_name: str):
         """执行单个任务更新"""
         try:
@@ -181,13 +194,16 @@ class AStockController:
                 if not self.task_running.get(task_name, False):
                     return
                 time.sleep(0.05)
-                self.stock_task_view.update_task_status(task_name, "进行中", i)
+                if self._loop:
+                    self._loop.call_soon_threadsafe(self._update_ui_safe, task_name, "进行中", i)
 
             if self.task_running.get(task_name, False):
-                self.stock_task_view.update_task_status(task_name, "完成", 100)
+                if self._loop:
+                    self._loop.call_soon_threadsafe(self._update_ui_safe, task_name, "完成", 100)
         finally:
             self.task_running[task_name] = False
-            self.stock_task_view.set_task_running(task_name, False)
+            if self._loop:
+                self._loop.call_soon_threadsafe(self._set_running_safe, task_name, False)
 
     def on_stock_select(self, row):
         """
