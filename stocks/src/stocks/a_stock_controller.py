@@ -71,21 +71,11 @@ class AStockController:
     
     def show_config_dialog(self, widget=None):
         if self.stock_config_view and self.main_window:
-            # 清空工具栏并添加配置页面的命令
-            self.main_window.toolbar.clear()
-            for command in self.get_config_toolbar_commands():
-                self.main_window.toolbar.add(command)
-            # 切换到配置页面
             self.main_window.content = self.stock_config_view
             self.main_window.title = "列表配置"
 
     def on_back(self, widget=None):
         if self.stock_list_view and self.main_window:
-            # 清空工具栏并添加股票列表页面的命令
-            self.main_window.toolbar.clear()
-            for command in self.get_toolbar_commands():
-                self.main_window.toolbar.add(command)
-            # 重新加载数据以确保显示最新配置
             stocks_data = self.get_stocks_data(self._config)
             self.stock_list_view.update_data(stocks_data)
             self.main_window.content = self.stock_list_view
@@ -97,11 +87,11 @@ class AStockController:
             self.stock_list_view.update_data(stocks_data)
     
     def get_toolbar_commands(self):
-        cmd_refresh = toga.Command(
-            action=self.refresh_stock_list,
-            text="刷新",
-            tooltip="刷新列表数据",
-            icon="resources/refresh.png"
+        cmd_stock_list = toga.Command(
+            action=self.on_back,
+            text="A股列表",
+            tooltip="返回A股列表",
+            icon="resources/back.png"
         )
         cmd_config = toga.Command(
             action=self.show_config_dialog,
@@ -115,22 +105,7 @@ class AStockController:
             tooltip="任务管理",
             icon="resources/work.png"
         )
-        return [cmd_refresh, cmd_config, cmd_task]
-    
-    def get_config_toolbar_commands(self):
-        cmd_save = toga.Command(
-            action=self._on_config_save,
-            text="保存",
-            tooltip="保存配置",
-            icon="resources/save.png"
-        )
-        cmd_back = toga.Command(
-            action=self.on_back,
-            text="返回",
-            tooltip="返回股票列表",
-            icon="resources/back.png"
-        )
-        return [cmd_back, cmd_save]
+        return [cmd_stock_list, cmd_config, cmd_task]
     
     def _on_config_save(self, widget):
         # 触发保存操作
@@ -147,22 +122,8 @@ class AStockController:
     
     def show_task_dialog(self, widget=None):
         if self.stock_task_view and self.main_window:
-            # 清空工具栏并添加任务页面的命令
-            self.main_window.toolbar.clear()
-            for command in self.get_task_toolbar_commands():
-                self.main_window.toolbar.add(command)
-            # 切换到任务页面
             self.main_window.content = self.stock_task_view
             self.main_window.title = "任务管理"
-
-    def get_task_toolbar_commands(self):
-        cmd_back = toga.Command(
-            action=self.on_back,
-            text="返回",
-            tooltip="返回股票列表",
-            icon="resources/back.png"
-        )
-        return [cmd_back]
 
     def on_start_update(self, task_name: str):
         """开始更新指定任务"""
@@ -250,17 +211,8 @@ class AStockController:
         
         if self.main_window:
             self.main_window.toolbar.clear()
-            for command in self.get_detail_toolbar_commands():
+            for command in self.get_toolbar_commands():
                 self.main_window.toolbar.add(command)
             self.main_window.content = self.stock_detail_view
             self.main_window.title = f"{stock_name} 详情"
     
-    def get_detail_toolbar_commands(self):
-        cmd_back = toga.Command(
-            action=self.on_back,
-            text="返回",
-            tooltip="返回股票列表",
-            icon="resources/back.png"
-        )
-        return [cmd_back]
-

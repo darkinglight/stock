@@ -150,12 +150,20 @@ class StockConfigView(toga.Box):
         content_box.add(sort_order_label)
         content_box.add(self.sort_order_selection)
         
+        # 创建保存按钮
+        save_button = toga.Button(
+            "保存",
+            on_press=self._on_save,
+            style=Pack(margin=10, padding=10, width=200, align_items="center")
+        )
+        
         # 创建滚动容器并添加内容
         scroll_container = toga.ScrollContainer(style=Pack(flex=1))
         scroll_container.content = content_box
         
-        # 将滚动容器添加到主容器
+        # 将滚动容器和保存按钮添加到主容器
         self.add(scroll_container)
+        self.add(save_button)
 
     def _on_save(self, widget):
         self._config['page_size'] = int(self.page_size_input.value) if self.page_size_input.value is not None else None
