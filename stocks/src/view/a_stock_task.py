@@ -14,7 +14,7 @@ class TaskRow(toga.Box):
         on_start: Optional[Callable] = None,
         on_pause: Optional[Callable] = None,
     ):
-        super().__init__(style=Pack(direction=ROW, margin=5, alignment=CENTER))
+        super().__init__(style=Pack(direction=ROW, margin=5, align_items=CENTER))
 
         self.task_name = task_name
         self._on_start_handler = on_start
@@ -83,7 +83,7 @@ class StockTaskView(toga.Box):
         )
         self.add(self.title)
 
-        header_box = toga.Box(style=Pack(direction=ROW, margin=5, alignment=CENTER))
+        header_box = toga.Box(style=Pack(direction=ROW, margin=5, align_items=CENTER))
         header_box.add(toga.Label("任务名称", style=Pack(width=120, font_weight="bold")))
         header_box.add(toga.Label("状态", style=Pack(width=80, font_weight="bold")))
         header_box.add(toga.Label("进度", style=Pack(width=60, font_weight="bold")))

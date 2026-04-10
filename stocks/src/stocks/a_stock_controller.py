@@ -262,12 +262,7 @@ class AStockController:
                 title=f"{stock.name} 详情",
                 size=(800, 600),
                 resizable=True,
-                content=self.stock_detail_view,
-                on_resize=None,
-                on_gain_focus=None,
-                on_lose_focus=None,
-                on_show=None,
-                on_hide=None
+                content=self.stock_detail_view
             )
         else:
             self.detail_window.title = f"{stock.name} 详情"

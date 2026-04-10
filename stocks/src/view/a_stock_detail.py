@@ -6,7 +6,7 @@ from toga.style.pack import COLUMN, ROW
 class StockDetailView(toga.Box):
 
     def __init__(self):
-        super().__init__(style=Pack(flex=1, direction=COLUMN, padding=10))
+        super().__init__(style=Pack(flex=1, direction=COLUMN, margin=10))
         
         # 创建标题
         self.title = toga.Label(
