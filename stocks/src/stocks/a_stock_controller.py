@@ -19,7 +19,6 @@ class AStockController:
         self.stock_config_view = None
         self.stock_detail_view = None
         self.stock_task_view = None
-        self.detail_window = None
         self.service = AStockService()
         self.bonus_service = ABonusService()
         self.financial_service = AFinancialService()
@@ -238,35 +237,30 @@ class AStockController:
         if not row:
             return
         
-        # 获取选中股票的代码
-        stock_code = row[1]  # 代码在第二列
+        stock_code = row[1]
+        stock_name = row[2]
         
-        # 获取股票详情、财报数据和分红数据
-        stock = self.service.get_stock_by_code(stock_code)
         financial_reports = self.financial_service.get_financial_reports_by_code(stock_code)
         bonus_details = self.bonus_service.get_bonus_details_by_code(stock_code)
         
-        if not stock:
-            return
-        
-        # 创建股票详情视图
         if not self.stock_detail_view:
             self.stock_detail_view = StockDetailView()
         
-        # 更新详情视图数据
-        self.stock_detail_view.update_data(stock, financial_reports, bonus_details)
+        self.stock_detail_view.update_data(stock_code, stock_name, financial_reports, bonus_details)
         
-        # 使用复用的窗口显示详情页面
-        if not self.detail_window:
-            self.detail_window = toga.Window(
-                title=f"{stock.name} 详情",
-                size=(800, 600),
-                resizable=True,
-                content=self.stock_detail_view
-            )
-        else:
-            self.detail_window.title = f"{stock.name} 详情"
-            self.detail_window.content = self.stock_detail_view
-        
-        self.detail_window.show()
+        if self.main_window:
+            self.main_window.toolbar.clear()
+            for command in self.get_detail_toolbar_commands():
+                self.main_window.toolbar.add(command)
+            self.main_window.content = self.stock_detail_view
+            self.main_window.title = f"{stock_name} 详情"
+    
+    def get_detail_toolbar_commands(self):
+        cmd_back = toga.Command(
+            action=self.on_back,
+            text="返回",
+            tooltip="返回股票列表",
+            icon="resources/back.png"
+        )
+        return [cmd_back]
 
