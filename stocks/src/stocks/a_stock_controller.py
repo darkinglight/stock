@@ -92,7 +92,18 @@ class AStockController:
             self.main_window.content = self.stock_list_view
             self.main_window.title = "股票列表"
     
+    def refresh_stock_list(self, widget=None):
+        if self.stock_list_view and self.main_window:
+            stocks_data = self.get_stocks_data(self._config)
+            self.stock_list_view.update_data(stocks_data)
+    
     def get_toolbar_commands(self):
+        cmd_refresh = toga.Command(
+            action=self.refresh_stock_list,
+            text="刷新",
+            tooltip="刷新列表数据",
+            icon="resources/refresh.png"
+        )
         cmd_config = toga.Command(
             action=self.show_config_dialog,
             text="配置",
@@ -105,7 +116,7 @@ class AStockController:
             tooltip="任务管理",
             icon="resources/work.png"
         )
-        return [cmd_config, cmd_task]
+        return [cmd_refresh, cmd_config, cmd_task]
     
     def get_config_toolbar_commands(self):
         cmd_save = toga.Command(
