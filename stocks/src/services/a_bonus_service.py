@@ -194,6 +194,7 @@ class ABonusService:
         """
         try:
             stocks = self.stock_service._get_all_stocks()
+            total_all_stocks = len(stocks)
             
             today = datetime.datetime.now().strftime('%Y-%m-%d')
             # 获取线程本地连接和游标
@@ -207,6 +208,9 @@ class ABonusService:
             
             total_stocks = len(stocks_to_update)
             updated_count = 0
+            
+            # 计算已经完成的进度（基于所有股票的总数）
+            completed_count = len(updated_codes)
             
             print(f"共需要保存 {total_stocks} 只股票的分红数据（已跳过 {len(updated_codes)} 只今日已更新）")
             
@@ -223,7 +227,9 @@ class ABonusService:
                     print(f"保存股票 {stock.code} 分红数据时出错: {e}")
                 
                 if progress_callback:
-                    progress_callback(i + 1, total_stocks, "获取分红数据")
+                    # 使用所有股票的总数作为进度的总数，确保中断后继续运行时进度能够延续
+                    current_progress = completed_count + i + 1
+                    progress_callback(current_progress, total_all_stocks, "获取分红数据")
             
             print(f"分红数据保存完成，共保存 {updated_count} 只股票")
             return updated_count
