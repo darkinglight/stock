@@ -2,6 +2,8 @@ import asyncio
 import threading
 
 import toga
+from toga.style import Pack
+from toga.style.pack import COLUMN
 from services.a_stock_service import AStockService
 from services.a_bonus_service import ABonusService
 from services.a_financial_service import AFinancialService
@@ -78,7 +80,9 @@ class AStockController:
         if self.stock_list_view and self.main_window:
             stocks_data = self.get_stocks_data(self._config)
             self.stock_list_view.update_data(stocks_data)
-            self.main_window.content = self.stock_list_view
+            main_box = toga.Box(style=Pack(flex=1, direction=COLUMN))
+            main_box.add(self.stock_list_view)
+            self.main_window.content = main_box
             self.main_window.title = "股票列表"
     
     def refresh_stock_list(self, widget=None):
