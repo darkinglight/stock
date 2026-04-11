@@ -491,7 +491,11 @@ class AFinancialService:
                             combo_std = statistics.stdev(four_quarter_combos)
                             
                             # 计算组合间的趋势（斜率）
+                            # 由于数据是按时间倒序排列的（最近的在前），需要反转x值
+                            # 或者反转数据列表，使时间顺序为从远到近
                             x = list(range(len(four_quarter_combos)))
+                            # 反转x值，使得最近的数据对应最大的x值
+                            x = [len(four_quarter_combos) - 1 - i for i in x]
                             n = len(x)
                             sum_x = sum(x)
                             sum_y = sum(four_quarter_combos)
@@ -579,5 +583,6 @@ if __name__ == "__main__":
     # 测试删除financial表
     # financial_service.drop_financial_table()
     # 测试刷新财务数据（会重新创建表）
-    financial_service.refresh_financial_data()
+    # financial_service.refresh_financial_data()
+    financial_service._process_single_stock("301057")
    
