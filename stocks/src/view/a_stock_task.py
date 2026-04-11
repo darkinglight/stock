@@ -114,15 +114,6 @@ class StockTaskView(toga.Box):
         if task_name in self.task_rows:
             self.task_rows[task_name].update_status(status, progress)
 
-    def update_overall_status(self, status: str):
-        pass
-
-    def update_progress(self, value: int):
-        pass
-
-    def set_button_states(self, start_enabled: bool, pause_enabled: bool):
-        pass
-
     def set_task_running(self, task_name: str, running: bool):
         if task_name in self.task_rows:
             self.task_rows[task_name].set_running(running)
