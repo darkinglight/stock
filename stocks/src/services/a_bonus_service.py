@@ -173,17 +173,21 @@ class ABonusService:
             print(f"获取并保存分红数据失败 (股票代码: {code}): {e}")
             return 0
     
-    def refresh_all(self, progress_callback: Optional[Callable[[int, int, str], None]] = None) -> int:
-        self.refresh_all_bonus_records(progress_callback)
-        return self.refresh_all_bonus_rates(progress_callback)
+    def refresh_all(self, progress_callback: Optional[Callable[[int, int, str], None]] = None, should_stop: Optional[Callable[[], bool]] = None) -> int:
+        self.refresh_all_bonus_records(progress_callback, should_stop)
+        if should_stop and should_stop():
+            print("分红数据刷新被用户中断")
+            return 0
+        return self.refresh_all_bonus_rates(progress_callback, should_stop)
     
-    def refresh_all_bonus_records(self, progress_callback: Optional[Callable[[int, int, str], None]] = None) -> int:
+    def refresh_all_bonus_records(self, progress_callback: Optional[Callable[[int, int, str], None]] = None, should_stop: Optional[Callable[[], bool]] = None) -> int:
         """
         全量保存所有A股的分红详细数据
         支持中断续更，跳过今天已经更新过的股票
         
         Args:
             progress_callback: 进度回调函数，参数为(当前进度, 总数, 阶段名称)
+            should_stop: 停止检查回调函数，返回True表示应该停止
         
         Returns:
             int: 保存的股票数量
@@ -207,6 +211,11 @@ class ABonusService:
             print(f"共需要保存 {total_stocks} 只股票的分红数据（已跳过 {len(updated_codes)} 只今日已更新）")
             
             for i, stock in enumerate(stocks_to_update):
+                # 检查是否应该停止
+                if should_stop and should_stop():
+                    print("分红数据保存被用户中断")
+                    break
+                
                 try:
                     if self.fetch_and_save_bonus_records(stock.code) > 0:
                         updated_count += 1
@@ -223,12 +232,13 @@ class ABonusService:
             print(f"保存分红数据失败: {e}")
             return 0
     
-    def refresh_all_bonus_rates(self, progress_callback: Optional[Callable[[int, int, str], None]] = None) -> int:
+    def refresh_all_bonus_rates(self, progress_callback: Optional[Callable[[int, int, str], None]] = None, should_stop: Optional[Callable[[], bool]] = None) -> int:
         """
         根据数据库中已保存的分红数据，全量刷新所有股票的bonus_rate
         
         Args:
             progress_callback: 进度回调函数，参数为(当前进度, 总数, 阶段名称)
+            should_stop: 停止检查回调函数，返回True表示应该停止
         
         Returns:
             int: 更新的股票数量
@@ -264,6 +274,11 @@ class ABonusService:
             print(f"共需要刷新 {total} 只股票的分红率")
             
             for i, (code, records) in enumerate(records_by_code.items()):
+                # 检查是否应该停止
+                if should_stop and should_stop():
+                    print("分红率刷新被用户中断")
+                    break
+                
                 try:
                     rates = []
                     for dividend_payout_rate, quarter in records:

@@ -184,7 +184,7 @@ class AStockController:
             elif task_name == "Financial更新":
                 self.financial_service.refresh_financial_data(progress_callback, should_stop)
             elif task_name == "Bonus更新":
-                self.bonus_service.refresh_all(progress_callback)
+                self.bonus_service.refresh_all(progress_callback, should_stop)
             
             if self.task_running.get(task_name, False):
                 if self._loop:
