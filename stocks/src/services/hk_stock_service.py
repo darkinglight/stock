@@ -1,0 +1,211 @@
+import sys
+import os
+
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from typing import List, Optional, Callable
+import time
+from datetime import datetime
+from models.stock import Stock
+from database.connection import DatabaseConnectionManager
+from services.config_service import ConfigService
+import akshare as ak
+
+
+class HkStockService:
+    """港股服务 - 处理港股数据，共用stock表，通过market='h'区分"""
+
+    SQL_SAVE_STOCK = '''
+    INSERT INTO stock (code, name, market, price)
+    VALUES (?, ?, ?, ?)
+    ON CONFLICT(code) DO UPDATE SET
+        name=excluded.name,
+        price=excluded.price,
+        updated_at=CURRENT_TIMESTAMP
+    '''
+
+    SQL_GET_ALL_HK_STOCKS = 'SELECT code, name, market, price, pe, pb, bonus_rate, net_asset_per_share, basic_eps, assets_debt_ratio, roe, roe_stability, roe_trend, growth, created_at, updated_at FROM stock WHERE market = ?'
+
+    SQL_GET_HK_STOCK_BY_CODE = 'SELECT code, name, market, price, pe, pb, bonus_rate, net_asset_per_share, basic_eps, assets_debt_ratio, roe, roe_stability, roe_trend, growth, created_at, updated_at FROM stock WHERE code = ? AND market = ?'
+
+    SQL_GET_LATEST_UPDATE_TIME = 'SELECT MAX(updated_at) FROM stock WHERE market = ?'
+
+    def __init__(self):
+        self.db_manager = DatabaseConnectionManager()
+        self.config_service = ConfigService()
+        self.refresh_config_key = "hk_stock_last_refresh"
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        pass
+
+    def _create_stock_from_row(self, row):
+        return Stock(
+            code=row[0],
+            name=row[1],
+            market=row[2],
+            price=row[3],
+            pe=row[4],
+            pb=row[5],
+            bonus_rate=row[6],
+            net_asset_per_share=row[7],
+            basic_eps=row[8],
+            assets_debt_ratio=row[9],
+            roe=row[10],
+            roe_stability=row[11],
+            roe_trend=row[12],
+            growth=row[13],
+            created_at=row[14],
+            updated_at=row[15]
+        )
+
+    def _should_refresh(self, key: str, interval: int) -> bool:
+        last_refresh_time = self.config_service.get_last_refresh_time(key)
+        current_time = time.time()
+
+        if not last_refresh_time or (current_time - last_refresh_time) >= interval:
+            return True
+        return False
+
+    def _save_stock(self, stock: Stock) -> bool:
+        try:
+            conn = self.db_manager.get_connection()
+            cursor = conn.cursor()
+
+            cursor.execute(self.SQL_SAVE_STOCK, (
+                stock.code, stock.name, stock.market, stock.price
+            ))
+
+            conn.commit()
+            return True
+        except Exception as e:
+            print(f"Failed to save hk stock: {e}")
+            return False
+
+    def get_latest_update_time(self) -> datetime:
+        try:
+            conn = self.db_manager.get_connection()
+            cursor = conn.cursor()
+
+            cursor.execute(self.SQL_GET_LATEST_UPDATE_TIME, ('h',))
+            row = cursor.fetchone()
+
+            if row and row[0]:
+                return datetime.strptime(row[0], '%Y-%m-%d %H:%M:%S')
+            else:
+                return datetime.min
+        except Exception as e:
+            print(f"Failed to get latest update time: {e}")
+            return datetime.min
+
+    def get_stock_by_code(self, code: str) -> Optional[Stock]:
+        try:
+            conn = self.db_manager.get_connection()
+            cursor = conn.cursor()
+
+            cursor.execute(self.SQL_GET_HK_STOCK_BY_CODE, (code, 'h'))
+            row = cursor.fetchone()
+
+            if row:
+                stock = self._create_stock_from_row(row)
+                return stock
+            return None
+        except Exception as e:
+            print(f"Failed to get hk stock by code: {e}")
+            return None
+
+    def get_all_stocks(self) -> List[Stock]:
+        try:
+            conn = self.db_manager.get_connection()
+            cursor = conn.cursor()
+
+            cursor.execute(self.SQL_GET_ALL_HK_STOCKS, ('h',))
+            rows = cursor.fetchall()
+
+            stocks = []
+            for row in rows:
+                stock = self._create_stock_from_row(row)
+                stocks.append(stock)
+
+            return stocks
+        except Exception as e:
+            print(f"Failed to get all hk stocks: {e}")
+            return []
+
+    def refresh_stocks(self, progress_callback: Optional[Callable[[int, int, str], None]] = None) -> int:
+        one_day_in_seconds = 24 * 60 * 60
+        if not self._should_refresh(self.refresh_config_key, one_day_in_seconds):
+            print("港股数据在1天内已更新，跳过刷新")
+            return 0
+
+        try:
+            if progress_callback:
+                progress_callback(0, 1, "获取数据")
+
+            stocks = self.get_data_from_api()
+
+            if progress_callback:
+                progress_callback(1, 1, "获取数据")
+
+            updated_count = 0
+            total = len(stocks)
+            for i, stock in enumerate(stocks, 1):
+                if self._save_stock(stock):
+                    updated_count += 1
+
+                if progress_callback:
+                    progress_callback(i, total, "保存数据")
+
+            self.config_service.set_config(self.refresh_config_key, str(int(time.time())))
+            print(f"港股数据刷新完成，共更新 {updated_count} 只股票")
+            return updated_count
+
+        except Exception as e:
+            print(f"刷新港股数据失败: {e}")
+            return 0
+
+    def get_data_from_api(self) -> List[Stock]:
+        stocks = []
+
+        try:
+            df = ak.stock_hk_ggt_components_em()
+            df = df[["代码", "名称", "最新价"]]
+
+            for index, row in df.iterrows():
+                code = row['代码']
+                name = row['名称']
+                price = row['最新价']
+
+                if price is not None and not isinstance(price, float):
+                    try:
+                        price = float(price)
+                    except:
+                        continue
+
+                if price is not None:
+                    stock = Stock(
+                        code=code,
+                        name=name,
+                        market='h',
+                        price=price
+                    )
+                    stocks.append(stock)
+
+            print(f"从 API 获取了 {len(stocks)} 只港股数据")
+            return stocks
+
+        except Exception as e:
+            print(f"获取港股数据失败: {e}")
+            return []
+
+
+if __name__ == "__main__":
+    service = HkStockService()
+    data = service.refresh_stocks()
+    print(f"更新了 {data} 只港股")
+    stocks = service.get_all_stocks()
+    print(f"共有 {len(stocks)} 只港股")
+    if stocks:
+        print(f"第一只港股: {stocks[0].code} - {stocks[0].name}")
