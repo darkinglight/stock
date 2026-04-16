@@ -28,8 +28,6 @@ class HkStockService:
 
     SQL_GET_HK_STOCK_BY_CODE = 'SELECT code, name, market, price, pe, pb, bonus_rate, net_asset_per_share, basic_eps, assets_debt_ratio, roe, roe_stability, roe_trend, growth, created_at, updated_at FROM stock WHERE code = ? AND market = ?'
 
-    SQL_GET_LATEST_UPDATE_TIME = 'SELECT MAX(updated_at) FROM stock WHERE market = ?'
-
     def __init__(self):
         self.db_manager = DatabaseConnectionManager()
         self.config_service = ConfigService()
@@ -84,21 +82,7 @@ class HkStockService:
             print(f"Failed to save hk stock: {e}")
             return False
 
-    def get_latest_update_time(self) -> datetime:
-        try:
-            conn = self.db_manager.get_connection()
-            cursor = conn.cursor()
 
-            cursor.execute(self.SQL_GET_LATEST_UPDATE_TIME, ('h',))
-            row = cursor.fetchone()
-
-            if row and row[0]:
-                return datetime.strptime(row[0], '%Y-%m-%d %H:%M:%S')
-            else:
-                return datetime.min
-        except Exception as e:
-            print(f"Failed to get latest update time: {e}")
-            return datetime.min
 
     def get_stock_by_code(self, code: str) -> Optional[Stock]:
         try:
