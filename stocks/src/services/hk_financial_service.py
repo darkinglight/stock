@@ -7,6 +7,7 @@ from typing import List, Optional, Callable, Dict
 import datetime
 import pandas as pd
 from models.hk_financial import HkFinancial
+from models.stock import Stock
 from database.connection import DatabaseConnectionManager
 from services.hk_stock_service import HkStockService
 import akshare as ak
@@ -294,6 +295,20 @@ class HkFinancialService:
                 ))
 
             conn.commit()
+
+            df_yearly = df[df['DATE_TYPE_CODE'] == '001'].sort_values('REPORT_DATE', ascending=False)
+            if not df_yearly.empty:
+                latest_report = df_yearly.iloc[0]
+                stock = Stock(
+                    code=security_code,
+                    market='h',
+                    net_asset_per_share=latest_report.get('BPS'),
+                    basic_eps=latest_report.get('BASIC_EPS'),
+                    assets_debt_ratio=latest_report.get('DEBT_ASSET_RATIO'),
+                    roe=latest_report.get('ROE_AVG')
+                )
+                self.stock_service._save_stock(stock)
+
             return True
         except Exception as e:
             print(f"刷新财务数据失败: {e}")
