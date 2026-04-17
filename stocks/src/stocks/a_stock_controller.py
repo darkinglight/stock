@@ -7,6 +7,8 @@ from toga.style.pack import COLUMN
 from services.a_stock_service import AStockService
 from services.a_bonus_service import ABonusService
 from services.a_financial_service import AFinancialService
+from services.hk_stock_service import HkStockService
+from services.hk_financial_service import HkFinancialService
 from services.config_service import ConfigService
 from view.a_stock_list import StockListView
 from view.a_stock_config import StockConfigView
@@ -24,6 +26,8 @@ class AStockController:
         self.service = AStockService()
         self.bonus_service = ABonusService()
         self.financial_service = AFinancialService()
+        self.hk_stock_service = HkStockService()
+        self.hk_financial_service = HkFinancialService()
         self.config_service = ConfigService()
         self._config = self.config_service.load_stock_list_config()
         self.task_threads = {}
@@ -185,6 +189,10 @@ class AStockController:
                 self.financial_service.refresh_financial_data(progress_callback, should_stop)
             elif task_name == "Bonus更新":
                 self.bonus_service.refresh_all(progress_callback, should_stop)
+            elif task_name == "HkStock更新":
+                self.hk_stock_service.refresh_stocks(progress_callback)
+            elif task_name == "HkFinancial更新":
+                self.hk_financial_service.refresh_all(progress_callback)
             
             if self.task_running.get(task_name, False):
                 if self._loop:

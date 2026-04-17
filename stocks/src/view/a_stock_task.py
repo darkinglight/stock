@@ -91,7 +91,7 @@ class StockTaskView(toga.Box):
         self.add(header_box)
 
         self.task_rows: Dict[str, TaskRow] = {}
-        tasks = ["Stock刷新", "Financial更新", "Bonus更新"]
+        tasks = ["Stock刷新", "Financial更新", "Bonus更新", "HkStock更新", "HkFinancial更新"]
 
         for task_name in tasks:
             row = TaskRow(
