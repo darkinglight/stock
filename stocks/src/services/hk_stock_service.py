@@ -16,11 +16,17 @@ class HkStockService:
     """港股服务 - 处理港股数据，共用stock表，通过market='h'区分"""
 
     SQL_SAVE_STOCK = '''
-    INSERT INTO stock (code, name, market, price)
-    VALUES (?, ?, ?, ?)
+    INSERT INTO stock (code, name, market, price, pe, pb, net_asset_per_share, basic_eps, assets_debt_ratio, roe)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(code) DO UPDATE SET
-        name=excluded.name,
-        price=excluded.price,
+        name=COALESCE(excluded.name, stock.name),
+        price=COALESCE(excluded.price, stock.price),
+        pe=COALESCE(excluded.pe, stock.pe),
+        pb=COALESCE(excluded.pb, stock.pb),
+        net_asset_per_share=COALESCE(excluded.net_asset_per_share, stock.net_asset_per_share),
+        basic_eps=COALESCE(excluded.basic_eps, stock.basic_eps),
+        assets_debt_ratio=COALESCE(excluded.assets_debt_ratio, stock.assets_debt_ratio),
+        roe=COALESCE(excluded.roe, stock.roe),
         updated_at=CURRENT_TIMESTAMP
     '''
 
@@ -72,8 +78,33 @@ class HkStockService:
             conn = self.db_manager.get_connection()
             cursor = conn.cursor()
 
+            existing_stock = self.get_stock_by_code(stock.code)
+
+            if existing_stock:
+                name = stock.name if stock.name is not None else existing_stock.name
+                price = stock.price if stock.price is not None else existing_stock.price
+                net_asset_per_share = stock.net_asset_per_share if stock.net_asset_per_share is not None else existing_stock.net_asset_per_share
+                basic_eps = stock.basic_eps if stock.basic_eps is not None else existing_stock.basic_eps
+                assets_debt_ratio = stock.assets_debt_ratio if stock.assets_debt_ratio is not None else existing_stock.assets_debt_ratio
+                roe = stock.roe if stock.roe is not None else existing_stock.roe
+            else:
+                name = stock.name
+                price = stock.price
+                net_asset_per_share = stock.net_asset_per_share
+                basic_eps = stock.basic_eps
+                assets_debt_ratio = stock.assets_debt_ratio
+                roe = stock.roe
+
+            pb = None
+            if price is not None and net_asset_per_share is not None and net_asset_per_share != 0:
+                pb = price / net_asset_per_share
+
+            pe = None
+            if price is not None and basic_eps is not None and basic_eps != 0:
+                pe = price / basic_eps
+
             cursor.execute(self.SQL_SAVE_STOCK, (
-                stock.code, stock.name, stock.market, stock.price
+                stock.code, name, stock.market, price, pe, pb, net_asset_per_share, basic_eps, assets_debt_ratio, roe
             ))
 
             conn.commit()
