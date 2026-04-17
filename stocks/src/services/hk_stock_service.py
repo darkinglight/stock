@@ -19,14 +19,14 @@ class HkStockService:
     INSERT INTO stock (code, name, market, price, pe, pb, net_asset_per_share, basic_eps, assets_debt_ratio, roe)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(code) DO UPDATE SET
-        name=COALESCE(excluded.name, stock.name),
-        price=COALESCE(excluded.price, stock.price),
-        pe=COALESCE(excluded.pe, stock.pe),
-        pb=COALESCE(excluded.pb, stock.pb),
-        net_asset_per_share=COALESCE(excluded.net_asset_per_share, stock.net_asset_per_share),
-        basic_eps=COALESCE(excluded.basic_eps, stock.basic_eps),
-        assets_debt_ratio=COALESCE(excluded.assets_debt_ratio, stock.assets_debt_ratio),
-        roe=COALESCE(excluded.roe, stock.roe),
+        name=excluded.name,
+        price=excluded.price,
+        pe=excluded.pe,
+        pb=excluded.pb,
+        net_asset_per_share=excluded.net_asset_per_share,
+        basic_eps=excluded.basic_eps,
+        assets_debt_ratio=excluded.assets_debt_ratio,
+        roe=excluded.roe,
         updated_at=CURRENT_TIMESTAMP
     '''
 
