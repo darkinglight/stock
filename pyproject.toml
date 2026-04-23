@@ -8,3 +8,7 @@ dependencies = [
     "akshare>=1.18.49",
     "briefcase>=0.4.1",
 ]
+
+[[tool.uv.index]]
+url = "https://pypi.tuna.tsinghua.edu.cn/simple"
+default = true
