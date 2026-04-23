@@ -1,5 +1,12 @@
 # INSTALL
 
+# python 源设置
+## 设置全局镜像源为清华源
+pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple
+
+## 为了确保安全，通常需要添加信任主机，避免 SSL 证书问题
+pip config set install.trusted-host pypi.tuna.tsinghua.edu.cn
+
 ## UV
 1. uv venv
 2. uv sync
