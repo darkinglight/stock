@@ -11,6 +11,7 @@ from services.hk_stock_service import HkStockService
 from services.hk_financial_service import HkFinancialService
 from services.config_service import ConfigService
 from view.a_stock_list import StockListView
+from view.hk_stock_list import HkStockListView
 from view.a_stock_config import StockConfigView
 from view.a_stock_detail import StockDetailView
 from view.a_stock_task import StockTaskView
@@ -20,6 +21,7 @@ class AStockController:
     def __init__(self, main_window=None):
         self.main_window = main_window
         self.stock_list_view = None
+        self.hk_stock_list_view = None
         self.stock_config_view = None
         self.stock_detail_view = None
         self.stock_task_view = None
@@ -30,9 +32,20 @@ class AStockController:
         self.hk_financial_service = HkFinancialService()
         self.config_service = ConfigService()
         self._config = self.config_service.load_stock_list_config()
+        self._hk_config = self.config_service.load_stock_list_config()
         self.task_threads = {}
         self.task_running = {}
         self._loop = None
+
+    def initialize_hk_stock_list(self):
+        self._loop = asyncio.get_event_loop()
+        stocks_data = self.hk_stock_service.get_all_stocks()
+
+        self.hk_stock_list_view = HkStockListView(
+            stocks=stocks_data,
+            on_select=self.on_hk_stock_select
+        )
+        return self.hk_stock_list_view
 
     def initialize_stock_list(self):
         self._loop = asyncio.get_event_loop()
@@ -89,6 +102,20 @@ class AStockController:
             self.main_window.content = main_box
             self.main_window.title = "股票列表"
     
+    def on_show_hk_stock_list(self, widget=None):
+        if self.hk_stock_list_view and self.main_window:
+            stocks_data = self.hk_stock_service.get_all_stocks()
+            self.hk_stock_list_view.update_data(stocks_data)
+            main_box = toga.Box(style=Pack(flex=1, direction=COLUMN))
+            main_box.add(self.hk_stock_list_view)
+            self.main_window.content = main_box
+            self.main_window.title = "港股列表"
+    
+    def refresh_hk_stock_list(self, widget=None):
+        if self.hk_stock_list_view and self.main_window:
+            stocks_data = self.hk_stock_service.get_all_stocks()
+            self.hk_stock_list_view.update_data(stocks_data)
+    
     def refresh_stock_list(self, widget=None):
         if self.stock_list_view and self.main_window:
             stocks_data = self.get_stocks_data(self._config)
@@ -99,6 +126,12 @@ class AStockController:
             action=self.on_back,
             text="A股列表",
             tooltip="返回A股列表",
+            icon="resources/back.png"
+        )
+        cmd_hk_stock_list = toga.Command(
+            action=self.on_show_hk_stock_list,
+            text="港股列表",
+            tooltip="港股列表",
             icon="resources/back.png"
         )
         cmd_config = toga.Command(
@@ -113,7 +146,7 @@ class AStockController:
             tooltip="任务管理",
             icon="resources/work.png"
         )
-        return [cmd_stock_list, cmd_config, cmd_task]
+        return [cmd_stock_list, cmd_hk_stock_list, cmd_config, cmd_task]
     
     def _on_config_save(self, widget):
         # 触发保存操作
@@ -226,5 +259,15 @@ class AStockController:
             for command in self.get_toolbar_commands():
                 self.main_window.toolbar.add(command)
             self.main_window.content = self.stock_detail_view
+            self.main_window.title = f"{stock_name} 详情"
+
+    def on_hk_stock_select(self, row):
+        """处理港股选择事件"""
+        if not row:
+            return
+        stock_code = row[1]
+        stock_name = row[2]
+        
+        if self.main_window:
             self.main_window.title = f"{stock_name} 详情"
     

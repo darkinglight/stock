@@ -23,6 +23,7 @@ class stocks(toga.App):
 
         # 初始化股票列表页面
         stock_list_view = self.controller.initialize_stock_list()
+        self.controller.initialize_hk_stock_list()
         
         main_box = toga.Box(style=toga.style.Pack(flex=1, direction=COLUMN))
         main_box.add(stock_list_view)
