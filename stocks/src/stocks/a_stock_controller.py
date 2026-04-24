@@ -13,6 +13,7 @@ from services.config_service import ConfigService
 from view.a_stock_list import StockListView
 from view.hk_stock_list import HkStockListView
 from view.a_stock_config import StockConfigView
+from view.hk_stock_config import HkStockConfigView
 from view.a_stock_detail import StockDetailView
 from view.a_stock_task import StockTaskView
 
@@ -23,6 +24,7 @@ class AStockController:
         self.stock_list_view = None
         self.hk_stock_list_view = None
         self.stock_config_view = None
+        self.hk_stock_config_view = None
         self.stock_detail_view = None
         self.stock_task_view = None
         self.service = AStockService()
@@ -32,20 +34,47 @@ class AStockController:
         self.hk_financial_service = HkFinancialService()
         self.config_service = ConfigService()
         self._config = self.config_service.load_stock_list_config()
-        self._hk_config = self.config_service.load_stock_list_config()
+        self._hk_config = self.config_service.load_hk_stock_list_config()
         self.task_threads = {}
         self.task_running = {}
         self._loop = None
 
     def initialize_hk_stock_list(self):
         self._loop = asyncio.get_event_loop()
-        stocks_data = self.hk_stock_service.get_all_stocks()
+        stocks_data = self.get_hk_stocks_data(self._hk_config)
 
         self.hk_stock_list_view = HkStockListView(
             stocks=stocks_data,
             on_select=self.on_hk_stock_select
         )
+        self.hk_stock_config_view = HkStockConfigView(
+            on_config_change=self.on_hk_config_change,
+            on_back=self.on_hk_back,
+            default_config=self._hk_config
+        )
         return self.hk_stock_list_view
+
+    def get_hk_stocks_data(self, config):
+        stocks_data = self.hk_stock_service.get_stocks_paginated(
+            page=1,
+            page_size=config['page_size'],
+            sort_by=config['sort_by'],
+            sort_order=config['sort_order'],
+            min_pe=config.get('min_pe'),
+            max_pe=config.get('max_pe'),
+            min_pb=config.get('min_pb'),
+            max_pb=config.get('max_pb'),
+            min_roe=config.get('min_roe'),
+            max_roe=config.get('max_roe'),
+            max_assets_debt_ratio=config.get('max_assets_debt_ratio'),
+            min_net_asset_per_share=config.get('min_net_asset_per_share'),
+            min_basic_eps=config.get('min_basic_eps')
+        )
+        return stocks_data
+    
+    def on_hk_config_change(self, config):
+        self._hk_config = config
+        self.config_service.save_hk_stock_list_config(config)
 
     def initialize_stock_list(self):
         self._loop = asyncio.get_event_loop()
@@ -104,7 +133,21 @@ class AStockController:
     
     def on_show_hk_stock_list(self, widget=None):
         if self.hk_stock_list_view and self.main_window:
-            stocks_data = self.hk_stock_service.get_all_stocks()
+            stocks_data = self.get_hk_stocks_data(self._hk_config)
+            self.hk_stock_list_view.update_data(stocks_data)
+            main_box = toga.Box(style=Pack(flex=1, direction=COLUMN))
+            main_box.add(self.hk_stock_list_view)
+            self.main_window.content = main_box
+            self.main_window.title = "港股列表"
+    
+    def show_hk_config_dialog(self, widget=None):
+        if self.hk_stock_config_view and self.main_window:
+            self.main_window.content = self.hk_stock_config_view
+            self.main_window.title = "港股配置"
+    
+    def on_hk_back(self, widget=None):
+        if self.hk_stock_list_view and self.main_window:
+            stocks_data = self.get_hk_stocks_data(self._hk_config)
             self.hk_stock_list_view.update_data(stocks_data)
             main_box = toga.Box(style=Pack(flex=1, direction=COLUMN))
             main_box.add(self.hk_stock_list_view)
@@ -113,7 +156,7 @@ class AStockController:
     
     def refresh_hk_stock_list(self, widget=None):
         if self.hk_stock_list_view and self.main_window:
-            stocks_data = self.hk_stock_service.get_all_stocks()
+            stocks_data = self.get_hk_stocks_data(self._hk_config)
             self.hk_stock_list_view.update_data(stocks_data)
     
     def refresh_stock_list(self, widget=None):
@@ -140,13 +183,19 @@ class AStockController:
             tooltip="列表配置",
             icon="resources/config.png"
         )
+        cmd_hk_config = toga.Command(
+            action=self.show_hk_config_dialog,
+            text="港股配置",
+            tooltip="港股列表配置",
+            icon="resources/config.png"
+        )
         cmd_task = toga.Command(
             action=self.show_task_dialog,
             text="任务",
             tooltip="任务管理",
             icon="resources/work.png"
         )
-        return [cmd_stock_list, cmd_hk_stock_list, cmd_config, cmd_task]
+        return [cmd_stock_list, cmd_hk_stock_list, cmd_config, cmd_hk_config, cmd_task]
     
     def _on_config_save(self, widget):
         # 触发保存操作

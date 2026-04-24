@@ -149,6 +149,67 @@ class HkStockService:
             print(f"Failed to get all hk stocks: {e}")
             return []
 
+    def get_stocks_paginated(self, page: int = 1, page_size: int = 10, sort_by: str = 'roe / pb', sort_order: str = 'desc', min_pe: Optional[float] = None, max_pe: Optional[float] = None, min_pb: Optional[float] = None, max_pb: Optional[float] = None, min_roe: Optional[float] = None, max_roe: Optional[float] = None, max_assets_debt_ratio: Optional[float] = None, min_net_asset_per_share: Optional[float] = None, min_basic_eps: Optional[float] = None) -> List[Stock]:
+        try:
+            if not isinstance(page, int) or page < 1:
+                page = 1
+            if not isinstance(page_size, int) or page_size < 1 or page_size > 100:
+                page_size = 10
+
+            offset = (page - 1) * page_size
+
+            where_conditions = ["market = ?"]
+            params = ['h']
+
+            if min_pe is not None:
+                where_conditions.append("pe >= ?")
+                params.append(min_pe)
+            if max_pe is not None:
+                where_conditions.append("pe <= ?")
+                params.append(max_pe)
+            if min_pb is not None:
+                where_conditions.append("pb >= ?")
+                params.append(min_pb)
+            if max_pb is not None:
+                where_conditions.append("pb <= ?")
+                params.append(max_pb)
+            if min_roe is not None:
+                where_conditions.append("roe >= ?")
+                params.append(min_roe)
+            if max_roe is not None:
+                where_conditions.append("roe <= ?")
+                params.append(max_roe)
+            if max_assets_debt_ratio is not None:
+                where_conditions.append("assets_debt_ratio <= ?")
+                params.append(max_assets_debt_ratio)
+            if min_net_asset_per_share is not None:
+                where_conditions.append("net_asset_per_share >= ?")
+                params.append(min_net_asset_per_share)
+            if min_basic_eps is not None:
+                where_conditions.append("basic_eps >= ?")
+                params.append(min_basic_eps)
+
+            where_clause = " WHERE " + " AND ".join(where_conditions)
+            sql = f"SELECT code, name, market, price, pe, pb, bonus_rate, net_asset_per_share, basic_eps, assets_debt_ratio, roe, roe_stability, roe_trend, growth, created_at, updated_at FROM stock{where_clause} ORDER BY {sort_by} {sort_order} LIMIT ? OFFSET ?"
+
+            params.extend([page_size, offset])
+
+            conn = self.db_manager.get_connection()
+            cursor = conn.cursor()
+
+            cursor.execute(sql, params)
+            rows = cursor.fetchall()
+
+            stocks = []
+            for row in rows:
+                stock = self._create_stock_from_row(row)
+                stocks.append(stock)
+
+            return stocks
+        except Exception as e:
+            print(f"Failed to get hk stocks paginated: {e}")
+            return []
+
     def refresh_stocks(self, progress_callback: Optional[Callable[[int, int, str], None]] = None) -> int:
         one_day_in_seconds = 24 * 60 * 60
         if not self._should_refresh(self.refresh_config_key, one_day_in_seconds):

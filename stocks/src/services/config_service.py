@@ -9,6 +9,7 @@ class ConfigService:
 
     # 股票列表配置键名
     STOCK_LIST_CONFIG_KEY = 'stock_list_config'
+    HK_STOCK_LIST_CONFIG_KEY = 'hk_stock_list_config'
 
     # 默认配置
     DEFAULT_STOCK_CONFIG = {
@@ -150,3 +151,37 @@ class ConfigService:
         except Exception as e:
             print(f"加载股票列表配置失败: {e}")
             return self.DEFAULT_STOCK_CONFIG.copy()
+
+    def save_hk_stock_list_config(self, config: Dict[str, Any]):
+        try:
+            config_json = json.dumps(config, ensure_ascii=False)
+            self.set_config(self.HK_STOCK_LIST_CONFIG_KEY, config_json)
+        except Exception as e:
+            print(f"保存港股列表配置失败: {e}")
+
+    def load_hk_stock_list_config(self) -> Dict[str, Any]:
+        DEFAULT_HK_CONFIG = {
+            'page_size': 100,
+            'sort_by': 'roe / pb',
+            'sort_order': 'desc',
+            'min_pe': 0,
+            'max_pe': 100,
+            'min_pb': 0,
+            'max_pb': 10,
+            'min_roe': 0,
+            'max_roe': 100,
+            'max_assets_debt_ratio': 100,
+            'min_net_asset_per_share': 0,
+            'min_basic_eps': 0
+        }
+        try:
+            config_json = self.get_config(self.HK_STOCK_LIST_CONFIG_KEY)
+            if config_json:
+                config = json.loads(config_json)
+                merged_config = DEFAULT_HK_CONFIG.copy()
+                merged_config.update(config)
+                return merged_config
+            return DEFAULT_HK_CONFIG.copy()
+        except Exception as e:
+            print(f"加载港股列表配置失败: {e}")
+            return DEFAULT_HK_CONFIG.copy()
