@@ -17,8 +17,8 @@ class HkStockListView(toga.Box):
         super().__init__(style=Pack(flex=1, direction=COLUMN))
 
         self.table = toga.Table(
-            headings=["ID", "代码", "名称", "价格", "PE", "PB", "每股净资产", "每股收益", "资产负债率", "ROE"],
-            accessors=["id", "code", "name", "price", "pe", "pb", "net_asset_per_share", "basic_eps", "assets_debt_ratio", "roe"],
+            headings=["ID", "代码", "名称", "价格", "PE", "PB", "资产负债率", "ROE"],
+            accessors=["id", "code", "name", "price", "pe", "pb", "assets_debt_ratio", "roe"],
             data=self._build_data(self._stocks),
             on_select=self._on_select,
             style=Pack(flex=1),
@@ -41,8 +41,6 @@ class HkStockListView(toga.Box):
                 self._fmt(s.price),
                 self._fmt(s.pe),
                 self._fmt(s.pb),
-                self._fmt(s.net_asset_per_share),
-                self._fmt(s.basic_eps),
                 self._fmt(s.assets_debt_ratio),
                 self._fmt(s.roe),
             ))
@@ -58,8 +56,6 @@ class HkStockListView(toga.Box):
                 getattr(row, 'price', ''),
                 getattr(row, 'pe', ''),
                 getattr(row, 'pb', ''),
-                getattr(row, 'net_asset_per_share', ''),
-                getattr(row, 'basic_eps', ''),
                 getattr(row, 'assets_debt_ratio', ''),
                 getattr(row, 'roe', ''),
             )

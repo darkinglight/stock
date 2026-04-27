@@ -67,8 +67,6 @@ class AStockController:
             min_roe=config.get('min_roe'),
             max_roe=config.get('max_roe'),
             max_assets_debt_ratio=config.get('max_assets_debt_ratio'),
-            min_net_asset_per_share=config.get('min_net_asset_per_share'),
-            min_basic_eps=config.get('min_basic_eps')
         )
         return stocks_data
     

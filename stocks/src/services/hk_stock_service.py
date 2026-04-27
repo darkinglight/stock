@@ -149,7 +149,7 @@ class HkStockService:
             print(f"Failed to get all hk stocks: {e}")
             return []
 
-    def get_stocks_paginated(self, page: int = 1, page_size: int = 10, sort_by: str = 'roe / pb', sort_order: str = 'desc', min_pe: Optional[float] = None, max_pe: Optional[float] = None, min_pb: Optional[float] = None, max_pb: Optional[float] = None, min_roe: Optional[float] = None, max_roe: Optional[float] = None, max_assets_debt_ratio: Optional[float] = None, min_net_asset_per_share: Optional[float] = None, min_basic_eps: Optional[float] = None) -> List[Stock]:
+    def get_stocks_paginated(self, page: int = 1, page_size: int = 10, sort_by: str = 'roe / pb', sort_order: str = 'desc', min_pe: Optional[float] = None, max_pe: Optional[float] = None, min_pb: Optional[float] = None, max_pb: Optional[float] = None, min_roe: Optional[float] = None, max_roe: Optional[float] = None, max_assets_debt_ratio: Optional[float] = None) -> List[Stock]:
         try:
             if not isinstance(page, int) or page < 1:
                 page = 1
@@ -182,12 +182,6 @@ class HkStockService:
             if max_assets_debt_ratio is not None:
                 where_conditions.append("assets_debt_ratio <= ?")
                 params.append(max_assets_debt_ratio)
-            if min_net_asset_per_share is not None:
-                where_conditions.append("net_asset_per_share >= ?")
-                params.append(min_net_asset_per_share)
-            if min_basic_eps is not None:
-                where_conditions.append("basic_eps >= ?")
-                params.append(min_basic_eps)
 
             where_clause = " WHERE " + " AND ".join(where_conditions)
             sql = f"SELECT code, name, market, price, pe, pb, bonus_rate, net_asset_per_share, basic_eps, assets_debt_ratio, roe, roe_stability, roe_trend, growth, created_at, updated_at FROM stock{where_clause} ORDER BY {sort_by} {sort_order} LIMIT ? OFFSET ?"

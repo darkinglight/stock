@@ -16,8 +16,6 @@ class HkStockConfigView(toga.Box):
         'min_roe': 0,
         'max_roe': 100,
         'max_assets_debt_ratio': 100,
-        'min_net_asset_per_share': 0,
-        'min_basic_eps': 0
     }
 
     def __init__(self, on_config_change=None, on_back=None, default_config=None):
@@ -80,16 +78,6 @@ class HkStockConfigView(toga.Box):
         content_box.add(max_debt_label)
         content_box.add(self.max_debt_input)
         
-        min_bps_label = toga.Label("最小每股净资产:", style=Pack(margin_bottom=5))
-        self.min_bps_input = toga.NumberInput(value=self._config['min_net_asset_per_share'] or self.DEFAULT_CONFIG['min_net_asset_per_share'], step=0.01, style=Pack(margin_bottom=15))
-        content_box.add(min_bps_label)
-        content_box.add(self.min_bps_input)
-        
-        min_eps_label = toga.Label("最小每股收益:", style=Pack(margin_bottom=5))
-        self.min_eps_input = toga.NumberInput(value=self._config['min_basic_eps'] or self.DEFAULT_CONFIG['min_basic_eps'], step=0.01, style=Pack(margin_bottom=15))
-        content_box.add(min_eps_label)
-        content_box.add(self.min_eps_input)
-        
         sort_by_label = toga.Label("排序字段:", style=Pack(margin_bottom=5))
         self.sort_by_selection = toga.Selection(
             items=['roe / pb', 'roe / pe', 'price', 'pe', 'pb', 'roe', 'assets_debt_ratio', 'net_asset_per_share', 'basic_eps'],
@@ -129,8 +117,6 @@ class HkStockConfigView(toga.Box):
         self._config['min_roe'] = float(self.min_roe_input.value) if self.min_roe_input.value is not None else None
         self._config['max_roe'] = float(self.max_roe_input.value) if self.max_roe_input.value is not None else None
         self._config['max_assets_debt_ratio'] = float(self.max_debt_input.value) if self.max_debt_input.value is not None else None
-        self._config['min_net_asset_per_share'] = float(self.min_bps_input.value) if self.min_bps_input.value is not None else None
-        self._config['min_basic_eps'] = float(self.min_eps_input.value) if self.min_eps_input.value is not None else None
         self._config['sort_by'] = self.sort_by_selection.value
         self._config['sort_order'] = self.sort_order_selection.value
         
