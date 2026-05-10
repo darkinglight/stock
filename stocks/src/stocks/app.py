@@ -13,7 +13,7 @@ class stocks(toga.App):
     def startup(self):
         # 设置数据库连接
         db_manager = DatabaseConnectionManager()
-        db_manager.set_default_db_name(r"D:\Site\stock\finance.db")
+        db_manager.set_default_db_name(r"/Users/janet/Site/stock/finance.db")
 
         # 创建主窗口
         self.main_window = toga.MainWindow(title=self.formal_name)
