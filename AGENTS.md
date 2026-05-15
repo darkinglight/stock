@@ -2,14 +2,29 @@
 
 ## Dev commands
 
-- **Venv**: all Python/pip/pytest calls must use `.venv/Scripts/python.exe` (Windows) or activate `.venv` first (`source .venv/bin/activate` on Linux/macOS). `uv` commands auto-use the venv.
-- **Setup**: `uv venv && uv sync && cd stocks && briefcase dev`
-- **Run**: `briefcase run` (from `stocks/`)
+- **Venv**: activate `.venv` before any python/pip/briefcase/pytest calls. `uv` commands auto-use the venv.
+
+  ```powershell
+  # repo root (Windows)
+  .venv\Scripts\activate
+  ```
+
+  ```bash
+  # repo root (Linux/macOS)
+  source .venv/bin/activate
+  ```
+
+- **Run app**:
+  ```
+  cd stocks
+  briefcase dev
+  ```
 - **Update & run**: `briefcase run -u -r` (from `stocks/`)
 - **Build exe**: `briefcase create && briefcase build && briefcase run` (from `stocks/`)
 - **Package installer**: `briefcase package --adhoc-sign` (from `stocks/`)
-- **Update akshare**: `.venv/Scripts/pip install akshare --upgrade`
-- **Test**: `.venv/Scripts/pytest -vv` (from `stocks/`, requires briefcase dev first to install test deps)
+- **Setup from scratch**: `uv venv && uv sync`
+- **Update akshare**: `pip install akshare --upgrade`
+- **Test**: `pytest -vv` (from `stocks/`, requires `briefcase dev` first to install test deps)
 
 ## Structure
 
