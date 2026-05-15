@@ -2,24 +2,34 @@
 
 ## Dev commands
 
-- **Setup**: `cd stocks && briefcase dev` (must `cd stocks`, not root)
-- **Run**: `briefcase run`
-- **Build exe**: `briefcase create && briefcase build && briefcase run`
-- **Update & run**: `briefcase run -u -r`
-- **Package installer**: `briefcase package --adhoc-sign`
+- **Venv**: all Python/pip/pytest calls must use `.venv/Scripts/python.exe` (Windows) or activate `.venv` first (`source .venv/bin/activate` on Linux/macOS). `uv` commands auto-use the venv.
+- **Setup**: `uv venv && uv sync && cd stocks && briefcase dev`
+- **Run**: `briefcase run` (from `stocks/`)
+- **Update & run**: `briefcase run -u -r` (from `stocks/`)
+- **Build exe**: `briefcase create && briefcase build && briefcase run` (from `stocks/`)
+- **Package installer**: `briefcase package --adhoc-sign` (from `stocks/`)
+- **Update akshare**: `.venv/Scripts/pip install akshare --upgrade`
+- **Test**: `.venv/Scripts/pytest -vv` (from `stocks/`, requires briefcase dev first to install test deps)
 
-## Key facts
+## Structure
 
-- Briefcase/Toga desktop app (cross-platform GUI via Python)
-- Python 3.14+, dependencies from `pyproject.toml`
-- Main code in `stocks/src/stocks/`: `app.py`, `a_stock_controller.py`
-- Services in `stocks/src/services/`: a_*_service.py files (stock data fetching via akshare)
-- Models in `stocks/src/models/`: bonus.py, financial.py, stock.py
-- Tests in `stocks/tests/` using pytest
-- Data package uses akshare for Chinese stock data
+- `pyproject.toml` at root — uv project, only deps: `akshare`, `briefcase`
+- `stocks/pyproject.toml` — Briefcase app config (sources, builds, backends)
+- **Must run briefcase from `stocks/`**, not repo root
+- Entrypoint: `stocks/src/stocks/__main__.py` → `app.py` → toga.App subclass
+- 6 source packages under `stocks/src/`: `stocks/` (app + controller), `services/`, `models/`, `database/`, `view/`, `hk/` (legacy)
+
+## Architecture
+
+- **Briefcase/Toga** desktop app (cross-platform GUI via Python)
+- **akshare** for Chinese stock data (A-share + HK)
+- **SQLite** via singleton per-thread connection manager (`database/connection.py`)
+- Database path is **hardcoded** in `stocks/src/stocks/app.py:16` (`D:\Site\stock\finance.db`)
+- Config persisted in SQLite `config` table via `ConfigService`
+- Python 3.14+ required
 
 ## Quirks
 
-- Must run briefcase from `stocks/` directory, not repo root
-- Linux builds require GTK3 system packages (libgtk-3.0, gir1.2-gtk-3.0)
-- ak share data updates require pip (`pip install akshare --upgrade`)
+- No lint, formatter, typecheck, or CI workflows configured
+- Legacy `stocks/src/hk/hkreport.py` references `src.stocks.SqliteTool` and `src.stocks.hkstock` — likely dead code, its import style differs from the refactored modules
+- Linux builds require GTK3 system packages (`libgtk-3.0`, `gir1.2-gtk-3.0`)
