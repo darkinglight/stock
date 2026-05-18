@@ -1,36 +1,17 @@
 import toga
 from toga.style import Pack
 from toga.style.pack import COLUMN, ROW
+from services.config_service import A_STOCK_DEFAULT_CONFIG
 
 
 class StockConfigView(toga.Box):
-
-    # 默认配置
-    DEFAULT_CONFIG = {
-        'page_size': 20,
-        'max_debt_ratio': 30.0,
-        'min_pe': 0,
-        'max_pe': 100,
-        'min_pb': 0,
-        'max_pb': 10,
-        'min_roe': 0,
-        'max_roe': 100,
-        'min_bonus_rate': 0,
-        'max_bonus_rate': 100,
-        'min_roe_stability': 0,
-        'max_roe_stability': 100,
-        'min_roe_trend': -100,
-        'max_roe_trend': 100,
-        'sort_by': 'growth',
-        'sort_order': 'desc'
-    }
 
     def __init__(self, on_config_change=None, on_back=None, default_config=None):
         super().__init__(style=Pack(flex=1, direction=COLUMN))
         
         self._on_config_change_handler = on_config_change
         self._on_back_handler = on_back
-        self._config = self.DEFAULT_CONFIG.copy()
+        self._config = A_STOCK_DEFAULT_CONFIG.copy()
         if default_config:
             self._config.update(default_config)
         
@@ -42,25 +23,25 @@ class StockConfigView(toga.Box):
         
         # 每页显示数量
         page_size_label = toga.Label("每页显示数量:", style=Pack(margin_bottom=5))
-        self.page_size_input = toga.NumberInput(value=self._config['page_size'] or self.DEFAULT_CONFIG['page_size'], style=Pack(margin_bottom=15))
+        self.page_size_input = toga.NumberInput(value=self._config['page_size'] or A_STOCK_DEFAULT_CONFIG['page_size'], style=Pack(margin_bottom=15))
         content_box.add(page_size_label)
         content_box.add(self.page_size_input)
         
         # 最大资产负债率
         max_debt_label = toga.Label("最大资产负债率(%):", style=Pack(margin_bottom=5))
-        self.max_debt_input = toga.NumberInput(value=self._config['max_debt_ratio'] or self.DEFAULT_CONFIG['max_debt_ratio'], step=0.1, style=Pack(margin_bottom=15))
+        self.max_debt_input = toga.NumberInput(value=self._config['max_debt_ratio'] or A_STOCK_DEFAULT_CONFIG['max_debt_ratio'], step=0.1, style=Pack(margin_bottom=15))
         content_box.add(max_debt_label)
         content_box.add(self.max_debt_input)
         
         # 市盈率范围
         pe_label = toga.Label("市盈率范围:", style=Pack(margin_bottom=5))
         pe_box = toga.Box(style=Pack(direction=ROW, margin_bottom=15, align_items="center"))
-        self.min_pe_input = toga.NumberInput(value=self._config['min_pe'] or self.DEFAULT_CONFIG['min_pe'], step=0.1, style=Pack(width=80))
+        self.min_pe_input = toga.NumberInput(value=self._config['min_pe'] or A_STOCK_DEFAULT_CONFIG['min_pe'], step=0.1, style=Pack(width=80))
         pe_box.add(self.min_pe_input)
         pe_box.add(toga.Label(" < ", style=Pack(margin_left=5, margin_right=5)))
         pe_box.add(toga.Label("PE", style=Pack(margin_right=5)))
         pe_box.add(toga.Label(" < ", style=Pack(margin_right=5)))
-        self.max_pe_input = toga.NumberInput(value=self._config['max_pe'] or self.DEFAULT_CONFIG['max_pe'], step=0.1, style=Pack(width=80))
+        self.max_pe_input = toga.NumberInput(value=self._config['max_pe'] or A_STOCK_DEFAULT_CONFIG['max_pe'], step=0.1, style=Pack(width=80))
         pe_box.add(self.max_pe_input)
         content_box.add(pe_label)
         content_box.add(pe_box)
@@ -68,12 +49,12 @@ class StockConfigView(toga.Box):
         # 市净率范围
         pb_label = toga.Label("市净率范围:", style=Pack(margin_bottom=5))
         pb_box = toga.Box(style=Pack(direction=ROW, margin_bottom=15, align_items="center"))
-        self.min_pb_input = toga.NumberInput(value=self._config['min_pb'] or self.DEFAULT_CONFIG['min_pb'], step=0.1, style=Pack(width=80))
+        self.min_pb_input = toga.NumberInput(value=self._config['min_pb'] or A_STOCK_DEFAULT_CONFIG['min_pb'], step=0.1, style=Pack(width=80))
         pb_box.add(self.min_pb_input)
         pb_box.add(toga.Label(" < ", style=Pack(margin_left=5, margin_right=5)))
         pb_box.add(toga.Label("PB", style=Pack(margin_right=5)))
         pb_box.add(toga.Label(" < ", style=Pack(margin_right=5)))
-        self.max_pb_input = toga.NumberInput(value=self._config['max_pb'] or self.DEFAULT_CONFIG['max_pb'], step=0.1, style=Pack(width=80))
+        self.max_pb_input = toga.NumberInput(value=self._config['max_pb'] or A_STOCK_DEFAULT_CONFIG['max_pb'], step=0.1, style=Pack(width=80))
         pb_box.add(self.max_pb_input)
         content_box.add(pb_label)
         content_box.add(pb_box)
@@ -81,12 +62,12 @@ class StockConfigView(toga.Box):
         # ROE范围
         roe_label = toga.Label("ROE范围(%):", style=Pack(margin_bottom=5))
         roe_box = toga.Box(style=Pack(direction=ROW, margin_bottom=15, align_items="center"))
-        self.min_roe_input = toga.NumberInput(value=self._config['min_roe'] or self.DEFAULT_CONFIG['min_roe'], step=0.1, style=Pack(width=80))
+        self.min_roe_input = toga.NumberInput(value=self._config['min_roe'] or A_STOCK_DEFAULT_CONFIG['min_roe'], step=0.1, style=Pack(width=80))
         roe_box.add(self.min_roe_input)
         roe_box.add(toga.Label(" < ", style=Pack(margin_left=5, margin_right=5)))
         roe_box.add(toga.Label("ROE", style=Pack(margin_right=5)))
         roe_box.add(toga.Label(" < ", style=Pack(margin_right=5)))
-        self.max_roe_input = toga.NumberInput(value=self._config['max_roe'] or self.DEFAULT_CONFIG['max_roe'], step=0.1, style=Pack(width=80))
+        self.max_roe_input = toga.NumberInput(value=self._config['max_roe'] or A_STOCK_DEFAULT_CONFIG['max_roe'], step=0.1, style=Pack(width=80))
         roe_box.add(self.max_roe_input)
         content_box.add(roe_label)
         content_box.add(roe_box)
@@ -94,12 +75,12 @@ class StockConfigView(toga.Box):
         # 分红率范围
         bonus_label = toga.Label("分红率范围(%):", style=Pack(margin_bottom=5))
         bonus_box = toga.Box(style=Pack(direction=ROW, margin_bottom=15, align_items="center"))
-        self.min_bonus_input = toga.NumberInput(value=self._config['min_bonus_rate'] or self.DEFAULT_CONFIG['min_bonus_rate'], step=0.1, style=Pack(width=80))
+        self.min_bonus_input = toga.NumberInput(value=self._config['min_bonus_rate'] or A_STOCK_DEFAULT_CONFIG['min_bonus_rate'], step=0.1, style=Pack(width=80))
         bonus_box.add(self.min_bonus_input)
         bonus_box.add(toga.Label(" < ", style=Pack(margin_left=5, margin_right=5)))
         bonus_box.add(toga.Label("分红率", style=Pack(margin_right=5)))
         bonus_box.add(toga.Label(" < ", style=Pack(margin_right=5)))
-        self.max_bonus_input = toga.NumberInput(value=self._config['max_bonus_rate'] or self.DEFAULT_CONFIG['max_bonus_rate'], step=0.1, style=Pack(width=80))
+        self.max_bonus_input = toga.NumberInput(value=self._config['max_bonus_rate'] or A_STOCK_DEFAULT_CONFIG['max_bonus_rate'], step=0.1, style=Pack(width=80))
         bonus_box.add(self.max_bonus_input)
         content_box.add(bonus_label)
         content_box.add(bonus_box)
@@ -107,12 +88,12 @@ class StockConfigView(toga.Box):
         # ROE稳定性范围
         roe_stability_label = toga.Label("ROE稳定性范围:", style=Pack(margin_bottom=5))
         roe_stability_box = toga.Box(style=Pack(direction=ROW, margin_bottom=15, align_items="center"))
-        self.min_roe_stability_input = toga.NumberInput(value=self._config['min_roe_stability'] or self.DEFAULT_CONFIG['min_roe_stability'], step=0.1, style=Pack(width=80))
+        self.min_roe_stability_input = toga.NumberInput(value=self._config['min_roe_stability'] or A_STOCK_DEFAULT_CONFIG['min_roe_stability'], step=0.1, style=Pack(width=80))
         roe_stability_box.add(self.min_roe_stability_input)
         roe_stability_box.add(toga.Label(" < ", style=Pack(margin_left=5, margin_right=5)))
         roe_stability_box.add(toga.Label("稳定性", style=Pack(margin_right=5)))
         roe_stability_box.add(toga.Label(" < ", style=Pack(margin_right=5)))
-        self.max_roe_stability_input = toga.NumberInput(value=self._config['max_roe_stability'] or self.DEFAULT_CONFIG['max_roe_stability'], step=0.1, style=Pack(width=80))
+        self.max_roe_stability_input = toga.NumberInput(value=self._config['max_roe_stability'] or A_STOCK_DEFAULT_CONFIG['max_roe_stability'], step=0.1, style=Pack(width=80))
         roe_stability_box.add(self.max_roe_stability_input)
         content_box.add(roe_stability_label)
         content_box.add(roe_stability_box)
@@ -120,12 +101,12 @@ class StockConfigView(toga.Box):
         # ROE趋势范围
         roe_trend_label = toga.Label("ROE趋势范围:", style=Pack(margin_bottom=5))
         roe_trend_box = toga.Box(style=Pack(direction=ROW, margin_bottom=15, align_items="center"))
-        self.min_roe_trend_input = toga.NumberInput(value=self._config['min_roe_trend'] or self.DEFAULT_CONFIG['min_roe_trend'], step=0.1, style=Pack(width=80))
+        self.min_roe_trend_input = toga.NumberInput(value=self._config['min_roe_trend'] or A_STOCK_DEFAULT_CONFIG['min_roe_trend'], step=0.1, style=Pack(width=80))
         roe_trend_box.add(self.min_roe_trend_input)
         roe_trend_box.add(toga.Label(" < ", style=Pack(margin_left=5, margin_right=5)))
         roe_trend_box.add(toga.Label("趋势", style=Pack(margin_right=5)))
         roe_trend_box.add(toga.Label(" < ", style=Pack(margin_right=5)))
-        self.max_roe_trend_input = toga.NumberInput(value=self._config['max_roe_trend'] or self.DEFAULT_CONFIG['max_roe_trend'], step=0.1, style=Pack(width=80))
+        self.max_roe_trend_input = toga.NumberInput(value=self._config['max_roe_trend'] or A_STOCK_DEFAULT_CONFIG['max_roe_trend'], step=0.1, style=Pack(width=80))
         roe_trend_box.add(self.max_roe_trend_input)
         content_box.add(roe_trend_label)
         content_box.add(roe_trend_box)
@@ -134,7 +115,7 @@ class StockConfigView(toga.Box):
         sort_by_label = toga.Label("排序字段:", style=Pack(margin_bottom=5))
         self.sort_by_selection = toga.Selection(
             items=['growth', 'pe', 'pb', 'roe', 'bonus_rate', 'assets_debt_ratio', 'roe_stability', 'roe_trend', 'growth / pb', 'growth / pe'],
-            value=self._config['sort_by'] or self.DEFAULT_CONFIG['sort_by'],
+            value=self._config['sort_by'] or A_STOCK_DEFAULT_CONFIG['sort_by'],
             style=Pack(margin_bottom=15)
         )
         content_box.add(sort_by_label)
@@ -144,7 +125,7 @@ class StockConfigView(toga.Box):
         sort_order_label = toga.Label("排序顺序:", style=Pack(margin_bottom=5))
         self.sort_order_selection = toga.Selection(
             items=['desc', 'asc'],
-            value=self._config['sort_order'] or self.DEFAULT_CONFIG['sort_order'],
+            value=self._config['sort_order'] or A_STOCK_DEFAULT_CONFIG['sort_order'],
             style=Pack(margin_bottom=20)
         )
         content_box.add(sort_order_label)

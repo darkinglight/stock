@@ -1,29 +1,17 @@
 import toga
 from toga.style import Pack
 from toga.style.pack import COLUMN, ROW
+from services.config_service import HK_STOCK_DEFAULT_CONFIG
 
 
 class HkStockConfigView(toga.Box):
-
-    DEFAULT_CONFIG = {
-        'page_size': 100,
-        'sort_by': 'roe / pb',
-        'sort_order': 'desc',
-        'min_pe': 0,
-        'max_pe': 100,
-        'min_pb': 0,
-        'max_pb': 10,
-        'min_roe': 0,
-        'max_roe': 100,
-        'max_assets_debt_ratio': 100,
-    }
 
     def __init__(self, on_config_change=None, on_back=None, default_config=None):
         super().__init__(style=Pack(flex=1, direction=COLUMN))
         
         self._on_config_change_handler = on_config_change
         self._on_back_handler = on_back
-        self._config = self.DEFAULT_CONFIG.copy()
+        self._config = HK_STOCK_DEFAULT_CONFIG.copy()
         if default_config:
             self._config.update(default_config)
         
@@ -33,55 +21,55 @@ class HkStockConfigView(toga.Box):
         content_box = toga.Box(style=Pack(direction=COLUMN, margin=10))
         
         page_size_label = toga.Label("每页显示数量:", style=Pack(margin_bottom=5))
-        self.page_size_input = toga.NumberInput(value=self._config['page_size'] or self.DEFAULT_CONFIG['page_size'], style=Pack(margin_bottom=15))
+        self.page_size_input = toga.NumberInput(value=self._config['page_size'] or HK_STOCK_DEFAULT_CONFIG['page_size'], style=Pack(margin_bottom=15))
         content_box.add(page_size_label)
         content_box.add(self.page_size_input)
         
         pe_label = toga.Label("市盈率范围:", style=Pack(margin_bottom=5))
         pe_box = toga.Box(style=Pack(direction=ROW, margin_bottom=15, align_items="center"))
-        self.min_pe_input = toga.NumberInput(value=self._config['min_pe'] or self.DEFAULT_CONFIG['min_pe'], step=0.1, style=Pack(width=80))
+        self.min_pe_input = toga.NumberInput(value=self._config['min_pe'] or HK_STOCK_DEFAULT_CONFIG['min_pe'], step=0.1, style=Pack(width=80))
         pe_box.add(self.min_pe_input)
         pe_box.add(toga.Label(" < ", style=Pack(margin_left=5, margin_right=5)))
         pe_box.add(toga.Label("PE", style=Pack(margin_right=5)))
         pe_box.add(toga.Label(" < ", style=Pack(margin_right=5)))
-        self.max_pe_input = toga.NumberInput(value=self._config['max_pe'] or self.DEFAULT_CONFIG['max_pe'], step=0.1, style=Pack(width=80))
+        self.max_pe_input = toga.NumberInput(value=self._config['max_pe'] or HK_STOCK_DEFAULT_CONFIG['max_pe'], step=0.1, style=Pack(width=80))
         pe_box.add(self.max_pe_input)
         content_box.add(pe_label)
         content_box.add(pe_box)
         
         pb_label = toga.Label("市净率范围:", style=Pack(margin_bottom=5))
         pb_box = toga.Box(style=Pack(direction=ROW, margin_bottom=15, align_items="center"))
-        self.min_pb_input = toga.NumberInput(value=self._config['min_pb'] or self.DEFAULT_CONFIG['min_pb'], step=0.1, style=Pack(width=80))
+        self.min_pb_input = toga.NumberInput(value=self._config['min_pb'] or HK_STOCK_DEFAULT_CONFIG['min_pb'], step=0.1, style=Pack(width=80))
         pb_box.add(self.min_pb_input)
         pb_box.add(toga.Label(" < ", style=Pack(margin_left=5, margin_right=5)))
         pb_box.add(toga.Label("PB", style=Pack(margin_right=5)))
         pb_box.add(toga.Label(" < ", style=Pack(margin_right=5)))
-        self.max_pb_input = toga.NumberInput(value=self._config['max_pb'] or self.DEFAULT_CONFIG['max_pb'], step=0.1, style=Pack(width=80))
+        self.max_pb_input = toga.NumberInput(value=self._config['max_pb'] or HK_STOCK_DEFAULT_CONFIG['max_pb'], step=0.1, style=Pack(width=80))
         pb_box.add(self.max_pb_input)
         content_box.add(pb_label)
         content_box.add(pb_box)
         
         roe_label = toga.Label("ROE范围(%):", style=Pack(margin_bottom=5))
         roe_box = toga.Box(style=Pack(direction=ROW, margin_bottom=15, align_items="center"))
-        self.min_roe_input = toga.NumberInput(value=self._config['min_roe'] or self.DEFAULT_CONFIG['min_roe'], step=0.1, style=Pack(width=80))
+        self.min_roe_input = toga.NumberInput(value=self._config['min_roe'] or HK_STOCK_DEFAULT_CONFIG['min_roe'], step=0.1, style=Pack(width=80))
         roe_box.add(self.min_roe_input)
         roe_box.add(toga.Label(" < ", style=Pack(margin_left=5, margin_right=5)))
         roe_box.add(toga.Label("ROE", style=Pack(margin_right=5)))
         roe_box.add(toga.Label(" < ", style=Pack(margin_right=5)))
-        self.max_roe_input = toga.NumberInput(value=self._config['max_roe'] or self.DEFAULT_CONFIG['max_roe'], step=0.1, style=Pack(width=80))
+        self.max_roe_input = toga.NumberInput(value=self._config['max_roe'] or HK_STOCK_DEFAULT_CONFIG['max_roe'], step=0.1, style=Pack(width=80))
         roe_box.add(self.max_roe_input)
         content_box.add(roe_label)
         content_box.add(roe_box)
         
         max_debt_label = toga.Label("最大资产负债率(%):", style=Pack(margin_bottom=5))
-        self.max_debt_input = toga.NumberInput(value=self._config['max_assets_debt_ratio'] or self.DEFAULT_CONFIG['max_assets_debt_ratio'], step=0.1, style=Pack(margin_bottom=15))
+        self.max_debt_input = toga.NumberInput(value=self._config['max_assets_debt_ratio'] or HK_STOCK_DEFAULT_CONFIG['max_assets_debt_ratio'], step=0.1, style=Pack(margin_bottom=15))
         content_box.add(max_debt_label)
         content_box.add(self.max_debt_input)
         
         sort_by_label = toga.Label("排序字段:", style=Pack(margin_bottom=5))
         self.sort_by_selection = toga.Selection(
             items=['roe / pb', 'roe / pe', 'price', 'pe', 'pb', 'roe', 'assets_debt_ratio', 'net_asset_per_share', 'basic_eps'],
-            value=self._config['sort_by'] or self.DEFAULT_CONFIG['sort_by'],
+            value=self._config['sort_by'] or HK_STOCK_DEFAULT_CONFIG['sort_by'],
             style=Pack(margin_bottom=15)
         )
         content_box.add(sort_by_label)
@@ -90,7 +78,7 @@ class HkStockConfigView(toga.Box):
         sort_order_label = toga.Label("排序顺序:", style=Pack(margin_bottom=5))
         self.sort_order_selection = toga.Selection(
             items=['desc', 'asc'],
-            value=self._config['sort_order'] or self.DEFAULT_CONFIG['sort_order'],
+            value=self._config['sort_order'] or HK_STOCK_DEFAULT_CONFIG['sort_order'],
             style=Pack(margin_bottom=20)
         )
         content_box.add(sort_order_label)

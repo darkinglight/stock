@@ -4,6 +4,43 @@ from typing import Optional, Dict, Any
 from database.connection import DatabaseConnectionManager
 
 
+# A股默认配置（唯一来源）
+A_STOCK_DEFAULT_CONFIG = {
+    'page_size': 20,
+    'max_debt_ratio': 30.0,
+    'min_pe': 3,
+    'max_pe': 20,
+    'min_pb': 0.5,
+    'max_pb': 5,
+    'min_roe': 5,
+    'max_roe': 30,
+    'min_roe_stability': 50,
+    'max_roe_stability': 100,
+    'min_roe_trend': -100,
+    'max_roe_trend': 100,
+    'min_bonus_rate': 10,
+    'max_bonus_rate': 100,
+    'sort_by': 'growth / pb',
+    'sort_order': 'desc'
+}
+
+# 港股默认配置（唯一来源）
+HK_STOCK_DEFAULT_CONFIG = {
+    'page_size': 100,
+    'sort_by': 'roe / pb',
+    'sort_order': 'desc',
+    'min_pe': 0,
+    'max_pe': 100,
+    'min_pb': 0,
+    'max_pb': 10,
+    'min_roe': 0,
+    'max_roe': 100,
+    'max_assets_debt_ratio': 100,
+    'min_net_asset_per_share': 0,
+    'min_basic_eps': 0
+}
+
+
 class ConfigService:
     """配置服务 - 处理配置相关操作"""
 
@@ -11,25 +48,8 @@ class ConfigService:
     STOCK_LIST_CONFIG_KEY = 'stock_list_config'
     HK_STOCK_LIST_CONFIG_KEY = 'hk_stock_list_config'
 
-    # 默认配置
-    DEFAULT_STOCK_CONFIG = {
-        'page_size': 20,
-        'max_debt_ratio': 30.0,
-        'min_pe': 3,
-        'max_pe': 20,
-        'min_pb': 0.5,
-        'max_pb': 5,
-        'min_roe': 5,
-        'max_roe': 30,
-        'min_roe_stability': 50,
-        'max_roe_stability': 100,
-        'min_roe_trend': -100,
-        'max_roe_trend': 100,
-        'min_bonus_rate': 10,
-        'max_bonus_rate': 100,
-        'sort_by': 'growth / pb',
-        'sort_order': 'desc'
-    }
+    # 默认配置（引用模块级常量）
+    DEFAULT_STOCK_CONFIG = A_STOCK_DEFAULT_CONFIG
 
     def __init__(self):
         """
@@ -160,28 +180,14 @@ class ConfigService:
             print(f"保存港股列表配置失败: {e}")
 
     def load_hk_stock_list_config(self) -> Dict[str, Any]:
-        DEFAULT_HK_CONFIG = {
-            'page_size': 100,
-            'sort_by': 'roe / pb',
-            'sort_order': 'desc',
-            'min_pe': 0,
-            'max_pe': 100,
-            'min_pb': 0,
-            'max_pb': 10,
-            'min_roe': 0,
-            'max_roe': 100,
-            'max_assets_debt_ratio': 100,
-            'min_net_asset_per_share': 0,
-            'min_basic_eps': 0
-        }
         try:
             config_json = self.get_config(self.HK_STOCK_LIST_CONFIG_KEY)
             if config_json:
                 config = json.loads(config_json)
-                merged_config = DEFAULT_HK_CONFIG.copy()
+                merged_config = HK_STOCK_DEFAULT_CONFIG.copy()
                 merged_config.update(config)
                 return merged_config
-            return DEFAULT_HK_CONFIG.copy()
+            return HK_STOCK_DEFAULT_CONFIG.copy()
         except Exception as e:
             print(f"加载港股列表配置失败: {e}")
-            return DEFAULT_HK_CONFIG.copy()
+            return HK_STOCK_DEFAULT_CONFIG.copy()
