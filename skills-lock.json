@@ -61,6 +61,12 @@
       "skillPath": "plugins/data-providers/skills/hormuz-strait/SKILL.md",
       "computedHash": "377e70557cf0a5a37461e09b16e9ee7f65983770ca912fc57441375f833e051e"
     },
+    "huashu-nuwa": {
+      "source": "alchaincyf/nuwa-skill",
+      "sourceType": "github",
+      "skillPath": "SKILL.md",
+      "computedHash": "ea6d54e6307cd95e1efd99f232fec9741c8dd3f29b8d800316ea9cda80bc4133"
+    },
     "linkedin-reader": {
       "source": "himself65/finance-skills",
       "sourceType": "github",
