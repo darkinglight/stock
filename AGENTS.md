@@ -43,6 +43,13 @@
 - Config persisted in SQLite `config` table via `ConfigService`
 - Python 3.14+ required
 
+## Stock Analysis Framework
+
+- **Three-person panel**: Munger (生意质量) : Taleb (非对称/反脆弱) : Schloss (资产价值) weighted **5:3:3**
+- **Final score** = (MS×5 + TS×3 + SS×3) / 11
+- **8.0+** investable | **7.0-7.9** near-investable | **6.0-6.9** watch | **5.0-5.9** borderline | **<5.0** avoid
+- Full framework at `.agents/skills/stock_analysis/SKILL.md`
+
 ## Quirks
 
 - No lint, formatter, typecheck, or CI workflows configured
