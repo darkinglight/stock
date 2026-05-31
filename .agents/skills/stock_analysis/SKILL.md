@@ -261,9 +261,9 @@ df_fcst = ak.stock_profit_forecast_ths(symbol='600XXX')  # 分析师一致预期
 
 ### 综合得分计算
 
-**Final Score = round((MS × 5 + TS × 3 + SS × 3) / 11, 2)**
+**Final Score = round((MS × 4 + TS × 3 + SS × 3) / 10, 2)**
 
-权重：芒格 5 : 塔勒布 3 : 施洛斯 3。
+权重：芒格 4 : 塔勒布 3 : 施洛斯 3。
 
 芒格权重最高，因为生意质量是长期持有的第一前提；塔勒布和施洛斯等权，作为风险和资产价值的校验。
 
