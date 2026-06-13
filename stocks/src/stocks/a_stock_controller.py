@@ -162,6 +162,40 @@ class AStockController:
             stocks_data = self.get_stocks_data(self._config)
             self.stock_list_view.update_data(stocks_data)
     
+    def download_stock_list(self, widget=None):
+        stocks = self.stock_list_view._stocks
+        if not stocks:
+            return
+
+        async def _save():
+            try:
+                path = await self.main_window.save_file_dialog(
+                    "保存到Excel", suggested_filename="a_stock_list.xlsx", file_types=["xlsx"]
+                )
+            except ValueError:
+                return
+            if not path:
+                return
+            self._write_stocks_to_excel(str(path), stocks)
+
+        asyncio.create_task(_save())
+
+    @staticmethod
+    def _write_stocks_to_excel(path, stocks):
+        import openpyxl
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = "A股列表"
+        headers = ["序号", "代码", "名称", "增长率", "PE", "PB", "分红率", "资产负债率", "ROE", "ROE稳定性", "ROE趋势"]
+        ws.append(headers)
+        for i, s in enumerate(stocks, 1):
+            ws.append([
+                i, s.code, s.name,
+                s.growth, s.pe, s.pb, s.bonus_rate,
+                s.assets_debt_ratio, s.roe, s.roe_stability, s.roe_trend
+            ])
+        wb.save(path)
+
     def get_toolbar_commands(self):
         cmd_stock_list = toga.Command(
             action=self.on_back,
@@ -193,7 +227,13 @@ class AStockController:
             tooltip="任务管理",
             icon="resources/work.png"
         )
-        return [cmd_stock_list, cmd_hk_stock_list, cmd_config, cmd_hk_config, cmd_task]
+        cmd_download = toga.Command(
+            action=self.download_stock_list,
+            text="下载",
+            tooltip="下载当前列表到Excel",
+            icon="resources/save.png"
+        )
+        return [cmd_stock_list, cmd_hk_stock_list, cmd_config, cmd_hk_config, cmd_task, cmd_download]
     
     def _on_config_save(self, widget):
         # 触发保存操作

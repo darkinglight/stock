@@ -26,6 +26,7 @@ test_sources = [
 
 requires = [
     "akshare",
+    "openpyxl",
 ]
 test_requires = [
     "pytest",
