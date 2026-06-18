@@ -1,0 +1,5 @@
+timestamp	commit	skill	old_score	new_score	status	dimension	note	eval_mode
+2026-06-18T12:00	baseline	investment-analysis-framework	-	7.0	baseline	-	初始评估	dry_run
+2026-06-18T12:15	cbdfefe	investment-analysis-framework	7.0	7.0	keep	失败模式编码	补充7种全局失败场景+数据缺失分级表	dry_run
+2026-06-18T12:25	7e4ebe4	investment-analysis-framework	7.0	7.0	keep	检查点设计+实测表现	🔴视觉标记+token超限精简+数据缺失否决边界	dry_run
+2026-06-18T12:35	6a9480f	investment-analysis-framework	7.0	8.57	keep	资源整合度	数据工具链优先级表+references章节	dry_run
