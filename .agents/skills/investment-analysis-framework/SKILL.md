@@ -24,6 +24,17 @@ description: >
 
 在执行任何分析前，必须先获取并确认以下数据完整。缺任何一项即暂停，补充后再继续。
 
+**数据获取工具链（按优先级）：**
+| 工具 | 适用场景 | 调用方式 |
+|------|---------|---------|
+| `yfinance-data` | 美股/港股/H股财务数据、实时行情 | Skill工具调用 |
+| `akshare` (Python) | A股财务报表、分红、机构持仓、K线 | Bash执行Python脚本 |
+| `funda-data` | 深度合成分析（DCF、comps、行业对比） | MCP或REST API |
+| WebSearch/`opencli-reader` | 新闻、公告、治理信息、行业研报 | 工具直接调用 |
+| `webfetch` | 东方财富/同花顺个股页面抓取 | 工具直接调用 |
+
+> **工具调用失败链：** akshare失败 → yfinance → webfetch东方财富 → 标注数据来源受限
+
 ### 1.1 基础数据
 - 当前股价、52周高/低、总市值
 - 所属行业、主营业务、控股股东/实控人
@@ -649,5 +660,22 @@ PE: XX | PB: XX | ROC: XX% | Earnings Yield: XX%
 20. ❌ 忽略历史报告中的治理否决信号 → ✅ 对比时检查历史否决条件是否仍然存在
 
 ---
+
+---
+
+## 七、参考资料
+
+| 资源 | 路径/说明 | 用途 |
+|------|---------|------|
+| 芒格思维框架 | `munger-perspective` Skill | Round 1芒格视角分析 |
+| 塔勒布思维框架 | `taleb-perspective` Skill | Round 1塔勒布视角分析 |
+| 格林布拉特价值框架 | `joel-greenblatt-perspective` Skill | Round 1格林布拉特视角分析 |
+| A股财务数据 | akshare `stock_financial_report_sina` | 利润表/资产负债表/现金流量表 |
+| A股行情数据 | akshare `stock_zh_a_hist` | K线历史数据 |
+| A股分红数据 | akshare `stock_history_dividend_detail` | 分红历史 |
+| A股机构持仓 | akshare `stock_institute_hold_detail` | 基金/社保/QFII持仓 |
+| 美股/港股数据 | `yfinance-data` Skill | 海外市场标的分析 |
+| 深度研究合成 | `funda-data` Skill (MCP/REST) | DCF/Comps/行业深度 |
+| 新闻与公告 | `opencli-reader` Skill | 实时信息获取 |
 
 *本框架仅供学习参考，不构成投资建议。投资有风险，决策需谨慎。*
