@@ -1,0 +1,6 @@
+688686 -> <StringArray>
+['奥普特']
+Length: 1, dtype: str
+603551 -> <StringArray>
+['奥普科技']
+Length: 1, dtype: str
