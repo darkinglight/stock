@@ -1,3 +1,8 @@
+> ⚠️ **DEPRECATED / 已废弃** — 本文件为早期 A股分析框架 (Munger × Taleb × Schloss, 4:3:3)。
+> 本文件缺少 YAML frontmatter，不会被注册为 skill，也不会被自动触发。
+> 请改用 `.agents/skills/investment-analysis-framework/SKILL.md`
+> (Munger × Greenblatt × Taleb, 3:4:3, 含治理评分与 8 轮辩论)。以下内容仅作历史参考。
+
 # stock_analysis — 中国A股分析框架 (Munger × Taleb × Schloss)
 
 分析任意A股时，严格按以下步骤执行。**必须先获取真实财务数据再发表观点。**

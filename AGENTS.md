@@ -45,10 +45,15 @@
 
 ## Stock Analysis Framework
 
-- **Three-person panel**: Munger (生意质量) : Taleb (非对称/反脆弱) : Schloss (资产价值) weighted **4:3:3**
-- **Final score** = (MS×4 + TS×3 + SS×3) / 10
-- **8.0+** investable | **7.0-7.9** near-investable | **6.0-6.9** watch | **5.0-5.9** borderline | **<5.0** avoid
-- Full framework at `.agents/skills/stock_analysis/SKILL.md`
+**Default: always use the `investment-analysis-framework` skill for any stock/company analysis** (triggers on 「分析公司」「股票分析」「投资分析」). Do not improvise a panel from memory.
+
+- **Three-person panel**: Munger (生意质量) : Greenblatt (价值/魔法公式) : Taleb (尾部风险/反脆弱), weighted **3:4:3**
+- **Final score** = (Munger×3 + Greenblatt×4 + Taleb×3) / 10
+- **8.0-10** ⭐⭐⭐⭐⭐ 强烈推荐 | **7.0-7.9** ⭐⭐⭐⭐ 推荐 | **6.0-6.9** ⭐⭐⭐ 观望 | **5.0-5.9** ⭐⭐⭐☆ 谨慎 | **<5.0** ⭐⭐ 回避
+- **Taleb holds veto power** (governance score < 3.0 or extreme tail risk → auto-reject)
+- Full framework at `.agents/skills/investment-analysis-framework/SKILL.md`
+
+> **Deprecated:** `.agents/skills/stock_analysis/SKILL.md` (Munger/Taleb/Schloss 4:3:3) is **not registered/deprecated** — its SKILL.md lacks YAML frontmatter so it never loads. Use `investment-analysis-framework` instead.
 
 ## Quirks
 
